@@ -16,7 +16,7 @@
   // reach of each skill (world px from the target's edge) and the order they are tried in (big ones first)
   // (heals / buffs are cast on the bot itself and its party: buffs when a fight starts, heals when someone is hurt)
   const RANGE = { lotus: 110, shadowstep: 260, rend: 140, tempest: 120, crescent: 160, skyfall: 260, thousand: 120, twindragon: 200,
-    ...Object.fromEntries(C.CLASSES.warrior.skills.filter(s=>s.key!=='1').map(s=>[s.id,s.frontline.ward?9999:(s.frontline.range||100)-15])),
+    ...Object.fromEntries(C.CLASSES.warrior.skills.filter(s=>s.key!=='1'&&s.frontline).map(s=>[s.id,s.frontline.ward?9999:(s.frontline.range||100)-15])),
     ...Object.fromEntries(C.CLASSES.spearman.skills.filter(s=>s.spear).map(s => [s.id, s.spear.range - 15])),
     ...Object.fromEntries(Object.values(C.ALL_SKILLS).filter(s=>s.ritual).map(s=>[s.id,s.ritual.range||s.ritual.radius-30])),
     skybolt: 360, mercy: 9999, aegis: 9999, heavens: 360, spiritsword: 460, might: 9999, meteor: 380, nirvana: 9999,
