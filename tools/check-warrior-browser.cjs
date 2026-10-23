@@ -42,7 +42,10 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
     }
     const ids=await run("C.CLASSES.warrior.skills.map(s=>s.id)");
     for(const id of ids){
-      await run(`(()=>{const sk=C.ALL_SKILLS[${JSON.stringify(id)}];warriorFx({id:G.me.id,t:sk.id,a:0,x:G.me.x,y:G.me.y,f:G.me.faction,dur:500,radius:sk.frontline.range||90});HUD.icon(sk.id,'dharma');HUD.icon(sk.id,'adharma');})()`);
+      await run(`(()=>{const sk=C.ALL_SKILLS[${JSON.stringify(id)}],d={id:G.me.id,t:sk.id,castId:1,a:0,x:G.me.x,y:G.me.y,f:G.me.faction,dur:500,radius:sk.frontline?.range||90};
+        if(sk.ritual){warriorFx({...d,t:'ritualStart',skill:sk.id,cast:sk.ritual.cast});warriorFx({...d,t:'ritualRelease',skill:sk.id,recovery:500});}
+        else{warriorFx(d);if(sk.frontline?.damage)warriorFx({id:G.me.id,t:'frontlineHit',skill:sk.id,castId:1});}
+        HUD.icon(sk.id,'dharma');HUD.icon(sk.id,'adharma');})()`);
       await pause(40);
     }
     const iconReport=await run(`(()=>{
@@ -53,7 +56,8 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
         for(const sk of skills){
           const c=HUD.icon(sk.id,f);skillImages.push(c.toDataURL());
           for(const size of [32,48]){const small=document.createElement('canvas');small.width=small.height=size;
-            if(!WarriorIcons.draw(small.getContext('2d'),sk,f,size))throw Error('Missing skill '+sk.id);scaled++;}
+            if(sk.ritual)AscendedSkills.icon(small.getContext('2d'),sk.cls,sk.lvl===130,f,size);
+            else if(!WarriorIcons.draw(small.getContext('2d'),sk,f,size))throw Error('Missing skill '+sk.id);scaled++;}
         }
         for(const w of weapons){
           if(!C.ITEMS[w.id].name.includes('ดาบและโล่'))throw Error('Wrong weapon name '+w.id);
@@ -65,19 +69,19 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
           for(const size of [32,48]){ItemArt.iconCanvas(w.id,f,size);scaled++;}
         }
       }
-      if(new Set(skillImages).size!==22)throw Error('Duplicate skill/faction icon');
+      if(new Set(skillImages).size!==skills.length*factions.length)throw Error('Duplicate skill/faction icon');
       if(new Set(weaponImages).size!==28)throw Error('Duplicate weapon/faction icon');
       // The atlas is painted with held equipment: inventory rendering must not add a second weapon to it.
       return {skillIcons:skillImages.length,weaponIcons:weaponImages.length,scaledRenders:scaled,weaponIds:weapons.map(w=>w.id)};
     })()`);
-    assert.equal(iconReport.skillIcons,22);assert.equal(iconReport.weaponIcons,28);
+    assert.equal(iconReport.skillIcons,ids.length*2);assert.equal(iconReport.weaponIcons,28);
     const gallery=await run(`(()=>{
       const c=document.createElement('canvas');c.width=1200;c.height=1040;const g=c.getContext('2d');
       g.fillStyle='#101722';g.fillRect(0,0,c.width,c.height);g.fillStyle='#e8c789';g.font='bold 24px sans-serif';
       g.fillText('นักรบแนวหน้า · 13 วิชา / ดาบและโล่ 14 ระดับ',24,34);
       const skills=C.CLASSES.warrior.skills,weapons=[...C.WEAPONS].sort((a,b)=>a.lvl-b.lvl);
       ['dharma','adharma'].forEach((f,r)=>{
-        skills.forEach((sk,i)=>{const x=8+i*108,y=54+r*142;
+        skills.forEach((sk,i)=>{const x=8+i*(1184/skills.length),y=54+r*142;
           g.drawImage(HUD.icon(sk.id,f),x+8,y,88,88);g.fillStyle='#d9dce2';g.font='12px sans-serif';
           g.fillText(sk.name,x+2,y+105,104);g.fillStyle=f==='dharma'?'#7ed7ed':'#f19aae';g.font='11px sans-serif';
           g.fillText((f==='dharma'?'ธรรมะ':'อธรรม')+' · '+sk.key,x+10,y+123);
