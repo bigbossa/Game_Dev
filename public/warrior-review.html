@@ -10,7 +10,7 @@
 <label>ท่าทาง<select id="pose"><option value="idle">ยืน</option><option value="walk">เดิน</option><option value="attack">โจมตี</option></select></label>
 <label>ทิศ<select id="direction"></select></label>
 </section><canvas id="preview" width="1100" height="580"></canvas><p id="status">กำลังโหลดโมเดล…</p><a href="/">กลับเข้าเกม</a></main>
-<script src="/shared/common.js"></script><script src="js/model-tiers.js"></script><script src="js/wings.js"></script><script src="js/warrior-weapons.js"></script><script src="js/warrior-gear.js"></script><script src="js/warrior-look.js"></script><script src="js/weapon-look.js"></script><script src="js/equipment-glints.js"></script><script src="js/equipment-aura.js"></script><script src="js/class-aura.js"></script>
+<script src="/shared/common.js"></script><script src="js/model-tiers.js"></script><script src="js/wings.js"></script><script src="js/warrior-weapons.js"></script><script src="js/warrior-gear.js"></script><script src="js/warrior-progression.js"></script><script src="js/warrior-look.js"></script><script src="js/weapon-look.js"></script><script src="js/equipment-glints.js"></script><script src="js/equipment-aura.js"></script><script src="js/class-aura.js"></script>
 <script>
 const $=id=>document.getElementById(id),add=(id,value,text)=>$(id).add(new Option(text,value));
 for(const lv of [1,15,30,50,60,80,100,120,130])add('level',lv,'Lv.'+lv);

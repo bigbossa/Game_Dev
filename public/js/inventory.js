@@ -628,6 +628,11 @@
     try { localStorage.setItem('bagFilter', bagFilter); } catch (err) { /* storage optional */ }
     INV.render();
   });
+  // upright phones: the portrait + stat list fold behind a button so the bag is near the top (style.css)
+  $('invStatsBtn').addEventListener('click', () => {
+    const col = $('invStatsBtn').closest('.equip-col'), open = col.classList.toggle('show-stats');
+    $('invStatsBtn').setAttribute('aria-expanded', String(open));
+  });
   // focus of "สวมของดีสุด" (C.AUTO_EQUIP_MODES), remembered per browser
   {
     const s = $('autoEquipMode');

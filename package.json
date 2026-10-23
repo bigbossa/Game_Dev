@@ -11,6 +11,7 @@
     "check:warrior": "node tools/check-warrior.cjs && node tools/check-warrior-art.cjs",
     "check:warrior-browser": "node tools/check-warrior-browser.cjs",
     "check:warrior-model": "node tools/check-warrior-model.cjs",
+    "check:warrior-parity": "node tools/check-warrior-parity.cjs",
     "audit:balance": "node tools/audit-class-balance.cjs",
     "check:gm-exp": "node tools/check-gm-exp.cjs",
     "sprites": "node tools/build-sprites.js && node tools/item-icons.js && node tools/armor-masks.js && node tools/weapon-sprites.js",

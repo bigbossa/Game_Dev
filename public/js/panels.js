@@ -22,15 +22,22 @@
     order.forEach((q, n) => { q.style.zIndex = Z0 + n; });
   }
 
-  // ---- height cap: whatever room is left between the window's top and the bottom of the screen
+  // ---- height cap: whatever room is left between the window's top and the bottom of the screen — on a computer,
+  // the top of the skill bar where the window is over it, so the bar's buttons stay in sight and clickable
+  function floorOf(p) {
+    const bar = document.getElementById('skillbar');
+    if (document.body.classList.contains('touch') || !bar || bar.offsetParent === null) return innerHeight - M;
+    const b = bar.getBoundingClientRect(), r = p.getBoundingClientRect();
+    return r.right > b.left && r.left < b.right && b.top > innerHeight / 2 ? b.top - M : innerHeight - M;
+  }
   function fit(p) {
     if (!shown(p)) return;
     p.style.maxHeight = '';
     const cs = getComputedStyle(p), css = parseFloat(cs.maxHeight) || Infinity;
     let room;
-    if (p.dataset.moved) room = innerHeight - p.getBoundingClientRect().top - M;
+    if (p.dataset.moved) room = floorOf(p) - p.getBoundingClientRect().top;
     else if (cs.top === 'auto' || /matrix\([^)]*,\s*-?[1-9][\d.]*\)$/.test(cs.transform)) return;   // bottom-anchored / centred: own CSS cap
-    else room = innerHeight - Math.max(M, p.getBoundingClientRect().top) - M;
+    else room = floorOf(p) - Math.max(M, p.getBoundingClientRect().top);
     room = Math.max(60, Math.floor(room));
     if (room < css) p.style.maxHeight = room + 'px';
   }
@@ -56,13 +63,20 @@
     if (s) place(p, s[0], s[1]); else fit(p);
   }
 
+  // a shop / the storage open together with the bag: on an upright phone they share the screen, shop on top and
+  // bag below (style.css body.panel-split), so items can be tapped to sell / store while the shop stays in sight
+  const SPLIT = ['shopPanel', 'enhPanel', 'potionPanel', 'storagePanel'];
+  function syncSplit() {
+    const open = (id) => { const e = document.getElementById(id); return !!e && !e.classList.contains('hidden'); };
+    document.body.classList.toggle('panel-split', open('invPanel') && SPLIT.some(open));
+  }
   function hook(p) {
     if (p._panelHooked) return;
     p._panelHooked = true;
     // windows with a title bar take part in the front/back order; menus without one (#itemMenu) keep their CSS z-index
     const head = handleOf(p), win = !!(head && p.id);
     if (win) p.addEventListener('pointerdown', () => toFront(p), true);
-    new MutationObserver(() => { if (shown(p)) { if (win) toFront(p); settle(p); } }).observe(p, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(() => { syncSplit(); if (shown(p)) { if (win) toFront(p); settle(p); } }).observe(p, { attributes: true, attributeFilter: ['class'] });
     if (win) {
       head.classList.add('drag-handle');
       head.title = head.title || 'ลากเพื่อย้ายหน้าต่าง · ดับเบิลคลิก = กลับตำแหน่งเดิม';

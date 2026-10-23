@@ -216,7 +216,7 @@
     const now = performance.now();
     G.control = { stunUntil: now + (d?.stun || 0), rootUntil: now + (d?.root || 0), slowUntil: now + (d?.slow || 0) };
     if (G.me && (d?.stun || d?.root)) {
-      if(d?.stun || G.me.cls==='spearman') SkillPerformance.cancel(G.me.id,undefined,!!(G.me.ritual||C.ALL_SKILLS[G.me.skillMotion?.skill]?.spear));
+      if(d?.stun || G.me.cls==='spearman' || G.me.cls==='warrior') SkillPerformance.cancel(G.me.id,undefined,!!(G.me.ritual||C.ALL_SKILLS[G.me.skillMotion?.skill]?.spear||C.ALL_SKILLS[G.me.skillMotion?.skill]?.frontline));
       G.me.moving = false; G.me.dash = null; G.me.leap = null;
       if (Number.isFinite(d.x) && Number.isFinite(d.y)) Motion.correction(G.me, d.x, d.y);
     }
@@ -339,6 +339,7 @@
   socket.on('fx', (d) => {
     const e = G.ents.get(d.id);
     SkillPerformance.play(d);
+    if(d.t==='frontlineCancel'||d.t==='frontlineHit')return;
     if (C.ALL_SKILLS[d.t]?.frontline) {
       if (e) { startAtk(e, d.t, d.a); e.atk.dur = d.dur; }
       WarriorLook.play(d); return;
@@ -848,6 +849,7 @@
   joyEl.addEventListener('pointercancel', joyEnd);
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   $('helpBtn').addEventListener('click', () => $('help').classList.toggle('hidden'));
+  $('help').querySelector('.help-close').addEventListener('click', () => $('help').classList.add('hidden'));
 
   // ------------------------------------------------------------ touch: fullscreen (⛶)
   // Fullscreen API (Android Chrome / iPad); iPhone Safari has none → hint to add the game to the home screen

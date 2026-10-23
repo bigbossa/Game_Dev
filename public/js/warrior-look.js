@@ -94,6 +94,7 @@
     const inFrame=fn=>{g.save();g.translate(x-ax*scale,y-ay*scale);g.scale(scale,scale);fn();g.restore();};
     const effects=!e.dead&&!opts.noGlow,ground={...e,x,y};
     if(effects){
+      WarriorProgression.draw(g,e,F,x,y,scale,t,model,opts.auraBounds);
       WeaponLook.plusRings(g,ground,t,opts.auraBounds?.width/2||Infinity,opts.auraBounds?12:Infinity);
       ClassAura.ground(g,ground,t,scale/.46);
       ClassAura.back(g,e,x,y,t,(ay-model.landmarks[faction][pose][row*8+col].headTop)*scale);
@@ -131,9 +132,10 @@
     const stroke=(g,pts,col,w)=>{g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.strokeStyle=col;g.lineWidth=w;g.stroke();};
     for(const layer of ['ground','top']){
       if(FX.list.filter(n=>n.warriorArt).length>=64){const i=FX.list.findIndex(n=>n.warriorArt);FX.list.splice(i,1);}
-      FX.list.push({warriorArt:true,owner:d.id,t0,dur,layer,draw(g,q){
+      FX.list.push({warriorArt:true,owner:d.id,skill:sk.id,t0,dur,layer,draw(g,q){
         const e=G.ents.get(d.id);if(!e||e.dead||e.dying||map!==G.mapId||(motion&&e.skillMotion!==motion))return;
         const x=e.x,y=e.y,t=q*dur,charge=Math.min(1,t/Math.max(1,wind)),hit=Math.max(0,Math.min(1,(t-wind)/Math.max(1,dur-wind)));
+        if(front.damage&&t>=wind&&!motion?.confirmed)return;
         const R=Math.min(d.radius||100,high?210:175),alpha=Math.min(1,q*12,(1-q)*5),N=4+A.grade*2;
         g.save();g.globalAlpha*=alpha;g.lineCap='round';g.lineJoin='round';
         if(layer==='ground'){

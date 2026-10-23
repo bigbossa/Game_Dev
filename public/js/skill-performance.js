@@ -39,9 +39,9 @@
     const e=window.G?.ents.get(id);if(e?.skillMotion&&(!skill||e.skillMotion.skill===skill)){
       e.skillMotion=null;e.atk=null;
     }
-    FX.list=FX.list.filter(n=>!n.performanceArt||n.owner!==id||(skill&&n.skill!==skill));
+    FX.list=FX.list.filter(n=>(!n.performanceArt&&!n.warriorArt)||n.owner!==id||(skill&&n.skill!==skill));
   };
-  S.clear=()=>{SkillArts.clear();for(const e of G.ents.values())e.skillMotion=null;FX.list=FX.list.filter(n=>!n.performanceArt);};
+  S.clear=()=>{SkillArts.clear();for(const e of G.ents.values())e.skillMotion=null;FX.list=FX.list.filter(n=>!n.performanceArt&&!n.warriorArt);};
   S.active=(e,now=performance.now())=>{
     const m=e?.skillMotion;
     // A graded route outlasts the server cast: walking away after the last strike ends it.
@@ -49,6 +49,12 @@
     return m&&!e.dead&&!e.dying&&now>=m.t0&&now<m.t0+m.dur&&m.map===G.mapId?m:null;
   };
   S.play=d=>{
+    if(d.t==='frontlineCancel'||d.t==='frontlineHit'){
+      const e=window.G?.ents.get(d.id),m=e?.skillMotion;
+      if(!m||m.skill!==d.skill||m.castId!==d.castId)return;
+      if(d.t==='frontlineCancel')S.cancel(d.id,d.skill);else m.confirmed=true;
+      return;
+    }
     if(d.t==='spearCancel'||d.t==='ritualCancel'){S.cancel(d.id,d.skill);return;}
     const id=d.t.startsWith('ritual')?d.skill:d.t,sk=C.ALL_SKILLS[id],cfg=configs[id],e=window.G?.ents.get(d.id);
     if(!sk||!cfg||!e||e.dead||e.dying)return;
@@ -59,7 +65,7 @@
     let beats=sequence(sk,d,dur);if(sk.ritual)beats=[released?0:dur];
     dur=Math.max(dur,beats.at(-1)+160);
     const angle=Number.isFinite(d.a)?d.a:Number.isFinite(d.x)&&Number.isFinite(d.y)&&Math.hypot(d.x-e.x,d.y-e.y)>1?Math.atan2(d.y-e.y,d.x-e.x):(e.dir||0)*Math.PI/4;
-    const m=e.skillMotion={...A,...cfg,skill:id,t0:performance.now(),dur,beats,a:angle,dir:C.dirFromAngle(angle),map:G.mapId,released};
+    const m=e.skillMotion={...A,...cfg,skill:id,castId:d.castId,confirmed:!sk.frontline?.damage,t0:performance.now(),dur,beats,a:angle,dir:C.dirFromAngle(angle),map:G.mapId,released};
     const aim=G.ents.get(d.tid??d.ids?.[0]),tx=aim?aim.x:d.tx??d.x,ty=aim?aim.y:d.ty??d.y;
     m.choreo=SkillChoreo.build(id,cfg.cls,A.grade,dur,{D:Number.isFinite(tx)&&Number.isFinite(ty)?Math.hypot(tx-e.x,ty-e.y)-30:undefined,beats});
     if(m.choreo)m.dur=m.choreo.dur;

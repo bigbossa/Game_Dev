@@ -541,6 +541,12 @@ class World {
     const front = sk.frontline;
     const frontTarget = front && front.damage && !front.area && this.slashTarget(p, a, front.range, Math.PI, d.tid);
     if (front && front.damage && !front.area && (!frontTarget || (d.tid && frontTarget.id !== d.tid))) return;
+    const frontClear = target => {
+      const map=this.mapOf(p),n=Math.max(1,Math.ceil(dist(p,target)/12));
+      for(let i=1;i<n;i++)if(C.solidAt(map,p.x+(target.x-p.x)*i/n,p.y+(target.y-p.y)*i/n))return false;
+      return true;
+    };
+    if(frontTarget){if(!frontClear(frontTarget))return;a=Math.atan2(frontTarget.y-p.y,frontTarget.x-p.x);}
     const spearTarget = sk.spear && this.slashTarget(p, a, sk.spear.range, Math.PI, d.tid);
     if (sk.spear && (!spearTarget || (d.tid && spearTarget.id !== d.tid))) return;
     p.mp -= mpCost;
@@ -558,9 +564,14 @@ class World {
     const alive = () => this.alive(p);
     if (front) {
       const mapId = p.mapId, epoch = p.controlEpoch || 0;
-      const valid = () => alive() && p.mapId === mapId && (p.controlEpoch || 0) === epoch && Date.now() >= (p.stunUntil || 0);
+      const castId=p.frontlineSeq=(p.frontlineSeq||0)+1;
+      const valid = () => alive() && p.mapId === mapId && (p.controlEpoch || 0) === epoch && Date.now() >= (p.stunUntil || 0) && Date.now() >= (p.rootUntil || 0);
+      const cancel = () => {
+        if(p.frontlineSeq===castId){p.lockUntil=Math.min(p.lockUntil||0,Date.now());p.actUntil=Date.now();}
+        this.emitNear(mapId,p.x,p.y,'fx',{id:p.id,t:'frontlineCancel',skill:sk.id,castId});
+      };
       p.actUntil = now + (front.windup || 200) + 200;
-      fx({ t: sk.id, a, x: p.x, y: p.y, dur: p.actUntil - now, radius: front.range || 90 });
+      fx({ t: sk.id, castId, tid:frontTarget?.id, a, x: p.x, y: p.y, dur: p.actUntil - now, radius: front.range || 90 });
       if (front.ward) {
         const amount = front.ward + (rank ? ({ ironGuard: 0.05, rallyGuard: 0.04, lastBastion: 0.05 }[sk.id] || 0) : 0);
         const duration = front.duration + (sk.id === 'ironGuard' && rank ? 1000 : 0);
@@ -581,7 +592,7 @@ class World {
       } else {
         p.lockUntil = now + front.windup;
         this.later(front.windup, () => {
-          if (!valid()) return;
+          if (!valid()) return cancel();
           const opts = {};
           if (front.stun) opts.stun = rank ? 700 : front.stun;
           if (front.slow) opts.slow = front.slow;
@@ -591,9 +602,12 @@ class World {
           if (front.area) {
             if (sk.id === 'shieldSweep') this.hitCone(p, a, range, Math.PI * 0.4, front.damage * mult, opts);
             else this.hitCircle(p, p.x, p.y, range, front.damage * mult, opts);
-          } else if (frontTarget && !frontTarget.dead && frontTarget.mapId === mapId &&
-              this.enemiesOf(p, p.x, p.y, range).includes(frontTarget) && dist(p, frontTarget) <= range + radiusOf(frontTarget))
-            this.applyDamage(p, frontTarget, front.damage * mult, opts);
+          } else {
+            if(!frontTarget || frontTarget.dead || frontTarget.mapId!==mapId ||
+                !this.enemiesOf(p,p.x,p.y,range).includes(frontTarget) || dist(p,frontTarget)>range+radiusOf(frontTarget) || !frontClear(frontTarget))return cancel();
+            this.applyDamage(p,frontTarget,front.damage*mult,opts);
+          }
+          fx({t:'frontlineHit',skill:sk.id,castId,a,x:frontTarget?.x??p.x,y:frontTarget?.y??p.y});
         });
       }
       return;

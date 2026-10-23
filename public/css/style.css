@@ -218,7 +218,13 @@ body.touch #storagePanel { top: 6px; left: 6px; right: auto; max-height: calc(10
 
 #helpBtn { position: absolute; right: 14px; bottom: 14px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); color: var(--gold); font-size: 20px; font-weight: 800; cursor: pointer; }
 #help { position: absolute; right: 14px; bottom: 62px; width: 320px; background: var(--panel); border: 1px solid var(--panel-b); border-radius: 12px; padding: 12px 16px; font-size: 13px; }
-#help h3 { margin: 0 0 6px; color: var(--gold); }
+#help h3 { margin: 0 0 6px; color: var(--gold); display: flex; align-items: center; justify-content: space-between; }
+.help-close { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 0 4px; }
+.help-close:hover { color: #fff; }
+body.touch .help-close { font-size: 22px; padding: 0 6px; }
+body.touch #help .kb { display: none; }
+body.touch #help ul { display: flex; flex-direction: column; }
+body.touch #help .tp { order: -1; margin-bottom: 4px; }
 #help ul { padding-left: 18px; margin: 6px 0; }
 #help p { color: var(--muted); margin: 6px 0; }
 
@@ -270,20 +276,24 @@ body.touch #storagePanel { top: 6px; left: 6px; right: auto; max-height: calc(10
 #help h3.drag-handle { margin: -12px -16px 6px; padding: 10px 16px 6px; }
 #itemMenu { max-height: min(55vh, calc(100vh - 24px)); }
 
-#invPanel { right: 14px; top: 200px; width: 560px; max-width: calc(100vw - 28px); }
+#invPanel { right: 14px; top: clamp(70px, calc(100vh - 620px), 200px); width: 560px; max-width: calc(100vw - 28px); }
 .inv-body { display: flex; gap: 14px; padding: 12px; }
 .equip-col { width: 190px; flex: none; display: flex; flex-direction: column; gap: 8px; }
+.inv-stats-btn { display: none; align-items: center; justify-content: space-between; gap: 6px; width: 100%; padding: 7px 10px; border-radius: 8px; border: none;
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text); background: rgba(255,255,255,0.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); }
+.equip-col.show-stats .inv-stats-btn span { transform: rotate(180deg); }
 #invPreview { width: 170px; height: 180px; align-self: center; border-radius: 12px; background: radial-gradient(circle at 50% 70%, rgba(232,194,106,0.18), rgba(0,0,0,0.35)); }
 .eq-row { display: flex; gap: 8px; align-items: center; }
 .eq-slot { position: relative; width: 56px; height: 56px; border-radius: 10px; border: 2px solid #777; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; flex: none; }
 .eq-slot img { max-height: 50px; max-width: 50px; }
 .eq-label { position: absolute; left: 3px; top: 0; font-size: 9px; color: var(--muted); }
-#eqGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+#eqGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+#eqGrid .eq-slot { min-width: 0; }
 #eqGrid .eq-slot { width: auto; aspect-ratio: 1; height: auto; cursor: pointer; }
 #eqGrid .eq-slot img { max-height: 84%; max-width: 84%; }
 #eqGrid .eq-slot.empty { border-style: dashed; border-color: rgba(255,255,255,0.18); }
 #eqGrid .eq-slot:not(.empty) .eq-label { display: none; }
-#eqGrid .eq-slot.empty .eq-label { position: static; font-size: 11px; }
+#eqGrid .eq-slot.empty .eq-label { position: static; font-size: 10px; line-height: 1.1; text-align: center; padding: 0 2px; overflow-wrap: anywhere; }
 #eqGrid .eq-slot:hover { box-shadow: 0 0 0 2px rgba(232,194,106,0.6) inset; }
 #shopTabs { display: flex; gap: 4px; padding: 0 8px 8px; }
 #shopTabs button { flex: 1; padding: 5px 2px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text); font-family: inherit; font-size: 12px; cursor: pointer; }
@@ -332,7 +342,7 @@ body.touch #storagePanel { top: 6px; left: 6px; right: auto; max-height: calc(10
 @media (prefers-reduced-motion: reduce) { .bag-slot .up { animation: none; } }
 .bag-slot .lock { position: absolute; right: 1px; top: 2px; font-size: 10px; line-height: 1; filter: drop-shadow(0 1px 1px #000); pointer-events: none; }
 .bag-slot .up ~ .lock { top: 16px; }
-.bag-slot .opt { position: absolute; left: 1px; bottom: 1px; padding: 0 3px; border-radius: 4px; font-size: 9px; font-weight: 800; line-height: 13px; color: #140c06; background: var(--oc); box-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none; }
+.bag-slot .opt { position: absolute; left: 1px; bottom: 13px; padding: 0 3px; border-radius: 4px; font-size: 9px; font-weight: 800; line-height: 13px; color: #140c06; background: var(--oc); box-shadow: 0 1px 2px rgba(0,0,0,0.6); pointer-events: none; }
 .bag-slot.toolow img { filter: grayscale(0.6) brightness(0.7); }
 .bag-slot:hover { box-shadow: 0 0 0 2px rgba(232,194,106,0.6) inset; }
 /* multi-select (inventory.js): a checkbox in each filled slot, the action bar above the bag */
@@ -625,7 +635,7 @@ body.touch .bag-check::after { left: 6px; top: 2px; width: 5px; height: 10px; }
 .who-none { color: var(--muted); }
 .who-tip { position: fixed; z-index: 60; pointer-events: none; max-height: calc(100vh - 16px); overflow-y: auto; scrollbar-width: thin; display: none; background: rgba(10,10,14,0.95); border: 1px solid var(--panel-b); border-radius: 10px; padding: 8px 12px; max-width: 280px; font-size: 13px; }
 #statBtn.has::after { content: attr(data-n); position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #e0343a; color: #fff; font-size: 10px; line-height: 16px; font-weight: 700; }
-#statPanel { left: 50%; top: 90px; transform: translateX(-50%); width: 420px; max-width: calc(100vw - 16px); max-height: calc(100vh - 110px); overflow-y: auto; }
+#statPanel { left: 50%; top: 70px; transform: translateX(-50%); width: 420px; max-width: calc(100vw - 16px); max-height: calc(100vh - 160px); overflow-y: auto; }
 #statPts { padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .st-free { color: var(--text); }
 .st-free b { color: #ffd76a; font-size: 18px; }
@@ -700,6 +710,7 @@ body.touch .bag-check::after { left: 6px; top: 2px; width: 5px; height: 10px; }
 .bot-sk.locked { opacity: 0.45; cursor: not-allowed; }
 .bot-sk small { color: var(--muted); }
 .bot-body .k { display: inline-block; min-width: 16px; text-align: center; font-size: 10px; font-weight: 800; color: #1a1206; background: var(--gold); border-radius: 4px; }
+.bot-body .k.none { color: var(--muted); background: rgba(255,255,255,0.1); }
 .bot-pot { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; }
 .bot-pot b { color: #ffe39a; min-width: 34px; text-align: right; }
 .bot-hint { color: var(--muted); font-size: 11px; margin: 4px 0 0; line-height: 1.5; }
@@ -804,6 +815,10 @@ body.touch #warpPanel, body.touch #bookPanel { top: 6px; max-height: calc(100vh 
 body.touch #warpList { max-height: calc(100vh - 70px); }
 body.touch .panel-head .close { font-size: 22px; padding: 0 6px; }
 body.touch .inv-hint { display: none; }
+/* character panel on touch screens: the bag comes first; the portrait and the stat list fold behind a button */
+body.touch .inv-stats-btn { display: flex; }
+body.touch #invPanel .equip-col:not(.show-stats) #invPreview,
+body.touch #invPanel .equip-col:not(.show-stats) #statList { display: none; }
 body.touch #deathScreen .ds-title { font-size: 34px; }
 /* phones held upright (portrait): compact HUD so the play field stays open
    top-left: player frame, chat under it · top-right: minimap, round buttons in a column under it · target in between */
@@ -828,6 +843,11 @@ body.touch #deathScreen .ds-title { font-size: 34px; }
   body.touch #fsBtn { right: 4px; top: 440px; width: 34px; height: 34px; font-size: 15px; }
   body.touch #botStatus, body.touch #followStatus { top: 120px; }
   body.touch #help { top: 4px; right: 4px; width: calc(100vw - 8px); }
+  /* a shop / the storage with the bag: shop in the top half, bag in the bottom half */
+  body.touch.panel-split #shopPanel, body.touch.panel-split #enhPanel, body.touch.panel-split #potionPanel,
+  body.touch.panel-split #storagePanel { top: 6px !important; left: 6px !important; right: 6px !important; max-height: calc(52vh - 9px) !important; }
+  body.touch.panel-split #invPanel { top: calc(52vh + 3px) !important; left: 6px !important; right: 6px !important; max-height: calc(48vh - 9px) !important; }
+  body.touch.panel-split #invPanel .equip-col { display: none; }
   body.touch #chat { left: 4px; top: 70px; width: 54vw; }
   /* closed: the newest lines sit at the bottom, older ones fade out at the top */
   body.touch #chatLog { max-height: 40px; font-size: 10px; padding: 1px 3px; justify-content: flex-end;

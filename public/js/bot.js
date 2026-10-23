@@ -49,7 +49,7 @@
       const why = lvl < s.lvl ? `Lv.${s.lvl}` : 'ยังไม่เรียน';
       return `<label class="bot-sk${lock ? ' locked' : ''}"${lock ? ` title="${why}"` : ''}>` +
         `<input type="checkbox" data-sk="${s.id}" ${cfg.skills[s.id] ? 'checked' : ''} ${lock ? 'disabled' : ''}>` +
-        `<span class="k">${keyOf(s)}</span> ${s.name}${lock ? ` <small>${why}</small>` : ''}</label>`;
+        (keyOf(s) === '–' ? '<span class="k none" title="ยังไม่ได้ตั้งปุ่มบนแถบสกิล (บอทยังใช้ได้)">·</span>' : `<span class="k">${keyOf(s)}</span>`) + ` ${s.name}${lock ? ` <small>${why}</small>` : ''}</label>`;
     }).join('');
     status();
   }
