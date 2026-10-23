@@ -85,13 +85,14 @@ class World {
     this.rankBuilding = null;
     this.parties = new Map();
     this.partySeq = 1;
+    this.fund = this.loadFund();
     this.spawnAllMonsters();
     this.last = Date.now();
     if (GM_MODE !== 'off' && !GM_CODE) console.log('GM_CODE ไม่ได้ตั้งใน .env — คำสั่ง GM ปลดล็อกไม่ได้');
     if (GM_MODE === 'all') console.log('GM: ทุกคนพิมพ์ /gm เสกไอเทม/ชุด/ตี+/เลเวลได้ (GM=all) · ลบตัวละคร /user ยังต้องบัญชี GM + /gmcode');
     else if (GM_MODE === 'account') console.log('GM/test commands: GM accounts only (npm run gm -- <บัญชี>) — start with GM=0 to disable');
     setInterval(() => this.tick(), TICK_MS);
-    setInterval(() => this.sendMinimap(), 1000);
+    setInterval(() => { this.sendMinimap(); this.fundTick(); }, 1000);
     setInterval(() => { for (const pt of this.parties.values()) this.sendParty(pt); }, 500);
     setInterval(() => this.saveAll(), 20000);
   }
@@ -139,6 +140,7 @@ class World {
     socket.on('users', withPlayer(this.onUsers));
     socket.on('who', withPlayer(this.onWho));
     socket.on('rank', withPlayer(this.onRank));
+    socket.on('fund', withPlayer(this.onFund));
     socket.on('leaveChar', acked(this.onLeaveChar));
     socket.on('disconnect', () => {
       const p = this.bySocket.get(socket.id);
@@ -350,6 +352,86 @@ class World {
     this.save(p);
     ack({ ok: true, id: p.id, note, me: this.meFull(p), map: p.mapId, score: this.score, inv: this.invState(p), st: this.statState(p), skl: this.skillState(p), gm: this.canSpawn(p) });
     this.systemChat(`${p.name} (ฝ่าย${C.FACTIONS[p.faction].name}) เข้าสู่ยุทธภพ`);
+    p.socket.emit('fund', this.fundState(p));
+  }
+
+  // ------------------------------------------------------------ ระดมทุน (C.FUND): one pot for the whole server
+  // fund = { total (gold in the pot this round), round (1, 2, ...), until (boost ends, ms epoch; 0 = off),
+  //          donors { name: gold this round }, last [{ n, g }] (top donors of the round that filled last) }
+  // kept in the meta table ('fund') so a restart keeps the pot and a running boost
+  loadFund() {
+    let f = null;
+    try { f = JSON.parse((this.store.getMeta && this.store.getMeta('fund')) || 'null'); } catch (e) { f = null; }
+    const num = (v) => Math.max(0, Math.floor(Number(v) || 0));
+    const donors = {};
+    for (const [n, g] of Object.entries((f && f.donors) || {})) if (typeof n === 'string' && num(g)) donors[n] = num(g);
+    return {
+      total: Math.min(C.FUND.goal - 1, num(f && f.total)), round: Math.max(1, num(f && f.round)), until: num(f && f.until), donors,
+      last: Array.isArray(f && f.last) ? f.last.filter((d) => d && typeof d.n === 'string').slice(0, C.FUND.top).map((d) => ({ n: d.n, g: num(d.g) })) : [],
+    };
+  }
+  saveFund() {
+    if (!this.store.putMeta) return;
+    this.store.putMeta('fund', JSON.stringify(this.fund));
+    this.store.flush();
+  }
+  fundOn() { return this.fund.until > Date.now(); }
+  fundExp() { return this.fundOn() ? C.FUND.exp : 1; }
+  fundDrop() { return this.fundOn() ? C.FUND.drop : 1; }
+  fundTop() { return Object.entries(this.fund.donors).sort((a, b) => b[1] - a[1]).slice(0, C.FUND.top).map(([n, g]) => ({ n, g })); }
+  // left = ms of boost left (the client counts it down itself)
+  fundState(p) {
+    const f = this.fund;
+    return { total: f.total, goal: C.FUND.goal, round: f.round, left: Math.max(0, f.until - Date.now()), top: this.fundTop(),
+      last: f.last, mine: (p && f.donors[p.name]) || 0 };
+  }
+  sendFundAll() { for (const q of this.players.values()) q.socket.emit('fund', this.fundState(q)); }
+  // d.cmd 'open' = send the pot · 'give' with d.gold = put that much bag gold in
+  onFund(p, d) {
+    if (!d || typeof d !== 'object') return;
+    if (d.cmd === 'open') return p.socket.emit('fund', this.fundState(p));
+    if (d.cmd !== 'give') return;
+    const now = Date.now();
+    if (now - (p.lastFund || 0) < 500) return;
+    p.lastFund = now;
+    const gold = Math.floor(Number(d.gold));
+    if (!Number.isFinite(gold) || gold < C.FUND.min) return this.toast(p, `ร่วมระดมทุนขั้นต่ำ ${C.FUND.min.toLocaleString()} ทอง`);
+    if (gold > p.gold) return this.toast(p, 'ทองในกระเป๋าไม่พอ');
+    p.gold -= gold;
+    const f = this.fund;
+    let left = gold, filled = 0;
+    while (left > 0) {                                        // a big gift may fill this round and pay into the next ones
+      const put = Math.min(left, C.FUND.goal - f.total);
+      f.total += put; left -= put;
+      f.donors[p.name] = (f.donors[p.name] || 0) + put;
+      if (f.total >= C.FUND.goal) { this.fundFill(); filled++; }
+    }
+    this.toast(p, `ร่วมระดมทุน ${gold.toLocaleString()} ทอง · ขอบคุณ!`);
+    if (gold >= C.FUND.shout && !filled)
+      this.systemChat(`🏮 ${p.name} ร่วมระดมทุน ${gold.toLocaleString()} ทอง · รอบที่ ${f.round} ได้แล้ว ${Math.floor(f.total / C.FUND.goal * 100)}%`);
+    this.sendInv(p);
+    this.save(p);
+    this.saveFund();
+    this.sendFundAll();
+  }
+  // the pot is full: the boost starts (or runs longer), the next round begins empty
+  fundFill() {
+    const f = this.fund, now = Date.now(), mins = Math.round(C.FUND.ms / 60000);
+    const top = this.fundTop();
+    f.until = Math.max(now, f.until) + C.FUND.ms;
+    f.last = top; f.donors = {}; f.total = 0; f.round++;
+    const thanks = top.slice(0, 3).map((d) => d.n).join(', ');
+    this.systemChat(`🔥 ระดมทุนครบ ${C.FUND.goal.toLocaleString()} ทอง! ทั้งเซิร์ฟได้ EXP ×${C.FUND.exp} · ดรอป ×${C.FUND.drop} `
+      + `เพิ่มอีก ${mins} นาที (เหลือ ${Math.ceil((f.until - now) / 60000)} นาที)${thanks ? ` · ขอบคุณ ${thanks}` : ''}`, null, true);
+  }
+  // once a second: tell everyone when the boost runs out
+  fundTick() {
+    const f = this.fund;
+    if (!f.until || f.until > Date.now()) return;
+    f.until = 0;
+    this.systemChat(`🏮 บัพระดมทุน (EXP ×${C.FUND.exp} · ดรอป ×${C.FUND.drop}) หมดเวลาแล้ว · ร่วมระดมทุนรอบที่ ${f.round} ได้ที่ปุ่ม 🏮`);
+    this.saveFund();
+    this.sendFundAll();
   }
 
   meFull(p) {
@@ -1600,7 +1682,8 @@ class World {
         for (const [id, w] of D.items) { r -= w; if (r <= 0) { item = id; break; } }
         item = item || D.items[0][0];
       } else {
-        for (const [id, ch] of D.items) if (Math.random() < ch) { item = id; break; }
+        const mul = this.fundDrop();                         // ระดมทุน boost: every chance ×C.FUND.drop
+        for (const [id, ch] of D.items) if (Math.random() < ch * mul) { item = id; break; }
       }
     }
     if (item) {
@@ -2438,12 +2521,16 @@ class World {
         const p = this.players.get(pid);
         if (!p) continue;
         const share = Math.max(0.15, dmg / total);
-        this.gainExp(p, Math.round(m.def.exp * share * C.levelExpMul(p.lvl) * (1 + (p.stats.fx.exp || 0))));
+        this.gainExp(p, Math.round(m.def.exp * share * this.fundExp() * C.levelExpMul(p.lvl) * (1 + (p.stats.fx.exp || 0))));
         contributors.push(p);
       }
       // gold and the one guaranteed item are split equally among every contributor (round-robin for
       // the item, same fairness as a normal mob kill) — no longer weighted by damage share or by who tagged it
-      if (contributors.length) this.rollLoot(contributors[0], m.type, { recipients: contributors, turnHolder: m });
+      if (contributors.length) {
+        this.rollLoot(contributors[0], m.type, { recipients: contributors, turnHolder: m });
+        // ระดมทุน boost: the boss's one guaranteed item becomes two (the second carries no gold)
+        if (this.fundOn()) this.rollLoot(contributors[0], m.type, { recipients: contributors, turnHolder: m, goldScale: 0 });
+      }
       if (isPlayer(src) && this.defOf(m).pvp) {
         this.score[src.faction] += 10;
         this.io.emit('score', this.score);
@@ -2522,7 +2609,8 @@ class World {
   // every share then gets that member's own level penalty, level EXP rate (C.levelExpMul) and EXP gear bonus
   shareExp(src, m) {
     const near = this.expGroup(src, m.mapId, m.x, m.y);
-    const gain = (q, v) => this.gainExp(q, Math.max(1, Math.round(v * C.expPenalty(q.lvl, m.def.lvl) * C.levelExpMul(q.lvl) * (1 + (q.stats.fx.exp || 0)))));
+    const boost = this.fundExp();                            // ระดมทุน boost
+    const gain = (q, v) => this.gainExp(q, Math.max(1, Math.round(v * boost * C.expPenalty(q.lvl, m.def.lvl) * C.levelExpMul(q.lvl) * (1 + (q.stats.fx.exp || 0)))));
     if (near.length > 1 && this.partyRules(src).exp === 'each') {
       const hit = near.filter((q) => m.threat.get(q.id) > 0);
       if (!hit.includes(src)) hit.push(src);

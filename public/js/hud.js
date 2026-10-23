@@ -710,7 +710,7 @@
   HUD.announce = function (m) {
     const el = $('announce');
     if (!el) return;
-    el.style.setProperty('--gc', C.GRADES[m.g || 0].color);
+    el.style.setProperty('--gc', Number.isInteger(m.g) ? C.GRADES[m.g].color : '#ffd23a');   // no item: gold (ระดมทุน)
     el.textContent = m.t;
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');      // restart the animation
     clearTimeout(annTimer);

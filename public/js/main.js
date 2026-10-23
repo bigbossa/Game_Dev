@@ -259,6 +259,7 @@
   socket.on('who', (d) => WHO.setList(d));
   socket.on('inspect', (d) => WHO.setInspect(d));
   socket.on('rank', (d) => RANK.set(d));
+  socket.on('fund', (d) => FUND.set(d));
   socket.on('stat', (d) => STATS.set(d));
   socket.on('skills', (d) => BOOK.set(d));
   socket.on('toast', (t) => HUD.toast(t));
@@ -746,9 +747,10 @@
     else if (k === 'm') WMAP.toggle();
     else if (k === 'p') WHO.toggle();
     else if (k === 'r') RANK.toggle();
+    else if (k === 'g') FUND.toggle();
     else if (k === 'u') HUD.togglePk();
     else if (k === 'l') HUD.toggleChat();
-    else if (k === 'escape') { INV.closeAll(); GM.toggle(false); WARP.toggle(false); BOOK.toggle(false); STATS.toggle(false); GM.users(false); BOT.toggle(false); WMAP.toggle(false); RANK.toggle(false); PARTY.closeMenu(); setTarget(null); }
+    else if (k === 'escape') { INV.closeAll(); GM.toggle(false); WARP.toggle(false); BOOK.toggle(false); STATS.toggle(false); GM.users(false); BOT.toggle(false); WMAP.toggle(false); RANK.toggle(false); FUND.toggle(false); PARTY.closeMenu(); setTarget(null); }
   });
   addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   addEventListener('blur', () => { keys.clear(); mouse.down = false; joyEnd({ pointerId: joy.id }); });

@@ -678,6 +678,7 @@
     for (const [i] of moved) sel.delete(i);
     for (const [, id] of moved) { const j = state.inv.findIndex((x, k) => x === id && !sel.has(k)); if (j >= 0) sel.set(j, id); }
     INV.state = state;
+    if (window.FUND) FUND.render();                                       // the gold shown in the fund panel
     if (oldMode && state.eqMode) {
       if (oldMode !== state.eqMode) emit('bag', { cmd: 'mode', mode: oldMode });
       try { localStorage.removeItem('autoEquipMode'); } catch (e) { /* storage optional */ }

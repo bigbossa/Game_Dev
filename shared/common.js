@@ -486,6 +486,11 @@
   // it ends early when a stun / root breaks the strike. Adds into the player's damage reduction (capped 70%).
   const SPEAR_WINDUP_GUARD = { minWindup: 400, reduce: 0.15 };
   const PK = { minLvl: 20, defendMs: 30000, combatMs: 10000, evilPerKill: 10, evilStep: 10, evilEveryMs: 3600000 };
+  // ระดมทุน: everyone pours bag gold into one pot (server: onFund). Each time it reaches `goal` the whole server gets
+  // monster EXP ×exp and item drop chance ×drop for `ms` (a boss drops a second item); what is left over starts the
+  // next round, and a round filled while the boost still runs adds another `ms` on top.
+  //   min = smallest gift · shout = gifts announced to everyone from this much · top = donors listed per round
+  const FUND = { goal: 10000000, ms: 60 * 60 * 1000, exp: 2, drop: 2, min: 1000, shout: 100000, top: 5 };
   // ---------------- skill stages: something new every 10 levels ----------------
   // rank = how many evolutions of the skill the level has reached; each rank hits 30% harder
   const skillRank = (sk, lvl) => (sk.evo || []).filter((e) => lvl >= e.lvl).length;
@@ -1598,7 +1603,7 @@
     skillRank, skillMult, skillInfo, stageOf, SKILL_STAGES, stagesOf, STANCES, GCD_MS, CLASS_IDS, ALL_SKILLS, setViewClass, spearSequence, spearAreaContains,
     BAG_SIZE, STORAGE_SIZE, RARITY, GRADES, GRADE_LIGHT, gradeLight, EPIC, AFFIXES, OPTIONS, PASSIVES, DROP_LVL_RANGE, TOP_ITEM_LVL, canDropHigh, rollGrade, gradeChances, gradeBands, HIGH_BANDS, BOSS_GRADES, BOSS_RESPAWN,
     makeKey, gradeId, gearFx, gearGrade, gearGrades, gearPlus, WEAPONS, WEAPON_BY_TIER, ARMORS, ARMOR_SETS, ALL_ITEMS, ITEMS, SLOTS, SLOT_NAMES, ARMOR_SLOTS,
-    MAX_PLUS, REAPER_CD_MS, passiveChance, gearProcs, ENHANCE, MAT_TIERS, matTier, matKey, matDef, matHave, PVE_PLUS_MAX, SLOT_PVE, SET_BONUS, gearPve, ENH_STONE, ENH_CHARMS, cleanCharms, cleanAutoSell, sortBag, AUTO_EQUIP_MODES, autoEquipScore, autoEquipBetter, lockId, LOCK_MAX, cleanLocks, parseId, plusId, shopGearPrice, SHOP_BUY_GRADE_MAX, newSeed,
+    FUND, MAX_PLUS, REAPER_CD_MS, passiveChance, gearProcs, ENHANCE, MAT_TIERS, matTier, matKey, matDef, matHave, PVE_PLUS_MAX, SLOT_PVE, SET_BONUS, gearPve, ENH_STONE, ENH_CHARMS, cleanCharms, cleanAutoSell, sortBag, AUTO_EQUIP_MODES, autoEquipScore, autoEquipBetter, lockId, LOCK_MAX, cleanLocks, parseId, plusId, shopGearPrice, SHOP_BUY_GRADE_MAX, newSeed,
     DROPS, SMITH, APOTHECARY, ENHANCER, sellPrice, playerStats, armorTiers, armorLookTier,
     MONSTERS, MONSTER_TYPES, ZONES, DIR_COL,
     SKILL_MAX, SKILL_STEP, SKILL_LVL_GAP, EVO_NEED, EVO_COST, BAR_KEYS, SKILL_PATHS, skillPtsTotal, skillCap, basicOf, skillPtsFree,
