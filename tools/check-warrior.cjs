@@ -96,7 +96,7 @@ try {
     assert.equal(f.w.buffVal(ally,'frontGuard'),.16);
     assert.equal(f.w.buffVal(far,'frontGuard'),0);assert.equal(f.w.buffVal(enemy,'frontGuard'),0);
     ally.mapId='elsewhere';ally.buffs={};f.p.cds={};f.p.gcd=0;
-    cast(f,'rallyGuard',1);assert.equal(f.w.buffVal(ally,'frontGuard'),0);
+    cast(f,'guardianOath');assert.equal(f.w.buffVal(ally,'frontGuard'),0);
   }
   // Boss taunt is short, does not interrupt a boss attack, and cannot chain immediately.
   {

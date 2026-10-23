@@ -126,7 +126,7 @@
   W.icon = (g,sk,faction) => WarriorIcons.draw(g,sk,faction,112);
   W.play = d => {
     const p=W.palette(d.f),sk=C.ALL_SKILLS[d.t],front=sk.frontline,t0=performance.now(),wind=front.windup||0;
-    const A=SkillPerformance.profile(sk,d),high=sk.lvl>=120,slam=sk.id==='earthShatter',ward=!!front.ward;
+    const A=SkillPerformance.profile(sk,d),high=sk.lvl>=120,slam=['earthShatter','citadelStrike'].includes(sk.id),ward=!!front.ward;
     const caster=G.ents.get(d.id),motion=caster?.skillMotion,map=G.mapId,dur=Math.max(d.dur||500,wind+(high?850:500));
     const stroke=(g,pts,col,w)=>{g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.strokeStyle=col;g.lineWidth=w;g.stroke();};
     for(const layer of ['ground','top']){

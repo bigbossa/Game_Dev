@@ -74,7 +74,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
     const gallery=await run(`(()=>{
       const c=document.createElement('canvas');c.width=1200;c.height=1040;const g=c.getContext('2d');
       g.fillStyle='#101722';g.fillRect(0,0,c.width,c.height);g.fillStyle='#e8c789';g.font='bold 24px sans-serif';
-      g.fillText('นักรบแนวหน้า · 11 วิชา / ดาบและโล่ 14 ระดับ',24,34);
+      g.fillText('นักรบแนวหน้า · 13 วิชา / ดาบและโล่ 14 ระดับ',24,34);
       const skills=C.CLASSES.warrior.skills,weapons=[...C.WEAPONS].sort((a,b)=>a.lvl-b.lvl);
       ['dharma','adharma'].forEach((f,r)=>{
         skills.forEach((sk,i)=>{const x=8+i*108,y=54+r*142;

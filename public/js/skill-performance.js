@@ -6,7 +6,7 @@
     dualblade:{slash:['fang','rend','crescent'],spin:['lotus','tempest'],dash:['shadowstep','twindragon'],dive:['skyfall'],flurry:['thousand']},
     taoist:{cast:['jade','spiritsword'],summon:['skybolt','heavens','meteor'],bless:['mercy','aegis','might','nirvana']},
     archer:{shoot:['hawkshot','scatter','deadeye','blast'],volley:['skyrain','stormphoenix'],evade:['rollshot'],focus:['hawkeye','gale']},
-    warrior:{slash:['guardSlash','sunderStrike'],bash:['shieldBash'],guard:['ironGuard','rallyGuard','lastBastion'],spin:['shieldSweep'],cry:['battleCry'],slam:['earthShatter']},
+    warrior:{slash:['guardSlash','sunderStrike'],bash:['shieldBash'],guard:['ironGuard','rallyGuard','lastBastion','guardianOath'],spin:['shieldSweep'],cry:['battleCry'],slam:['earthShatter','citadelStrike']},
     spearman:{spear:['spearThrust','spearCrush','spearChain','spearBreak','spearExecution','spearHeart','spearPin','spearBoss','spearHeaven']}
   };
   const configs={};

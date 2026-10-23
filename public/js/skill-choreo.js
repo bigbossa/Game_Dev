@@ -36,7 +36,7 @@
       [[.15,-.08,0,-5,-.14,'crouch'],[.33,.65,-16,6,.1,'rush'],[.5,.8,0,4,.08,'strike'],[.64,.7,16,14,-.06,'strike'],[.84,.25,0,10,0,'land']],
       [[.12,-.08,0,-6,-.16,'crouch'],[.27,.7,-24,8,.12,'rush'],[.4,.85,0,6,.08,'strike'],[.53,.7,0,40,-.22,'leap'],[.66,.9,0,0,.16,'slam'],[.85,.25,0,12,0,'land']],
       [[.1,-.1,0,-6,-.18,'crouch'],[.22,.65,-30,8,.12,'rush'],[.33,.85,22,6,.08,'strike'],[.45,.75,-22,10,0,'spin'],[.57,.8,0,85,-.3,'leap'],[.7,.95,0,0,.18,'slam'],[.86,.3,0,14,0,'land']],
-      // Lv.120 / 130 stages (the shield warrior's keys 0 / - are ascended arts now: ascended-skills.js)
+      // Lv.120 guardianOath and Lv.130 citadelStrike: the shield warrior's own grand routes.
       [[.08,-.1,0,-6,-.18,'crouch'],[.18,.6,-40,8,.12,'rush'],[.28,.85,30,6,.1,'strike'],[.38,.7,-35,12,0,'spin'],[.48,.9,35,8,.1,'strike'],[.6,.85,0,130,-.3,'leap'],[.72,1,0,0,.2,'slam'],[.86,.5,0,30,0,'leap']],
       [[.07,-.12,0,-7,-.2,'crouch'],[.15,.55,-45,8,.12,'rush'],[.23,.85,35,6,.1,'strike'],[.31,.7,-40,14,0,'spin'],[.39,.95,40,8,.1,'strike'],[.5,.8,0,170,-.35,'hover'],[.6,.85,0,200,0,'hover'],[.7,1,0,0,.22,'slam'],[.8,.9,30,10,0,'strike'],[.9,.4,0,40,0,'leap']]
     ]
@@ -51,7 +51,9 @@
     sunderStrike:[[-10,8,14,-.24,-.06,0],[22,-6,22,.2,.04,1],[10,0,0,.12,0,2]],
     rallyGuard:[[0,-6,4,-.06,-.12,0],[0,6,14,.06,.12,1],[0,0,4,0,0,1]],
     earthShatter:[[-8,0,10,-.2,0,0],[0,0,48,-.32,0,1],[18,0,0,.18,0,2]],
-    lastBastion:[[-6,0,-6,-.1,0,0],[-10,0,10,.06,0,1],[-2,0,0,0,0,1]]
+    lastBastion:[[-6,0,-6,-.1,0,0],[-10,0,10,.06,0,1],[-2,0,0,0,0,1]],
+    guardianOath:[[0,-8,8,-.08,-.12,0],[0,8,30,.08,.12,1],[0,0,8,0,0,1]],
+    citadelStrike:[[-10,0,18,-.26,0,0],[4,0,70,-.4,.1,1],[24,0,0,.2,0,2]]
   };
   // Spear arts each have their own route; keys marked with a higher stage appear as the skill is trained.
   const SPEAR={
@@ -82,7 +84,7 @@
   // The server already carries these casters (dash/leap), so their route stays over the moving body.
   const CARRIED=new Set(['skyfall','shadowstep','twindragon','rollshot']);
   // No target to rush: wards, rallies and blessings perform in place.
-  const IN_PLACE=new Set(['ironGuard','battleCry','rallyGuard','lastBastion','mercy','aegis','might','nirvana','hawkeye','gale']);
+  const IN_PLACE=new Set(['ironGuard','battleCry','rallyGuard','lastBastion','guardianOath','mercy','aegis','might','nirvana','hawkeye','gale']);
   const MIN_DUR=[420,560,700,880,1150,1450];
   const RANGED=new Set(['archer','taoist']);
   K.routes=ROUTES;

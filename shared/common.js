@@ -276,6 +276,14 @@
       { id: 'lastBastion', name: 'ปราการสุดท้ายแห่งขุนพล', key: '9', lvl: 70, mp: 50, cd: 40000,
         frontline: { ward: 0.35, duration: 4000 },
         desc: 'ลดความเสียหายตนเอง 35% นาน 4 วินาที ไม่มีอมตะ ไม่มีฮีล ไม่บวกซ้อนเกราะอื่น', evo: [{ lvl: 130, name: 'ปราการมหาขุนพล', desc: 'ลดความเสียหาย 40% นาน 4 วินาที' }] },
+      // extra: no key of its own (keys 0 / - belong to the ascended arts); learn it and put it on any key of the bar.
+      // Its cooldown is used as written (not ×SKILL_CD_MUL), as when it sat on 0 / -.
+      { id: 'guardianOath', name: 'สัตย์พิทักษ์', key: '', extra: true, lvl: 120, mp: 100, cd: 45000,
+        frontline: { ward: 0.2, duration: 7000, party: true, range: 300 },
+        desc: 'ตนเองและปาร์ตี้ระยะ 300 ลดความเสียหาย 20% นาน 7 วินาที ไม่บวกซ้อนเกราะอื่น · สกิลเสริม: ตั้งปุ่มเองในคัมภีร์วิชา', evo: [] },
+      { id: 'citadelStrike', name: 'ดาบมหาปราการ', key: '', extra: true, lvl: 130, mp: 100, cd: 70000,
+        frontline: { damage: 5, range: 210, windup: 900, area: true, slow: 1800 },
+        desc: 'ตั้งท่า 0.9 วินาที ฟันรอบตัว 500% ระยะ 210 ทำให้ช้า 1.8 วินาที ถูกสตัน/ตรึงระหว่างท่าจะยกเลิก · สกิลเสริม: ตั้งปุ่มเองในคัมภีร์วิชา', evo: [] },
     ],
   };
   // Two learned endgame arts per class (keys 0 / -). No long channel: a short wind-up, then the body really travels
@@ -336,7 +344,7 @@
   const SKILL_CD_MUL = 1.3, BASIC_CD_MUL = 1.5;
   for (const c of Object.values(CLASSES)) for (const s of c.skills) {
     if (s.key === '1') s.cd = Math.round((s.cd * BASIC_CD_MUL) / 10) * 10;
-    else if (!s.ritual && !['0', '-'].includes(s.key)) s.cd = Math.round((s.cd * SKILL_CD_MUL) / 500) * 500;
+    else if (!s.ritual && !s.extra && !['0', '-'].includes(s.key)) s.cd = Math.round((s.cd * SKILL_CD_MUL) / 500) * 500;
   }
   const CLASS_IDS = Object.keys(CLASSES);          // snapshot index of a class
   // Fractions, not percentages. Both factions use the same combat rules.
@@ -369,7 +377,7 @@
     rend: 'เกราะแตกไม่ซ้อนกัน ใช้ค่าที่แรงที่สุด',
   };
   // timed buffs a skill leaves on the caster / party (HUD buff row; values are applied on the server)
-  const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion'];
+  const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion', 'guardianOath'];
   // skills that move the caster: a root blocks them (server and client)
   const MOVE_SKILLS = ['shadowstep', 'skyfall', 'twindragon', 'rollshot'];
   // where ดาวตกเพลิงฟ้า's meteors land round the aim (golden-angle ring), shared so every client draws the real spots
@@ -587,7 +595,7 @@
     if (old) autoSkills(cls, d, lvl);
     // skill bar: keys 1-9 hold any skill of the class (or nothing); default = each skill on its own key
     const ids = new Set(list.map((s) => s.id)), used = new Set();
-    const bar = saved && Array.isArray(saved.bar) ? saved.bar : list.map((s) => s.id);
+    const bar = saved && Array.isArray(saved.bar) ? saved.bar : BAR_KEYS.map((k) => (list.find((s) => s.key === k) || {}).id);
     for (let i = 0; i < BAR_KEYS.length; i++) {
       const id = i>=9 && i>=bar.length ? list.find(s=>s.key===BAR_KEYS[i])?.id : bar[i];
       d.bar[i] = ids.has(id) && !used.has(id) ? id : null;

@@ -193,7 +193,7 @@ function verify(){
     const map=G.mapId;G.mapId='different-map';require(!SkillPerformance.active(e,now),'Warp retained animation');G.mapId=map;
   }
   FX.list=[];
-  for(let i=0;i<80;i++){const e=review.actor('warrior','dharma','crowd-'+i);review.dispatch(review.event(e,C.ALL_SKILLS.rallyGuard,0,12));}
+  for(let i=0;i<80;i++){const e=review.actor('warrior','dharma','crowd-'+i);review.dispatch(review.event(e,C.ALL_SKILLS.guardianOath,0,12));}
   const crowd=FX.list.filter(n=>n.performanceArt).length;require(crowd<=96,'Unbounded crowd');
   SkillPerformance.clear();require(![...G.ents.values()].some(e=>e.skillMotion),'Map cleanup');
   FX.list.forEach(n=>n.t0-=30000);FX.update(0);const expired=FX.list.length;
