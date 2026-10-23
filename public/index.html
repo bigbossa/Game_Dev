@@ -206,25 +206,52 @@
           <div class="gold-line">💰 <b class="gold-val">0</b> ทอง <span class="stone-line"><img class="stone-ico" alt=""> หินตีบวก <b class="stone-val">0</b></span> <span class="charm-line" title="ยันต์กันแตก · ยันต์เพิ่มโอกาส"><img class="charm-ico" data-k="guard" alt=""><b class="guard-val">0</b> <img class="charm-ico" data-k="luck" alt=""><b class="luck-val">0</b></span></div>
         </div>
         <div class="bag-col">
-          <div id="bagBar" class="bag-bar">
-            <span id="bagSelInfo" class="bag-sel-info">ติ๊ก ☐ ที่มุมไอเทมเพื่อเลือกหลายชิ้น</span>
+          <div class="bag-top">
+            <div id="bagFilter" class="bag-filter" role="tablist" aria-label="กรองไอเทม">
+              <button type="button" data-f="all" class="on">ทั้งหมด</button>
+              <button type="button" data-f="weapon">อาวุธ</button>
+              <button type="button" data-f="armor">ชุด</button>
+              <button type="button" data-f="use">ยา/อื่นๆ</button>
+              <button type="button" data-f="up" title="เฉพาะไอเทมที่ดีกว่าที่สวมอยู่ (ตามค่าที่เน้น)">▲ ดีกว่า</button>
+            </div>
+            <span class="bag-count-wrap" title="ช่องที่ใช้ / ทั้งหมด">🎒 <b id="bagCount">0/60</b></span>
+          </div>
+          <div id="bagTools" class="bag-tools">
+            <div class="bag-split">
+              <button type="button" data-bag="autoequip" class="bag-btn" title="สวมไอเทมที่ดีที่สุดในกระเป๋าให้ทุกช่อง ตามค่าที่เลือกเน้น (เสมอกันเทียบเลเวล → เกรด → ค่าตีบวก)">⚡ สวมของดีสุด</button>
+              <select id="autoEquipMode" class="bag-sel" title="ค่าที่เน้นตอนสวมของดีสุด และใช้ตัดสินลูกศร ▲"></select>
+            </div>
+            <button type="button" data-bag="junk" class="bag-btn ghost" title="ติ๊กอุปกรณ์ที่แย่กว่าที่สวมอยู่ทุกด้าน (ไม่รวมที่ล็อก และที่เลเวลยังไม่ถึง) แล้วกดขาย/ทิ้งต่อได้เลย">🧹 เลือกของด้อย</button>
+            <span class="bag-tools-gap"></span>
+            <button type="button" data-bag="sort" class="bag-btn ghost icon" title="จัดเรียง: อาวุธ → เสื้อ → กางเกง → ปลอกแขน → หัวไหล่ · เลเวล ระดับ และ + สูงก่อน" aria-label="จัดเรียง">⇅</button>
+            <button type="button" data-bag="storage" class="bag-btn ghost icon" title="คลังเก็บของ (เปิดได้ที่ช่างตีดาบหรือศิลาเคลื่อนย้ายในค่ายพัก)" aria-label="คลัง">📦</button>
+            <button type="button" data-bag="settings" class="bag-btn ghost icon" title="ตั้งค่ากระเป๋า: จัดเรียงอัตโนมัติ · ขายอัตโนมัติ" aria-label="ตั้งค่ากระเป๋า" aria-expanded="false">⚙</button>
+          </div>
+          <div id="bagBar" class="bag-bar hidden">
+            <span id="bagSelInfo" class="bag-sel-info"></span>
             <button type="button" data-bag="all" class="bag-btn ghost">เลือกทั้งหมด</button>
-            <button type="button" data-bag="none" class="bag-btn ghost">ยกเลิก</button>
+            <button type="button" data-bag="lock" class="bag-btn ghost" title="ล็อกไอเทมที่เลือก: ขายและทิ้งไม่ได้">🔒 ล็อก</button>
+            <button type="button" data-bag="store" class="bag-btn hidden">ฝาก</button>
             <button type="button" data-bag="sell" class="bag-btn sell">ขาย</button>
             <button type="button" data-bag="drop" class="bag-btn warn">ทิ้ง</button>
-            <button type="button" data-bag="store" class="bag-btn hidden">ฝาก</button>
+            <button type="button" data-bag="none" class="bag-btn ghost icon" title="ยกเลิกที่เลือก" aria-label="ยกเลิกที่เลือก">✕</button>
           </div>
-          <div class="bag-tools">
-            <span class="bag-count-wrap">🎒 <b id="bagCount">0/60</b></span>
-            <button type="button" data-bag="sort" class="bag-btn ghost" title="เรียง: อาวุธ → เสื้อ → กางเกง → ปลอกแขน → หัวไหล่ · เลเวล ระดับ และ + สูงก่อน">⇅ จัดเรียง</button>
-            <button type="button" data-bag="autoequip" class="bag-btn ghost" title="สวมไอเทมที่ดีที่สุดในกระเป๋าให้ทุกช่อง ตามค่าที่เลือกเน้น (เสมอกันเทียบเลเวล → เกรด → ค่าตีบวก)">⚡ สวมของดีสุด</button>
-            <select id="autoEquipMode" class="bag-sel" title="ค่าที่เน้นตอนสวมของดีสุด"></select>
-            <button type="button" data-bag="autosort" class="bag-btn ghost toggle" title="จัดเรียงให้เองทุกครั้งที่ได้ไอเทมใหม่">☐ จัดอัตโนมัติ</button>
-            <button type="button" data-bag="storage" class="bag-btn ghost" title="เปิดได้ที่ช่างตีดาบหรือศิลาเคลื่อนย้ายในค่ายพัก">📦 คลัง</button>
+          <div id="bagSettings" class="bag-settings hidden">
+            <button type="button" data-bag="autosort" class="bag-btn ghost toggle" title="จัดเรียงให้เองทุกครั้งที่ได้ไอเทมใหม่">☐ จัดเรียงอัตโนมัติ</button>
+            <div id="autoSell" class="auto-sell"></div>
           </div>
-          <div id="autoSell" class="auto-sell"></div>
           <div id="bagGrid"></div>
-          <div class="inv-hint">ดับเบิลคลิก/คลิกขวา = สวมใส่ · Shift+คลิกขวา = ทิ้ง · ที่ร้าน: คลิกขวา = ขาย · ติ๊กมุมไอเทม = เลือกหลายชิ้นแล้วขาย/ทิ้งพร้อมกัน · ดับเบิลคลิกช่องชุดที่สวม = ถอด</div>
+          <div id="bagEmpty" class="bag-empty hidden"></div>
+          <details class="inv-hint">
+            <summary>❓ วิธีใช้กระเป๋า</summary>
+            <ul>
+              <li><b>ดับเบิลคลิก / คลิกขวา</b> = สวมใส่หรือใช้ · ดับเบิลคลิกช่องชุดที่สวม = ถอด</li>
+              <li><b>ติ๊ก ☐ มุมไอเทม</b> = เลือกหลายชิ้น แล้วขาย / ทิ้ง / ล็อก / ฝาก พร้อมกัน</li>
+              <li><b>Ctrl+คลิก</b> = ล็อก 🔒 (ขายและทิ้งไม่ได้) · <b>Shift+คลิกขวา</b> = ทิ้ง</li>
+              <li><b style="color:#7cff8a">▲</b> = ดีกว่าที่สวมอยู่ · ป้ายมุมซ้ายล่าง = ออปชันพิเศษ (เช่น <b>EXP</b>, <b>คริ</b>)</li>
+              <li>ที่ร้าน: <b>คลิกขวา</b> = ขาย</li>
+            </ul>
+          </details>
         </div>
       </div>
     </div>

@@ -9,6 +9,35 @@
   const emit = (ev, d) => G.socket && G.socket.emit(ev, d);
   const lvl = () => (G.stats ? G.stats.lvl : 1);
   const pct = (v) => `${Math.round(v * 100)}%`;
+  const locked = (key) => !!key && (INV.state.locks || []).includes(C.lockId(key));
+  // focus picked next to "สวมของดีสุด": the ▲ on bag items and the auto-equip use the same score (C.autoEquipScore)
+  const eqMode = () => (document.getElementById('autoEquipMode') || {}).value || 'grade';
+  const eqScore = (eq) => C.autoEquipScore((window.G && G.cls) || 'dualblade', lvl(), eq, (window.STATS && STATS.a) || {}, eqMode());
+  // would wearing bag item `key` (only that slot changed) beat the outfit worn now? base = eqScore(worn outfit)
+  // strictly worse than what is worn in the grade ranking and not better for any focus: safe to sell
+  const isJunk = (it, key) => {
+    if (!it || it.kind || lvl() < it.lvl || locked(key) || INV.state.eq[it.slot] === key) return false;
+    const eq = INV.state.eq, swap = { ...eq, [it.slot]: key }, cls = (window.G && G.cls) || 'dualblade', a = (window.STATS && STATS.a) || {};
+    return Object.keys(C.AUTO_EQUIP_MODES).every((m) => {
+      const now = C.autoEquipScore(cls, lvl(), eq, a, m), alt = C.autoEquipScore(cls, lvl(), swap, a, m);
+      return m === 'grade' ? C.autoEquipBetter(now, alt) : !C.autoEquipBetter(alt, now);
+    });
+  };
+  // special option tag in the slot's bottom-left corner (short name + colour)
+  const OPT_TAG = { exp: ['EXP', '#7ae8ff'], critDmg: ['คริ', '#ff8a5a'], gold: ['ทอง', '#ffd76a'], pve: ['PvE', '#9fe89f'],
+    pvp: ['PvP', '#ff6a8a'], pierce: ['เจาะ', '#c08aff'], guard: ['กัน', '#8ab8ff'], mana: ['ปราณ', '#6ac8ff'] };
+  // bag filter tabs: which items each one shows (remembered per browser)
+  const FILTERS = {
+    all: () => true,
+    weapon: (it) => !it.kind && it.slot === 'weapon',
+    armor: (it) => !it.kind && it.slot !== 'weapon',
+    use: (it) => !!it.kind,
+    up: (it, key, base) => isUpgrade(it, key, base),
+  };
+  let bagFilter = 'all';
+  try { const v = localStorage.getItem('bagFilter'); if (FILTERS[v]) bagFilter = v; } catch (e) { /* storage optional */ }
+  const isUpgrade = (it, key, base) => !!it && !it.kind && lvl() >= it.lvl && INV.state.eq[it.slot] !== key
+    && C.autoEquipBetter(eqScore({ ...INV.state.eq, [it.slot]: key }), base);
   // enhancement stone icon (a faceted violet crystal with a spark)
   const STONE_ICON = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
     <defs><linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2ecff"/><stop offset=".45" stop-color="#9a7cff"/><stop offset="1" stop-color="#3a1a8a"/></linearGradient></defs>
@@ -101,6 +130,26 @@
     }
     return out.length ? '<br>' + out.join('<br>') : '';
   }
+  // what wearing `it` instead of `worn` changes: stats, special option and passive, ▲ green / ▼ red
+  function compareLine(it, worn) {
+    if (!worn) return '<br><small style="color:#9fe89f">▲ ช่องนี้ยังว่าง: สวมแล้วได้ค่าทั้งหมด</small>';
+    const LONG = { atk: 'พลังโจมตี', crit: 'คริติคอล', def: 'ป้องกัน', hp: 'พลังชีวิต', mp: 'ปราณ', speed: 'ความเร็ว' };
+    const vals = (x) => {
+      const o = {};
+      for (const k of Object.keys(LONG)) if (x[k]) o[k] = x[k];
+      for (const op of [x.option, x.passive]) if (op) o[op[0]] = (o[op[0]] || 0) + op[1];
+      return o;
+    };
+    const a = vals(it), b = vals(worn), parts = [];
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      const d = (a[k] || 0) - (b[k] || 0);
+      if (Math.abs(d) < 1e-9) continue;
+      const name = LONG[k] || (C.OPTIONS[k] && C.OPTIONS[k].title) || (C.PASSIVES[k] && C.PASSIVES[k].name) || k;
+      const txt = LONG[k] && k !== 'crit' ? Math.abs(Math.round(d)) : `${Math.round(Math.abs(d) * 1000) / 10}%`;
+      parts.push(`<span style="color:${d > 0 ? '#7cff8a' : '#ff7a6a'}">${esc(name)} ${d > 0 ? '+' : '-'}${txt} ${d > 0 ? '▲' : '▼'}</span>`);
+    }
+    return `<br><small style="color:#9a9488">เทียบกับที่สวม: ${esc(worn.name)}${worn.plus ? ` +${worn.plus}` : ''}</small><br>` + (parts.length ? parts.join(' · ') : '<small>ค่าเท่ากัน</small>');
+  }
   // grade class for slot borders (Legendary glow, Mythic rainbow)
   INV.gradeClass = (it) => (it && it.grade >= 4 ? ` g${it.grade}` : '');
   INV.itemTip = function (it, extra = '', qty = 1) {
@@ -110,9 +159,8 @@
     const r = C.GRADES[it.grade || 0];
     const ok = lvl() >= it.lvl;
     // compare with what is worn in the same slot
-    let cmp = '';
     const worn = C.ITEMS[INV.state.eq[it.slot]];
-    if (worn && worn.id !== it.id) cmp = `<br><small style="color:#9a9488">สวมอยู่: ${esc(worn.name)} (${statParts(worn).join(' · ')})</small>`;
+    const cmp = worn && worn.id === it.id ? '' : compareLine(it, worn);
     return `<b style="color:${r.color}">${esc(it.name)}</b><br>
       <small>${C.SLOT_NAMES[it.slot]} · <b style="color:${r.color}">${r.name}</b> (${r.th}) · <span style="color:${ok ? '#9fe89f' : '#ff7a6a'}">ต้องการ Lv.${it.lvl}</span></small><br>
       ${statParts(it.core || it, true, it.slot === 'weapon').join(' · ')}${C.ENHANCE.canEnhance(it) ? `<br><span style="color:#ffb870">⚔ ดาเมจใส่มอนสเตอร์ +${Math.round(C.ENHANCE.pveShare(it) * 100)}% <small>(จากตีบวก · ${it.slot === 'weapon' ? 'อาวุธ' : 'ชุดแต่ละชิ้น'} +10 = +${Math.round(C.PVE_PLUS_MAX * C.SLOT_PVE[it.slot] * 100)}%)</small></span>` : ''}${gradeLines(it)}<br>
@@ -138,18 +186,20 @@
       s.addEventListener('mouseenter', (e) => {
         const it = C.ITEMS[INV.state.inv[i]];
         const verb = it && it.kind ? 'ใช้' : 'สวมใส่';
-        if (it) showTip(e, INV.itemTip(it, `<br><small style="color:#e8c26a">${INV.anyShopOpen() ? `คลิกขวา = ขาย · ดับเบิลคลิก = ${verb}` : `ดับเบิลคลิก/คลิกขวา = ${verb}`} · Shift+คลิกขวา = ทิ้ง</small>`, it.kind ? C.stackCount(INV.state.inv[i]) : 1));
+        if (it) showTip(e, INV.itemTip(it, `<br><small style="color:#e8c26a">${INV.anyShopOpen() ? `คลิกขวา = ขาย · ดับเบิลคลิก = ${verb}` : `ดับเบิลคลิก/คลิกขวา = ${verb}`} · Shift+คลิกขวา = ทิ้ง${it.kind ? '' : ` · Ctrl+คลิก = ${locked(INV.state.inv[i]) ? 'ปลดล็อก' : 'ล็อก'}`}</small>${locked(INV.state.inv[i]) ? '<br><small style="color:#ffd76a">🔒 ล็อกอยู่: ขายและทิ้งไม่ได้</small>' : ''}`, it.kind ? C.stackCount(INV.state.inv[i]) : 1));
       });
       s.addEventListener('mousemove', moveTip);
       s.addEventListener('mouseleave', hideTip);
       // touch screens: tap for details + action buttons (no double-click / right-click there)
       s.addEventListener('click', (e) => {
         if (e.target.closest('.bag-check')) { e.stopPropagation(); return toggleSel(i); }
+        if (e.ctrlKey || e.metaKey) { hideTip(); return lockKeys([INV.state.inv[i]]); }
         const it = window.G && G.touch && C.ITEMS[INV.state.inv[i]];
         if (!it) return;
         hideTip();
         itemMenu(INV.itemTip(it, '', it.kind ? C.stackCount(INV.state.inv[i]) : 1), [
           { label: it.kind ? 'ใช้' : 'สวมใส่', fn: () => useItem(i) },
+          ...(it.kind ? [] : [{ label: locked(INV.state.inv[i]) ? '🔓 ปลดล็อก' : '🔒 ล็อก', cls: 'ghost', fn: () => lockKeys([INV.state.inv[i]]) }]),
           ...(INV.anyShopOpen() ? [{ label: `ขาย ${fmt(C.sellPrice(it) * (it.kind ? C.stackCount(INV.state.inv[i]) : 1))} ทอง`, fn: () => sell(i) }] : []),
           { label: 'ทิ้ง', cls: 'warn', fn: () => { if (confirm(`ทิ้ง ${it.name}?`)) discard(i); } },
         ]);
@@ -467,6 +517,11 @@
       if (b.dataset.k !== 'x') actions[+b.dataset.k].fn();
     };
   }
+  // lock the given gear keys, or unlock them when every one is locked already
+  function lockKeys(keys) {
+    keys = keys.filter((k) => k && C.ITEMS[k] && !C.ITEMS[k].kind);
+    if (keys.length) emit('lock', { keys, on: !keys.every(locked) });
+  }
   function sell(i) {
     const it = C.ITEMS[INV.state.inv[i]];
     if (!it) return;
@@ -487,29 +542,35 @@
     if (sel.has(i)) sel.delete(i); else sel.set(i, id);
     INV.render();
   }
+  // filled bag slots the current filter shows
+  const visibleIdxs = () => [...$('bagGrid').children].map((s, i) => (INV.state.inv[i] && !s.classList.contains('hidden') ? i : -1)).filter((i) => i >= 0);
   const selected = () => [...sel.keys()].filter((i) => INV.state.inv[i] === sel.get(i)).sort((a, b) => a - b);
   function renderBagBar() {
     const idxs = selected(), n = idxs.length;
     const gold = idxs.reduce((t, i) => t + C.sellPrice(C.ITEMS[INV.state.inv[i]]) * C.stackCount(INV.state.inv[i]), 0);
-    $('bagBar').classList.toggle('active', n > 0);
-    $('bagSelInfo').innerHTML = n ? `เลือก <b>${n}</b> ชิ้น · ขายได้ <b class="gold">${fmt(gold)}</b> ทอง` : 'ติ๊ก ☐ ที่มุมไอเทมเพื่อเลือกหลายชิ้น';
+    // while something is ticked the selection actions take the place of the bag tools
+    $('bagBar').classList.toggle('hidden', !n);
+    $('bagTools').classList.toggle('hidden', n > 0);
+    $('bagGrid').classList.toggle('selecting', n > 0);
+    $('bagSelInfo').innerHTML = `เลือก <b>${n}</b> ชิ้น · ขายได้ <b class="gold">${fmt(gold)}</b> ทอง`;
     const q = (k) => $('bagBar').querySelector(`[data-bag="${k}"]`);
     q('none').disabled = !n;
     q('drop').disabled = !n;
-    q('drop').textContent = n ? `ทิ้ง ${n} ชิ้น` : 'ทิ้ง';
     q('sell').disabled = !n || !INV.anyShopOpen();
-    q('sell').textContent = n ? `ขาย ${n} ชิ้น` : 'ขาย';
     q('sell').title = INV.anyShopOpen() ? '' : 'ขายได้ที่ร้านช่างตีดาบหรือร้านขายยา (เปิดร้านก่อน)';
-    q('all').disabled = !INV.state.inv.some((id, i) => id && !sel.has(i));
+    q('all').disabled = !visibleIdxs().some((i) => !sel.has(i));
+    const gear = idxs.map((i) => INV.state.inv[i]).filter((k) => !C.ITEMS[k].kind), lockOff = gear.length && gear.every(locked);
+    q('lock').disabled = !gear.length;
+    q('lock').textContent = lockOff ? `🔓 ปลดล็อก ${gear.length}` : gear.length ? `🔒 ล็อก ${gear.length}` : '🔒 ล็อก';
     q('store').classList.toggle('hidden', !STORE.open);
     q('store').disabled = !n;
-    q('store').textContent = n ? `📦 ฝาก ${n} ชิ้น` : '📦 ฝาก';
     const used = INV.state.inv.filter(Boolean).length;
     $('bagCount').textContent = `${used}/${C.BAG_SIZE}`;
     $('bagCount').classList.toggle('full', used >= C.BAG_SIZE);
-    const auto = document.querySelector('.bag-tools [data-bag="autosort"]');
+    const auto = $('bagSettings').querySelector('[data-bag="autosort"]');
     auto.classList.toggle('on', !!INV.state.autoSort);
-    auto.textContent = INV.state.autoSort ? '☑ จัดอัตโนมัติ' : '☐ จัดอัตโนมัติ';
+    auto.textContent = INV.state.autoSort ? '☑ จัดเรียงอัตโนมัติ' : '☐ จัดเรียงอัตโนมัติ';
+    $('bagTools').querySelector('[data-bag="settings"]').classList.toggle('on', !$('bagSettings').classList.contains('hidden'));
   }
   // high grades are named in the confirmation so nothing valuable goes by accident
   const rareNote = (items) => {
@@ -519,37 +580,60 @@
   $('bagBar').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
-    const idxs = selected(), items = idxs.map((i) => C.ITEMS[INV.state.inv[i]]);
-    if (b.dataset.bag === 'all') INV.state.inv.forEach((id, i) => { if (id) sel.set(i, id); });
+    const all = selected(), idxs = ['sell', 'drop'].includes(b.dataset.bag) ? all.filter((i) => !locked(INV.state.inv[i])) : all;
+    if (all.length && !idxs.length) return alert('ไอเทมที่เลือกถูกล็อกอยู่ทั้งหมด (ปลดล็อกก่อน)');
+    const items = idxs.map((i) => C.ITEMS[INV.state.inv[i]]);
+    if (b.dataset.bag === 'all') for (const i of visibleIdxs()) sel.set(i, INV.state.inv[i]);
     else if (b.dataset.bag === 'none') sel.clear();
+    else if (b.dataset.bag === 'lock') lockKeys(idxs.map((i) => INV.state.inv[i]));
     else if (b.dataset.bag === 'sell') {
       const gold = items.reduce((t, it) => t + C.sellPrice(it), 0);
-      if (!confirm(`ขาย ${idxs.length} ชิ้น ได้ ${fmt(gold)} ทอง?${rareNote(items)}`)) return;
+      if (!confirm(`ขาย ${idxs.length} ชิ้น ได้ ${fmt(gold)} ทอง?${all.length > idxs.length ? `\n(ข้ามไอเทมที่ล็อก ${all.length - idxs.length} ชิ้น)` : ''}${rareNote(items)}`)) return;
       emit('shop', { act: 'sellMany', idxs, keys: idxs.map((i) => INV.state.inv[i]) }); sel.clear();
     } else if (b.dataset.bag === 'store') {
       STORE.putMany(idxs); sel.clear();
     } else if (b.dataset.bag === 'drop') {
-      if (!confirm(`ทิ้ง ${idxs.length} ชิ้น? (กู้คืนไม่ได้)${rareNote(items)}`)) return;
+      if (!confirm(`ทิ้ง ${idxs.length} ชิ้น? (กู้คืนไม่ได้)${all.length > idxs.length ? `\n(ข้ามไอเทมที่ล็อก ${all.length - idxs.length} ชิ้น)` : ''}${rareNote(items)}`)) return;
       emit('discard', { idxs, keys: idxs.map((i) => INV.state.inv[i]) }); sel.clear();
     }
     INV.render();
   });
 
   // sort now / keep sorted (server: onBag, C.sortBag)
-  document.querySelector('.bag-tools').addEventListener('click', (e) => {
+  const onTool = (e) => {
     const b = e.target.closest('button');
     if (!b) return;
     if (b.dataset.bag === 'sort') emit('bag', { cmd: 'sort' });
     else if (b.dataset.bag === 'autosort') emit('bag', { cmd: 'auto', on: !INV.state.autoSort });
     else if (b.dataset.bag === 'autoequip') emit('autoEquip', { mode: $('autoEquipMode').value });
     else if (b.dataset.bag === 'storage') STORE.toggle();
+    else if (b.dataset.bag === 'settings') {
+      const open = !$('bagSettings').classList.toggle('hidden');
+      b.setAttribute('aria-expanded', String(open));
+      renderBagBar();
+    } else if (b.dataset.bag === 'junk') {
+      const junk = INV.state.inv.map((k, i) => (isJunk(C.ITEMS[k], k) ? i : -1)).filter((i) => i >= 0);
+      if (!junk.length) return alert('ไม่มีอุปกรณ์ที่แย่กว่าที่สวมอยู่ (ไม่นับที่ล็อกและที่เลเวลยังไม่ถึง)');
+      sel.clear();
+      for (const i of junk) sel.set(i, INV.state.inv[i]);
+      INV.render();
+    }
+  };
+  $('bagTools').addEventListener('click', onTool);
+  $('bagSettings').addEventListener('click', onTool);
+  $('bagFilter').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || !FILTERS[b.dataset.f]) return;
+    bagFilter = b.dataset.f;
+    try { localStorage.setItem('bagFilter', bagFilter); } catch (err) { /* storage optional */ }
+    INV.render();
   });
   // focus of "สวมของดีสุด" (C.AUTO_EQUIP_MODES), remembered per browser
   {
     const s = $('autoEquipMode');
     s.innerHTML = Object.entries(C.AUTO_EQUIP_MODES).map(([k, m]) => `<option value="${k}">เน้น${m.th}</option>`).join('');
     try { const v = localStorage.getItem('autoEquipMode'); if (v && C.AUTO_EQUIP_MODES[v]) s.value = v; } catch (e) { /* storage optional */ }
-    s.addEventListener('change', () => { try { localStorage.setItem('autoEquipMode', s.value); } catch (e) { /* storage optional */ } });
+    s.addEventListener('change', () => { try { localStorage.setItem('autoEquipMode', s.value); } catch (e) { /* storage optional */ } INV.render(); });
   }
 
   // ------------------------------------------------------------ auto-sell: grades sold the moment they drop
@@ -583,12 +667,17 @@
   };
   INV.render = function () {
     const st = INV.state, f = INV.faction;
-    const slots = $('bagGrid').children;
+    const slots = $('bagGrid').children, base = eqScore(st.eq);
+    let shown = 0;
     for (let i = 0; i < slots.length; i++) {
       const it = C.ITEMS[st.inv[i]];
       const s = slots[i];
       s.className = 'bag-slot' + INV.gradeClass(it);
       if (sel.has(i) && st.inv[i] !== sel.get(i)) sel.delete(i);          // the item in this slot changed
+      // a filter shows only its own items (empty slots too only under "ทั้งหมด")
+      const show = bagFilter === 'all' || (!!it && FILTERS[bagFilter](it, st.inv[i], base));
+      s.classList.toggle('hidden', !show);
+      if (show && it) shown++;
       if (!it) { s.innerHTML = ''; s.style.borderColor = ''; continue; }
       s.classList.add('filled');
       s.classList.toggle('picked', sel.has(i));
@@ -596,8 +685,14 @@
       s.style.borderColor = C.RARITY[it.rarity].color;
       const qty = it.kind ? C.stackCount(st.inv[i]) : 0;
       s.innerHTML = `<img src="${WeaponLook.iconSrc(it.base || it.id, f)}" alt="" draggable="false">${it.kind ? '' : `<span class="lv">${it.lvl}</span>`}${it.plus ? `<span class="plus p${it.plus}">+${it.plus}</span>` : ''}${qty > 1 ? `<span class="qty">×${qty}</span>` : ''}` +
+        (isUpgrade(it, st.inv[i], base) ? `<span class="up" title="ดีกว่าที่สวมอยู่ (เน้น${C.AUTO_EQUIP_MODES[eqMode()].th})">▲</span>` : '') +
+        (locked(st.inv[i]) ? '<span class="lock" title="ล็อกอยู่">🔒</span>' : '') +
+        (it.option && OPT_TAG[it.option[0]] ? `<span class="opt" style="--oc:${OPT_TAG[it.option[0]][1]}">${OPT_TAG[it.option[0]][0]}</span>` : '') +
         `<span class="bag-check" role="checkbox" aria-checked="${sel.has(i)}" title="เลือก"></span>`;
     }
+    $('bagEmpty').classList.toggle('hidden', bagFilter === 'all' || shown > 0);
+    $('bagEmpty').textContent = bagFilter === 'up' ? `ไม่มีไอเทมที่ดีกว่าที่สวมอยู่ (เน้น${C.AUTO_EQUIP_MODES[eqMode()].th})` : 'ไม่มีไอเทมประเภทนี้ในกระเป๋า';
+    for (const b of $('bagFilter').children) b.classList.toggle('on', b.dataset.f === bagFilter);
     renderBagBar();
     if (window.HUD && HUD.updatePotionCounts) HUD.updatePotionCounts();
     if (INV.syncPotionShop) INV.syncPotionShop();

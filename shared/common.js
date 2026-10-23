@@ -244,7 +244,7 @@
   }
   CLASSES.warrior = {
     id: 'warrior', name: 'นักรบแนวหน้า', weapon: 'ดาบและโล่',
-    desc: 'ถือดาบกับโล่ รับความเสียหายและคุ้มกันปาร์ตี้ HP/เกราะสูง โจมตีช้า ไม่มีฮีลตนเอง ยั่วยุได้เฉพาะมอนสเตอร์',
+    desc: 'ถือดาบกับโล่ รับความเสียหายและคุ้มกันปาร์ตี้ HP/เกราะสูง โจมตีช้า ไม่มีฮีลตนเอง ยั่วยุได้เฉพาะมอนสเตอร์ · พาสซีฟโล่รับแทน: เพื่อนในปาร์ตี้ใกล้ตัวโดนโจมตี รับดาเมจแทน 30%',
     hp: 205, hpG: 30, mp: 85, mpG: 10, atk: 12, atkG: 3.2, def: 6, defG: 1.5,
     speed: 195, crit: 0.05, reach: 105,
     skills: [
@@ -276,12 +276,6 @@
       { id: 'lastBastion', name: 'ปราการสุดท้ายแห่งขุนพล', key: '9', lvl: 70, mp: 50, cd: 40000,
         frontline: { ward: 0.35, duration: 4000 },
         desc: 'ลดความเสียหายตนเอง 35% นาน 4 วินาที ไม่มีอมตะ ไม่มีฮีล ไม่บวกซ้อนเกราะอื่น', evo: [{ lvl: 130, name: 'ปราการมหาขุนพล', desc: 'ลดความเสียหาย 40% นาน 4 วินาที' }] },
-      { id: 'guardianOath', name: 'สัตย์พิทักษ์', key: '0', lvl: 120, mp: 100, cd: 45000,
-        frontline: { ward: 0.2, duration: 7000, party: true, range: 300 },
-        desc: 'ตนเองและปาร์ตี้ระยะ 300 ลดความเสียหาย 20% นาน 7 วินาที ไม่บวกซ้อนเกราะอื่น', evo: [] },
-      { id: 'citadelStrike', name: 'ดาบมหาปราการ', key: '-', lvl: 130, mp: 100, cd: 70000,
-        frontline: { damage: 5, range: 210, windup: 900, area: true, slow: 1800 },
-        desc: 'ตั้งท่า 0.9 วินาที ฟันรอบตัว 500% ระยะ 210 ทำให้ช้า 1.8 วินาที ถูกสตัน/ตรึงระหว่างท่าจะยกเลิก', evo: [] },
     ],
   };
   // Two learned endgame arts per class (keys 0 / -). No long channel: a short wind-up, then the body really travels
@@ -292,6 +286,8 @@
     archer: [['arrowFirmament','ฝนศรกลุ่มดาว',9,200,460],['arrowGenesis','หงส์จักรวาลล้างภพ',14,250,500]],
     taoist: [['taoFirmament','ค่ายกลเก้าสวรรค์',8,220,400],['taoGenesis','มหามณฑลเทพมาร',13,280,440]],
     spearman: [['spearFirmament','ทวนมังกรถล่มปฐพี',11,200,190],['spearGenesis','ทวนมหาเทพดับพิภพ',17,250,220]],
+    // the tank hits softest of all five (its worth is the HP / armour / taunt / cover it brings)
+    warrior: [['guardFirmament','โล่พิทักษ์ทลายแนว',7,200,200],['guardGenesis','ป้อมปราการถล่มฟ้า',11,240,240]],
   };
   // Each class has its own pair of moves (times in ms from the cast; cast = the finishing blow, then `recovery`).
   // The hits land at first + i × gap and share `share` of the damage; the finishing blow deals the rest.
@@ -312,6 +308,10 @@
     // the spot with 4 thrusts, then hurl the spear down from the top like a javelin
     spearman: [{ move: 'vault', windup: 140, first: 330, hits: 3, gap: 140, cast: 800, share: 0.45 },
       { move: 'spiral', windup: 140, first: 300, hits: 4, gap: 130, cast: 980, share: 0.45 }],
+    // แนวหน้า: shield-charge through the foes bashing on the way, leap back and slam the shield down /
+    // leap high over the spot, six giant spirit shields fall round it into a fortress, dive shield-first into its heart
+    warrior: [{ move: 'charge', windup: 180, first: 300, hits: 4, gap: 90, cast: 900, share: 0.5 },
+      { move: 'bastion', windup: 160, first: 480, hits: 6, gap: 70, cast: 1050, share: 0.45 }],
   };
   const MOVE_TEXT = {
     star: 'พุ่งเข้าจุดเป้าหมายแล้วลากเส้นดาวห้าแฉกผ่านกลางวง ฟัน 5 ครั้ง แล้วกระโดดลงกลางดาวระเบิดปิดท้าย',
@@ -322,6 +322,8 @@
     mandala: 'ลอยตัวร่ายมณฑล ร่างเทพยักษ์ปรากฏเหนือวง ประตูปากัว 8 บานสว่างทีละบาน แล้วฝ่ามือเทพตบลง',
     vault: 'วิ่งพุ่งชาร์จเข้าหา ค้ำทวนกระโดดข้ามสูงพร้อมหมุนตัว แล้วกระแทกทวนลงกลางวงแผ่นดินแยก',
     spiral: 'วิ่งวนเป็นเกลียวมังกรรอบเป้า แทง 4 ครั้ง แล้วพุ่งทวนจากที่สูงลงกลางวงดั่งหอกเทพ',
+    charge: 'ยกโล่พุ่งชาร์จทะลุแนวศัตรู กระแทก 4 ครั้งตลอดทาง แล้วกระโดดกลับกลางวงทุบโล่ลงพื้นปิดท้าย',
+    bastion: 'กระโดดสูงเหนือจุดเป้าหมาย โล่ยักษ์ 6 บานตกล้อมเป็นป้อมปราการทีละบาน แล้วดิ่งโล่ลงกลางป้อม',
   };
   for(const [cls,arts]of Object.entries(ASCENDED_ARTS))arts.forEach(([id,name,damage,radius,range],i)=>{
     const mv=ASCENDED_MOVES[cls][i];
@@ -367,7 +369,7 @@
     rend: 'เกราะแตกไม่ซ้อนกัน ใช้ค่าที่แรงที่สุด',
   };
   // timed buffs a skill leaves on the caster / party (HUD buff row; values are applied on the server)
-  const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion', 'guardianOath'];
+  const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion'];
   // skills that move the caster: a root blocks them (server and client)
   const MOVE_SKILLS = ['shadowstep', 'skyfall', 'twindragon', 'rollshot'];
   // where ดาวตกเพลิงฟ้า's meteors land round the aim (golden-angle ring), shared so every client draws the real spots
@@ -468,6 +470,10 @@
   // to the attacker, `guard` while ตั้งโล่เหล็ก is up; `pvp` of that against players; at most `capAtk` × the warrior's
   // ATK per blow. DoTs and reflected damage are never reflected; the reflection skips dodge, crits and damage bonuses.
   const WARRIOR_THORNS = { base: 0.08, guard: 0.25, pvp: 0.5, capAtk: 2 };
+  // นักรบแนวหน้า passive โล่รับแทน (always on): a party member within `range` that takes a blow passes `share` of it
+  // to the warrior (`pvp` of that from players). The warrior's own damage reduction applies to its part; it covers
+  // only while above `minHp` of its HP, never takes its own HP below 1 this way, and the healthiest warrior covers.
+  const WARRIOR_COVER = { share: 0.3, pvp: 0.5, range: 300, minHp: 0.3 };
   // ทวน: heavy spear skills (wind-up >= minWindup) take `reduce` less damage while the spear is locked in its strike;
   // it ends early when a stun / root breaks the strike. Adds into the player's damage reduction (capped 70%).
   const SPEAR_WINDUP_GUARD = { minWindup: 400, reduce: 0.15 };
@@ -1168,6 +1174,18 @@
     gold: { th: 'บัพทอง', stat: (s) => s.fx.gold || 0 },
     pve: { th: 'ดาเมจมอนสเตอร์', stat: (s) => s.fx.pve || 0 },
   };
+  const gearRank = (it) => it.lvl * 1e6 + (it.grade || 0) * 1e3 + (it.plus || 0);
+  // [focus stat of the whole outfit, summed gearRank]; compare two with autoEquipBetter
+  const autoEquipScore = (cls, lvl, eq, alloc, mode) => {
+    const stat = (AUTO_EQUIP_MODES[mode] || AUTO_EQUIP_MODES.grade).stat;
+    return [stat ? stat(playerStats(cls, lvl, eq, alloc)) : 0, SLOTS.reduce((t, s) => t + (eq[s] && ITEMS[eq[s]] ? gearRank(ITEMS[eq[s]]) : 0), 0)];
+  };
+  const autoEquipBetter = (a, b) => a[0] > b[0] + 1e-9 || (a[0] > b[0] - 1e-9 && a[1] > b[1]);
+  // ล็อกไอเทม: a lock follows the piece through enhancement and option rerolls (base + grade + seed only).
+  // Normal-grade copies of one base share it, since nothing else tells them apart.
+  const lockId = (key) => { const k = parseId(key); return makeKey(k.id, k.grade, k.seed, 0); };
+  const LOCK_MAX = 500;
+  const cleanLocks = (a) => (Array.isArray(a) ? [...new Set(a.filter((k) => typeof k === 'string' && k.length < 80))].slice(0, LOCK_MAX) : []);
   const cleanAutoSell = (a) => (Array.isArray(a) ? [...new Set(a.filter((g) => Number.isInteger(g) && g >= 0 && g < GRADES.length))].sort((x, y) => x - y) : []);
   ENHANCE.canEnhance = (it) => !!it && (it.slot === 'weapon' || ['body', 'legs', 'arms', 'shoulder'].includes(it.slot));
   const plusId = (key, plus) => { const k = parseId(key); return makeKey(k.id, k.grade, k.seed, plus, k.aSeed, k.pSeed); };
@@ -1568,13 +1586,13 @@
     skillRank, skillMult, skillInfo, stageOf, SKILL_STAGES, stagesOf, STANCES, GCD_MS, CLASS_IDS, ALL_SKILLS, setViewClass, spearSequence, spearAreaContains,
     BAG_SIZE, STORAGE_SIZE, RARITY, GRADES, GRADE_LIGHT, gradeLight, EPIC, AFFIXES, OPTIONS, PASSIVES, DROP_LVL_RANGE, TOP_ITEM_LVL, canDropHigh, rollGrade, gradeChances, gradeBands, HIGH_BANDS, BOSS_GRADES, BOSS_RESPAWN,
     makeKey, gradeId, gearFx, gearGrade, gearGrades, gearPlus, WEAPONS, WEAPON_BY_TIER, ARMORS, ARMOR_SETS, ALL_ITEMS, ITEMS, SLOTS, SLOT_NAMES, ARMOR_SLOTS,
-    MAX_PLUS, REAPER_CD_MS, passiveChance, gearProcs, ENHANCE, MAT_TIERS, matTier, matKey, matDef, matHave, PVE_PLUS_MAX, SLOT_PVE, SET_BONUS, gearPve, ENH_STONE, ENH_CHARMS, cleanCharms, cleanAutoSell, sortBag, AUTO_EQUIP_MODES, parseId, plusId, shopGearPrice, SHOP_BUY_GRADE_MAX, newSeed,
+    MAX_PLUS, REAPER_CD_MS, passiveChance, gearProcs, ENHANCE, MAT_TIERS, matTier, matKey, matDef, matHave, PVE_PLUS_MAX, SLOT_PVE, SET_BONUS, gearPve, ENH_STONE, ENH_CHARMS, cleanCharms, cleanAutoSell, sortBag, AUTO_EQUIP_MODES, autoEquipScore, autoEquipBetter, lockId, LOCK_MAX, cleanLocks, parseId, plusId, shopGearPrice, SHOP_BUY_GRADE_MAX, newSeed,
     DROPS, SMITH, APOTHECARY, ENHANCER, sellPrice, playerStats, armorTiers, armorLookTier,
     MONSTERS, MONSTER_TYPES, ZONES, DIR_COL,
     SKILL_MAX, SKILL_STEP, SKILL_LVL_GAP, EVO_NEED, EVO_COST, BAR_KEYS, SKILL_PATHS, skillPtsTotal, skillCap, basicOf, skillPtsFree,
     evoBlock, autoSkills, cleanSkills, skillRankOf, skillPower, skillInfoAt, SKILL_VER, BUFF_SKILLS, MOVE_SKILLS, meteorPoints, blastPoints,
     STAT_PTS, STAT_POINTS, PT_KEYS, statPtsTotal, statPtsFree, cleanAlloc, basicCd, BASIC_CD_MUL, STAT_GUIDE_KEY, STAT_GUIDES, statGuide, guideTarget, guidePoints, statLimits, CRIT_CAP, skillMp, MP_COST_PCT, MP_COST_CAP, SKILL_CD_MUL,
-    enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_THORNS, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
+    enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_THORNS, WARRIOR_COVER, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
     generateMap, solidAt, canStand, baseAt, areaName, spawnPoint, mulberry32, makeNoise,
   };
 });

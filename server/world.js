@@ -122,6 +122,7 @@ class World {
     socket.on('respawn', withPlayer(this.respawn));
     socket.on('equip', withPlayer(this.onEquip));
     socket.on('autoEquip', withPlayer(this.onAutoEquip));
+    socket.on('lock', withPlayer(this.onLock));
     socket.on('unequip', withPlayer(this.onUnequip));
     socket.on('shop', withPlayer(this.onShop));
     socket.on('autosell', withPlayer(this.onAutoSell));
@@ -315,9 +316,12 @@ class World {
     p.charms = C.cleanCharms(r.charms);                     // ยันต์กันแตก / ยันต์เพิ่มโอกาส
     p.autoSell = C.cleanAutoSell(r.autoSell);               // grades sold the moment they drop
     p.autoSort = !!r.autoSort;                              // keep the bag sorted (C.sortBag) whenever an item comes in
+    p.locks = C.cleanLocks(r.locks);                        // ล็อกไอเทม (C.lockId): can't be sold or thrown away
     // คลังเก็บของ: the character's own storage (items + gold), opened at a camp's blacksmith / teleport stone
     p.storage = Array.from({ length: C.STORAGE_SIZE }, (_, i) => (r.storage && C.ITEMS[r.storage[i]] ? r.storage[i] : null));
     p.storeGold = Math.max(0, Math.floor(Number(r.storeGold) || 0));
+    const owned = new Set([...p.inv, ...Object.values(p.eq), ...p.storage].filter(Boolean).map(C.lockId));
+    p.locks = p.locks.filter((id) => owned.has(id));         // locks of pieces sold, broken or traded away
     // แต้มสถานะ: older saves have none, their points are all free to spend
     p.alloc = C.cleanAlloc(r.alloc, p.lvl);
     p.autoStat = C.STAT_POINTS[r.autoStat] || r.autoStat === C.STAT_GUIDE_KEY ? r.autoStat : '';
@@ -371,7 +375,7 @@ class World {
   sendStat(p) { p.socket.emit('stat', this.statState(p)); }
   skillState(p) { return { ...p.skl, free: C.skillPtsFree(p.skl, p.lvl) }; }
   sendSkills(p) { p.socket.emit('skills', this.skillState(p)); }
-  invState(p) { return { inv: p.inv, eq: p.eq, gold: p.gold, stones: p.stones, charms: p.charms, autoSell: p.autoSell, autoSort: p.autoSort }; }
+  invState(p) { return { inv: p.inv, eq: p.eq, gold: p.gold, stones: p.stones, charms: p.charms, autoSell: p.autoSell, autoSort: p.autoSort, locks: p.locks }; }
   // auto-sort keeps the bag in order after every change (items in or out, equip, sell, store...)
   sendInv(p) {
     if (p.autoSort) p.inv = C.sortBag(p.inv);
@@ -462,12 +466,27 @@ class World {
     if (d.cmd === 'sort') p.inv = C.sortBag(p.inv);
     this.sendInv(p);
   }
+  isLocked(p, key) { return !!key && (p.locks || []).includes(C.lockId(key)); }
+  // ล็อก / ปลดล็อก: d.keys = the gear pieces (bag or worn), d.on = lock them or not
+  onLock(p, d) {
+    if (!d || !Array.isArray(d.keys)) return;
+    const ids = [...new Set(d.keys.slice(0, C.BAG_SIZE).filter((k) => typeof k === 'string' && C.ITEMS[k] && !C.ITEMS[k].kind
+      && (p.inv.includes(k) || Object.values(p.eq).includes(k))).map(C.lockId))];
+    if (!ids.length) return;
+    const set = new Set(p.locks || []);
+    for (const id of ids) if (d.on) set.add(id); else set.delete(id);
+    if (set.size > C.LOCK_MAX) return this.toast(p, `ล็อกได้ไม่เกิน ${C.LOCK_MAX} ชิ้น`);
+    p.locks = [...set];
+    this.toast(p, `${d.on ? 'ล็อก' : 'ปลดล็อก'} ${ids.length} ชิ้นแล้ว`);
+    this.sendInv(p);
+    this.save(p);
+  }
 
   save(p) {
     this.store.put({
       name: p.name, faction: p.faction, cls: p.cls, lvl: p.lvl, exp: Math.floor(p.exp),
       kills: p.kills, deaths: p.deaths, pvp: p.pvp || 0, map: p.mapId, x: Math.round(p.x), y: Math.round(p.y),
-      inv: p.inv, eq: p.eq, gold: p.gold, stones: p.stones, charms: p.charms, autoSell: p.autoSell, autoSort: p.autoSort,
+      inv: p.inv, eq: p.eq, gold: p.gold, stones: p.stones, charms: p.charms, autoSell: p.autoSell, autoSort: p.autoSort, locks: p.locks,
       storage: p.storage, storeGold: p.storeGold,
       alloc: p.alloc, autoStat: p.autoStat, skl: p.skl, evil: p.evil || 0, evilAt: p.evilAt || 0,
     });
@@ -1188,12 +1207,9 @@ class World {
   // until nothing changes; a tie keeps whatever is already worn, so equal gear is never shuffled around.
   onAutoEquip(p, d) {
     if (p.dead) return;
-    const mode = d && C.AUTO_EQUIP_MODES[d.mode] ? d.mode : 'grade', stat = C.AUTO_EQUIP_MODES[mode].stat;
-    const rank = (it) => it.lvl * 1e6 + (it.grade || 0) * 1e3 + (it.plus || 0);
+    const mode = d && C.AUTO_EQUIP_MODES[d.mode] ? d.mode : 'grade';
     const eq = { ...p.eq }, pick = {};                         // pick[slot] = bag index to wear there
-    const score = () => [stat ? stat(C.playerStats(p.cls, p.lvl, eq, p.alloc)) : 0,
-      C.SLOTS.reduce((t, s) => t + (eq[s] ? rank(C.ITEMS[eq[s]]) : 0), 0)];
-    const better = (a, b) => a[0] > b[0] + 1e-9 || (a[0] > b[0] - 1e-9 && a[1] > b[1]);
+    const score = () => C.autoEquipScore(p.cls, p.lvl, eq, p.alloc, mode), better = C.autoEquipBetter;
     let best = score();
     for (let pass = 0; pass < 4; pass++) {
       let moved = false;
@@ -1359,18 +1375,19 @@ class World {
       if (!this.validIdx(d.idx) || !this.bagKeyOk(p, d.idx, d.key)) return;
       const it = C.ITEMS[p.inv[d.idx]];
       if (!it) return;
+      if (this.isLocked(p, p.inv[d.idx])) return this.toast(p, `${it.name} ถูกล็อกอยู่ ขายไม่ได้`);
       const gold = C.sellPrice(it) * C.stackCount(p.inv[d.idx]);   // a potion stack sells all at once
       p.inv[d.idx] = null;
       p.gold += gold;
       this.toast(p, `ขาย ${it.name} ได้ ${gold.toLocaleString()} ทอง`);
     } else if (d.act === 'sellMany') {
       // the bag's ticked items (inventory.js multi-select) in one go
-      const idxs = this.bagIdxs(p, d.idxs, d.keys);
-      if (!idxs.length) return;
+      const all = this.bagIdxs(p, d.idxs, d.keys), idxs = all.filter((i) => !this.isLocked(p, p.inv[i]));
+      if (!idxs.length) return all.length ? this.toast(p, 'ไอเทมที่เลือกถูกล็อกอยู่ทั้งหมด') : undefined;
       let gold = 0;
       for (const i of idxs) { gold += C.sellPrice(C.ITEMS[p.inv[i]]) * C.stackCount(p.inv[i]); p.inv[i] = null; }
       p.gold += gold;
-      this.toast(p, `ขาย ${idxs.length} ชิ้น ได้ ${gold.toLocaleString()} ทอง`);
+      this.toast(p, `ขาย ${idxs.length} ชิ้น ได้ ${gold.toLocaleString()} ทอง${all.length > idxs.length ? ` (ข้ามที่ล็อก ${all.length - idxs.length} ชิ้น)` : ''}`);
     } else if (d.act === 'buyStone' || d.act === 'sellStone') {
       const S = C.ENH_STONE, n = Math.max(1, Math.min(S.max, Math.floor(Number(d.n)) || 1));   // typed quantity (inventory.js)
       if (d.act === 'buyStone') {
@@ -1514,14 +1531,15 @@ class World {
     let idx = d, keys;
     if (d && typeof d === 'object' && !Array.isArray(d)) { idx = d.idxs || d.idx; keys = d.idxs ? d.keys : [d.key]; if (!d.idxs) idx = [idx]; }
     if (Array.isArray(idx)) {
-      const idxs = this.bagIdxs(p, idx, keys);
-      if (!idxs.length) return;
+      const all = this.bagIdxs(p, idx, keys), idxs = all.filter((i) => !this.isLocked(p, p.inv[i]));
+      if (!idxs.length) return all.length ? this.toast(p, 'ไอเทมที่เลือกถูกล็อกอยู่ทั้งหมด') : undefined;
       for (const i of idxs) p.inv[i] = null;
-      this.toast(p, `ทิ้ง ${idxs.length} ชิ้นแล้ว`);
+      this.toast(p, `ทิ้ง ${idxs.length} ชิ้นแล้ว${all.length > idxs.length ? ` (ข้ามที่ล็อก ${all.length - idxs.length} ชิ้น)` : ''}`);
       return this.sendInv(p);
     }
     if (!this.validIdx(idx) || !p.inv[idx]) return;
     const it = C.ITEMS[p.inv[idx]];
+    if (this.isLocked(p, p.inv[idx])) return this.toast(p, `${it.name} ถูกล็อกอยู่ ทิ้งไม่ได้`);
     p.inv[idx] = null;
     this.toast(p, `ทิ้ง ${it.name} แล้ว`);
     this.sendInv(p);
@@ -2271,6 +2289,7 @@ class World {
     }
     this.applyControl(tgt, opts, now);
     dmg = Math.max(1, Math.round(dmg));
+    if (tP && !opts.reflect) dmg = Math.max(1, dmg - this.cover(tgt, src, dmg, sP));
     tgt.hp -= dmg;
     tgt.lastHurt = now;
     if (!tP) {
@@ -2304,6 +2323,31 @@ class World {
     const guard = p.buffs && p.buffs.ironGuard && now < p.buffs.ironGuard.until;
     const v = Math.min(dmg * (guard ? T.guard : T.base) * (isPlayer(src) ? T.pvp : 1), p.stats.atk * T.capAtk);
     if (v >= 1) this.applyDamage(p, src, 0, { flat: Math.round(v), reflect: true, proc: true });
+  }
+
+  // นักรบแนวหน้า โล่รับแทน (C.WARRIOR_COVER): the healthiest warrior of tgt's party near it takes part of the blow.
+  // Returns how much tgt is spared; the warrior's own wards / gear guard shrink what actually reaches it.
+  cover(tgt, src, dmg, fromPlayer) {
+    const W = C.WARRIOR_COVER, pt = this.partyOf(tgt), pvp = this.defOf(tgt).pvp;
+    if (!pt || dmg < 2) return 0;
+    let w = null;
+    for (const id of pt.members) {
+      const q = this.players.get(id);
+      if (!q || q === tgt || q === src || q.cls !== 'warrior' || q.dead || q.mapId !== tgt.mapId || dist(q, tgt) > W.range
+        || q.hp <= q.stats.maxHp * W.minHp || (pvp && q.faction !== tgt.faction)) continue;
+      if (!w || q.hp / q.stats.maxHp > w.hp / w.stats.maxHp) w = q;
+    }
+    if (!w) return 0;
+    const part = Math.floor(dmg * W.share * (fromPlayer ? W.pvp : 1));
+    if (part < 1) return 0;
+    const ward = Math.max(this.buffVal(w, 'guard'), this.buffVal(w, 'frontGuard')) + (w.stats.fx.guard || 0);
+    const taken = Math.min(w.hp - 1, Math.round(part * (1 - Math.min(0.7, ward))));
+    if (taken > 0) {
+      w.hp -= taken; w.lastHurt = Date.now();
+      this.emitNear(w.mapId, w.x, w.y, 'hit', { id: w.id, v: taken, c: 0, k: 1 });
+      this.emitNear(w.mapId, w.x, w.y, 'fx', { t: 'cover', id: w.id, to: tgt.id });
+    }
+    return part;
   }
 
   // special options / passives of the attacker's gear on a landed hit
