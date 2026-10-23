@@ -150,10 +150,13 @@ try {
     assert.equal(f.t.tauntImmuneUntil,immune,'ending early cannot bypass taunt immunity');
     if(end!=='leash')assert.equal(f.t.threat.get(attacker.id),100000,'real damage credit survives');
   }
-  // Idle monsters do not remain permanently attached to a zero-damage taunter.
+  // A monster nobody was fighting stays on the taunter after expiry (the taunt opened the fight; monsters never
+  // pick one themselves) — still with no fabricated threat/credit — and lets go under the normal break rules.
   {
     const f=fixture();cast(f,'battleCry');now=f.t.taunt.until;
-    f.w.updateMonster(f.t,0,now);assert.equal(f.t.target,null);assert.equal(f.t.threat.size,0);
+    f.w.updateMonster(f.t,0,now);assert.equal(f.t.target,f.p.id,'taunted monster keeps fighting the taunter');
+    assert.equal(f.t.taunt,null);assert.equal(f.t.threat.size,0,'no fake damage credit');
+    f.p.x+=1000;f.w.updateMonster(f.t,0,now+1);assert.equal(f.t.target,null,'breaks off once out of range');
   }
   // Real tank damage still earns credit; a dead prior target falls back to a living contributor.
   {

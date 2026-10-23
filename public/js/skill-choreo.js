@@ -130,8 +130,10 @@
     if(FAST.has(k.phase)&&k.u<.9){sx=1.07;sy=.95;}
     else if(k.phase==='crouch'||k.phase==='float'){sx=1.06;sy=.93;}
     else if(LAND.has(k.phase)&&k.u>.85){sx=1.12;sy=.88;}
+    // นักพรต casts standing on the ground: the route still steps and sways, but never leaves the floor
+    const lift=e.cls==='taoist'?0:Math.max(-8,k.h+v[2]*.4)+w.lift;
     return {...base,dx:base.dx+Math.cos(m.a)*fwd-Math.sin(m.a)*lat+w.dx,dy:base.dy+Math.sin(m.a)*fwd+Math.cos(m.a)*lat*.6,
-      lift:base.lift+Math.max(-8,k.h+v[2]*.4)+w.lift,roll:(base.roll||0)+roll,sx,sy};
+      lift:base.lift+lift,roll:(base.roll||0)+roll,sx,sy};
   };
   const READY=new Set(['crouch','float','levitate']),RAISED=new Set(['aim','leap','hover','flip','seal','spin','vault','uppercut']);
   K.frame=(e,m,now,base)=>{

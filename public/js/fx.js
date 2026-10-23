@@ -946,6 +946,7 @@
   // one paper talisman (w x h, centred), its rune and a glow
   function drawPaper(g, x, y, rot, s, f, glow) {
     const [pc, ink] = paperCol(f);
+    s *= 0.6; // talismans read too big at full size
     g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s);
     if (glow) { g.shadowColor = glow; g.shadowBlur = 14; }
     g.fillStyle = pc; g.fillRect(-7, -15, 14, 30); g.shadowBlur = 0;

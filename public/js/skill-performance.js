@@ -115,9 +115,10 @@
       case 'volley':lift=wave*(12+6*m.grade);push=-pulse*11*f;roll=-wave*.10;break;
       case 'evade':lift=wave*(12+4*m.grade);roll=-Math.sin(q.p*TAU)*.3;push=-wave*7;break;
       case 'focus':lift=wave*(5+2*m.grade);roll=wave*.035;break;
-      case 'cast':push=pulse*9*f;lift=wave*(3+2*m.grade);roll=wave*.06;break;
-      case 'summon':lift=wave*(13+6*m.grade);push=-pulse*3;roll=-wave*.035;break;
-      case 'bless':lift=wave*(10+5*m.grade);squash=-wave*.025;break;
+      // นักพรต (cast / summon / bless) stays on the ground: a lean and a breath, no hop
+      case 'cast':push=pulse*9*f;roll=wave*.06;break;
+      case 'summon':push=-pulse*3;roll=-wave*.035;squash=-wave*.02;break;
+      case 'bless':squash=-wave*.025;break;
       case 'bash':push=(-7*q.wind*(q.t<q.at)+19*pulse)*f;squash=pulse*.065;roll=pulse*.09;break;
       case 'guard':lift=wave*(m.grade>=4?10:2);squash=wave*.055;push=-wave*4;break;
       case 'cry':squash=-wave*.04;lift=wave*5;roll=Math.sin(q.p*TAU)*.03;break;

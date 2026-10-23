@@ -9,9 +9,10 @@
   const seed=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
   S.palette=(cls,f)=>{
     const dark=f==='adharma';
+    // นักพรต: ธรรมะ = jade light, gold ink on cream paper · อธรรม = blood crimson and violet, red ink on black paper
     return cls==='taoist'
-      ? (dark?{core:'#ffe4b0',main:'#ea693a',deep:'#702339',accent:'#ceaa64',paper:'#3c2029'}
-        :{core:'#f2ffdf',main:'#54c9a6',deep:'#246c72',accent:'#d8b75d',paper:'#fff0bd'})
+      ? (dark?{core:'#ffd8e2',main:'#e0304e',deep:'#4a0e2a',accent:'#b46aff',paper:'#2a1220'}
+        :{core:'#f2ffdf',main:'#54c9a6',deep:'#246c72',accent:'#e8c766',paper:'#fff0bd'})
       :cls==='spearman'
       ? (dark?{core:'#fff0d8',main:'#f04c55',deep:'#46182c',accent:'#d6a150',paper:'#351b29'}
         :{core:'#f5fcff',main:'#68b9ef',deep:'#204a78',accent:'#e9bf62',paper:'#193954'})
@@ -21,6 +22,12 @@
       :(dark?{core:'#ffe5e1',main:'#e15458',deep:'#522232',accent:'#cfa0a2',paper:'#241b2b'}
         :{core:'#e9f9ff',main:'#60b7e7',deep:'#244e83',accent:'#b6d2eb',paper:'#172c48'});
   };
+  // นักพรต's themed tones (war banner, meteor fire, nirvana sun) — one set per faction, never shared
+  S.taoTones=(f)=>f==='adharma'
+    ?{war:{main:'#ff3a3a',core:'#ffd0c0',deep:'#3a0610'},fire:{main:'#ff3a28',core:'#ffc0a0',deep:'#3a0808',accent:'#ff6a4a'},
+      sun:{main:'#b46aff',core:'#f0e0ff'}}
+    :{war:{main:'#ffd25a',core:'#fffbe0',deep:'#7a5a12'},fire:{main:'#6fd2ff',core:'#f0fbff',deep:'#1d4f7a',accent:'#bff0ff'},
+      sun:{main:'#ffe27a',core:'#fffbe8'}};
   S.profile=(id,cls,f,r=0)=>{
     const e=ent(id),lvl=Math.max(1,Math.min(130,e?.lvl||1));
     const tier=lvl>=130?4:lvl>=100?3:lvl>=60?2:lvl>=30?1:0;
@@ -89,8 +96,10 @@
       }
     },delay);
   }
+  // นักพรต paper talismans are drawn at TALISMAN_SCALE of their nominal size (full size read too big on screen)
+  const TALISMAN_SCALE=.6;
   function paper(g,x,y,a,k,P){
-    g.save();g.translate(x,y);g.rotate(a);g.scale(k,k);
+    k*=TALISMAN_SCALE;g.save();g.translate(x,y);g.rotate(a);g.scale(k,k);
     poly(g,[[-7,-17],[7,-17],[7,16],[0,13],[-7,17]],P.paper,P.accent);
     line(g,[[-4,-9],[4,-9],[0,-9],[0,8],[-4,4],[4,4],[2,11]],P.main,1.5);
     line(g,[[-3,-13],[3,-13]],P.deep,1);g.restore();
@@ -472,9 +481,10 @@
     for(const tid of (d.ids||[]).slice(0,32)){
       onEnt(A,'aegis',tid,600,'top',(g,e,p)=>{g.save();g.globalAlpha*=1-p;hexShell(g,e.x,e.y-38,30+p*30,A.P,!!d.r);g.restore();});
       onEnt(A,'aegis',tid,d.d||8000,'top',(g,e,p,t)=>{
-        // five element talismans circling, a faint shell (turtle plates when evolved)
-        for(let i=0;i<5;i++){const a=i*TAU/5+t/1300;paper(g,e.x+Math.cos(a)*40,e.y-34+Math.sin(a)*20,Math.sin(a)*.25,.5,A.P);}
-        g.save();g.globalAlpha*=.28+.08*Math.sin(t/300);hexShell(g,e.x,e.y-38,32,A.P,!!d.r);g.restore();
+        // a light aura (no talismans round the body): breathing glow, motes rising, a faint shell (turtle when evolved)
+        glow(g,e.x,e.y-38,44+5*Math.sin(t/300),A.P.main,.2);
+        for(let i=0;i<5;i++){const ph=(t/1600+i/5)%1,a=i*TAU/5+t/1300;glow(g,e.x+Math.cos(a)*26,e.y-8-ph*72,2+5*(1-ph),A.P.core,.7*(1-ph));}
+        g.save();g.globalAlpha*=.22+.08*Math.sin(t/300);hexShell(g,e.x,e.y-38,32,A.P,!!d.r);g.restore();
       },300);
     }
   };
@@ -504,7 +514,7 @@
     }
   };
   R_.might=d=>{
-    const A=S.profile(d.id,'taoist',d.f,d.r),war={...A.P,main:'#ff7a3a',core:'#ffe9a8',deep:'#7a1d12'};
+    const A=S.profile(d.id,'taoist',d.f,d.r),war={...A.P,...S.taoTones(d.f||ent(d.id)?.faction).war};
     for(const tid of (d.ids||[]).slice(0,32)){
       onEnt(A,'might',tid,500,'top',(g,e,p)=>{glow(g,e.x,e.y-40,60,war.core,.7*(1-p));
         g.save();g.globalAlpha*=1-p;line(g,[[e.x,e.y-200*(1-p)],[e.x,e.y]],war.main,8);g.restore();});
@@ -519,7 +529,8 @@
   };
   R_.meteor=d=>{
     const A=S.profile(d.id,'taoist',d.f,d.r),pts=C.meteorPoints(d.x,d.y,d.n||5),R=d.r?150:130;
-    const fire={...A.P,main:'#ff8a3a',core:'#fff1c0'},stone={...A,P:{...A.P,deep:'#4a2a24',main:'#ff8a3a',accent:'#ffcf6a'}};
+    const T=S.taoTones(d.f||ent(d.id)?.faction).fire;
+    const fire={...A.P,main:T.main,core:T.core},stone={...A,P:{...A.P,deep:T.deep,main:T.main,accent:T.accent}};
     add(A,'meteor',500+pts.length*220+400,'ground',(g,p,t)=>{pts.forEach(([x,y],i)=>{const hit=500+i*220;
       if(t<hit)ring(g,x,y,R*clamp(t/hit),fire.main,1.2);});});
     pts.forEach(([x,y],i)=>{
@@ -535,7 +546,7 @@
       fractures(A,d.x,d.y,220,hit);add(A,'meteor',600,'top',(g,p)=>glow(g,d.x,d.y-20,240*p,fire.core,.75*(1-p)),hit);}
   };
   R_.nirvana=d=>{
-    const A=S.profile(d.id,'taoist',d.f,d.r),ids=(d.ids?.length?d.ids:[d.id]).slice(0,32),sun={...A.P,core:'#fffbe0',main:'#ffd36a'};
+    const A=S.profile(d.id,'taoist',d.f,d.r),ids=(d.ids?.length?d.ids:[d.id]).slice(0,32),sun={...A.P,...S.taoTones(d.f||ent(d.id)?.faction).sun};
     add(A,'nirvana',1200,'ground',(g,p)=>{for(let k=0;k<3;k++){const q=clamp(p*1.5-k*.15);ring(g,d.x,d.y,520*q,sun.main,3*(1-q));}
       lotusAt(g,d.x,d.y,70*clamp(p*3),sun,1);});
     add(A,'nirvana',1000,'top',(g,p)=>{g.save();g.globalAlpha*=Math.sin(p*Math.PI);

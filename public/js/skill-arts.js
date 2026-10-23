@@ -46,7 +46,16 @@
   }
   function feather(g,x,y,a,L,P){g.save();g.translate(x,y);g.rotate(a);g.beginPath();g.moveTo(0,0);g.bezierCurveTo(L*.3,-L*.42,L*.8,-L*.3,L,0);g.quadraticCurveTo(L*.45,L*.21,0,0);g.fillStyle=P.main+'88';g.fill();line(g,[[0,0],[L,0]],P.core,1);for(let k=1;k<5;k++)line(g,[[k*L/6,0],[(k+1)*L/6,-L*.13]],P.accent,.8);g.restore();}
   function arrow(g,x,y,a,L,P){g.save();g.translate(x,y);g.rotate(a);line(g,[[-L,0],[0,0]],P.core,2);poly(g,[[9,0],[-9,-6],[-4,0],[-9,6]],P.core,P.main);for(const side of [-1,1])poly(g,[[-L,0],[-L-12,side*9],[-L+4,side*5],[-L+10,0]],P.main,P.accent);g.restore();}
-  function paper(g,x,y,a,L,P){g.save();g.translate(x,y);g.rotate(a);poly(g,[[-L*.24,-L*.5],[L*.24,-L*.5],[L*.24,L*.5],[0,L*.4],[-L*.24,L*.5]],P.paper,P.accent);line(g,[[-L*.15,-L*.28],[L*.13,-L*.2],[-L*.08,-L*.05],[L*.1,L*.05],[-L*.13,L*.16],[0,L*.32]],P.main,1.6);g.restore();}
+  // นักพรต paper talismans are drawn at TALISMAN_SCALE of their nominal length (full size read too big on screen)
+  const TALISMAN_SCALE=.6;
+  function paper(g,x,y,a,L,P){L*=TALISMAN_SCALE;g.save();g.translate(x,y);g.rotate(a);poly(g,[[-L*.24,-L*.5],[L*.24,-L*.5],[L*.24,L*.5],[0,L*.4],[-L*.24,L*.5]],P.paper,P.accent);line(g,[[-L*.15,-L*.28],[L*.13,-L*.2],[-L*.08,-L*.05],[L*.1,L*.05],[-L*.13,L*.16],[0,L*.32]],P.main,1.6);g.restore();}
+  // นักพรต buffs: light round the body instead of talismans — glow, a breathing waist ring, motes rising (origin = feet)
+  const BLESS=new Set(['mercy','aegis','might','nirvana']);
+  function aura(g,R,P,p,n=8){
+    glow(g,0,-34,R*.8,P,.45);
+    g.save();g.scale(1,.42);arc(g,0,0,R*(.55+.08*Math.sin(p*TAU*2)),0,TAU,P.main,2.5);arc(g,0,0,R*.72,p*TAU,p*TAU+Math.PI*.8,P.accent,1.4);g.restore();
+    for(let k=0;k<n;k++){const ph=(p*1.6+k/n)%1,a=k*TAU/n;glow(g,Math.cos(a)*R*.42,8-ph*R*1.15,3+4*(1-ph),P,.85*(1-ph));}
+  }
   function burst(g,R,n,P,p,rotate=0){for(let i=0;i<n;i++){const a=i*TAU/n+rotate,r=R*(.25+p*.85);line(g,[[Math.cos(a)*r,Math.sin(a)*r*.65],[Math.cos(a)*(r+10*(1-p)),Math.sin(a)*(r+10*(1-p))*.65]],i%2?P.main:P.accent,1.5);}}
   function lotus(g,R,n,P,p){for(let i=0;i<n;i++){g.save();g.rotate(i*TAU/n+p*.5);g.beginPath();g.moveTo(0,0);g.bezierCurveTo(R*.2,-R*.35,R*.8,-R*.25,R,0);g.bezierCurveTo(R*.75,R*.23,R*.2,R*.3,0,0);g.fillStyle=i%2?P.main+'44':P.accent+'33';g.fill();g.strokeStyle=P.accent;g.lineWidth=1.2;g.stroke();g.restore();}}
   function seal(g,R,n,P,p){const pts=Array.from({length:n+1},(_,i)=>[Math.cos(i*TAU/n+p)*R,Math.sin(i*TAU/n+p)*R]);line(g,pts,P.accent,1.4);for(let i=0;i<n;i++){const a=i*TAU/n+p;g.save();g.translate(Math.cos(a)*R*.82,Math.sin(a)*R*.82);g.rotate(a);for(let k=0;k<3;k++)line(g,[[-4+k*4,-6],[-4+k*4,k===1?0:6]],P.main,1.6);g.restore();}}
@@ -55,7 +64,8 @@
   function wings(g,R,P,p,count=7){for(const side of [-1,1])for(let i=count-1;i>=0;i--)feather(g,side*5,0,side>0?-.2-i*.1:-Math.PI+.2+i*.1,R*(.6+i/count*.4)*(1+.12*Math.sin(p*TAU)),P);}
   function lightning(g,x,y,h,P,p){const pts=Array.from({length:9},(_,i)=>[x+(i===0||i===8?0:(fract(i+Math.floor(p*6)*9)-.5)*22),y-h+i*h/8]);line(g,pts,P.main,5);line(g,pts,P.core,1.6);}
   function fissure(g,R,P,p){for(let i=0;i<7;i++){const a=i*TAU/7;line(g,[[0,0],[Math.cos(a+.15)*R*.4*p,Math.sin(a+.15)*R*.25*p],[Math.cos(a-.1)*R*.75*p,Math.sin(a-.1)*R*.45*p],[Math.cos(a)*R*p,Math.sin(a)*R*.6*p]],P.accent,1.8);}}
-  const palettes=(design,e)=>{const P={...SkillFX.palette(design.cls,e.faction)};if(design.accent)P.accent=design.accent;return P;};
+  // design.accent is one hue for both factions; นักพรต keeps its faction accent so ธรรมะ/อธรรม never read alike
+  const palettes=(design,e)=>{const P={...SkillFX.palette(design.cls,e.faction),f:e.faction};if(design.accent&&design.cls!=='taoist')P.accent=design.accent;return P;};
   S.profile=(sk,d)=>{const A=SkillPerformance.profile(sk,d),step=Math.min(3,Math.floor(sk.lvl/25)),mastery=(A.sl-1)/11;return {...A,step,n:4+A.grade*2+step+Math.floor(mastery*2),R:42+step*13+A.grade*9+mastery*5,power:1+A.grade*.13+step*.06+mastery*.1};};
   function sample(design,p){let i=1;while(i<design.times.length-1&&p>design.times[i])i++;const u=smooth(clamp((p-design.times[i-1])/(design.times[i]-design.times[i-1])));return design.keys[i].map((v,k)=>mix(design.keys[i-1][k],v,u));}
   S.pose=(e,m,now,base)=>{
@@ -68,6 +78,7 @@
     const beat=m.beats.reduce((a,b)=>Math.abs(now-m.t0-b)<Math.abs(now-m.t0-a)?b:a,m.beats[0]);
     const hit=Math.max(0,1-Math.abs(now-m.t0-beat)/75);
     if(e.cls==='spearman'){forward+=hit*12;side*=1-hit*.6;lift*=1-hit*.7;}
+    if(e.cls==='taoist')lift=0;                                   // นักพรต never jumps while casting
     return {dx:(e.correctX||0)+(Math.cos(m.a)*forward-Math.sin(m.a)*side)*gain+flip.dx,
       dy:(e.correctY||0)+(Math.sin(m.a)*forward+Math.cos(m.a)*side)*gain*.65,
       lift:(e.leap?Math.max(base.lift,lift*gain):lift*gain)+flip.lift,
@@ -97,7 +108,9 @@
     const a=keys[i-1],b=keys[i],u=smooth(clamp((p-a[0])/(b[0]-a[0]))),v=a.slice(1,5).map((n,k)=>mix(n,b[k+1],u));
     const dx=r.zx-r.hx,dy=r.zy-r.hy,L=Math.hypot(dx,dy),ux=L>1?dx/L:Math.cos(r.a||0),uy=L>1?dy/L:Math.sin(r.a||0);
     const x=r.hx+dx*v[0]-uy*v[1],y=r.hy+dy*v[0]+ux*v[1]*.6,face=Math.atan2(r.zy-y,r.zx-x);
-    return {x,y,lift:v[2],spin:v[3]*Math.sign(ux||1),face:Number.isFinite(face)?face:r.a,phase:b[5],q:u};
+    // นักพรต's Lv.120/130 arts glide along the ground instead of levitating
+    const lift=r.skill.startsWith('tao')?0:v[2];
+    return {x,y,lift,spin:v[3]*Math.sign(ux||1),face:Number.isFinite(face)?face:r.a,phase:b[5],q:u};
   };
   function add(d,phase,dur,layer,draw){
     while(FX.list.filter(n=>n.artV2).length>=144){const i=FX.list.findIndex(n=>n.artV2);FX.list.splice(i,1);}
@@ -115,6 +128,7 @@
       const pts=[];for(let i=7;i>=0;i--){const t=Math.max(m.t0,now-i*16),o=G.skillPose(e,t);pts.push([e.x+o.dx,e.y+o.dy-o.lift-30]);}
       g.globalAlpha*=Math.min(1,p*12,(1-p)*8);line(g,pts,P.main,2+A.grade*.35);
       if(A.grade>=2&&p>.15&&p<.8&&window.drawGhost)for(let i=1;i<=Math.min(3,A.grade);i++){const o=G.skillPose(e,Math.max(m.t0,now-i*28));drawGhost(e,e.x+o.dx,e.y+o.dy-o.lift,.13/i,P.main,g);}
+      if(e.cls==='taoist'&&BLESS.has(m.skill)){g.save();g.translate(x,y+30);aura(g,46+A.grade*6,P,p,6+A.grade);g.restore();return;}
       g.save();g.translate(x,y);g.rotate(m.a);
       if(e.cls==='dualblade')for(const side of [-1,1])blade(g,side*10,side*17,side*(p*2-.6),20+A.grade*4,P);
       if(e.cls==='spearman'){arc(g,0,0,23+A.grade*5,p*5,p*5+1.5,P.accent,1.4);for(let i=0;i<3;i++)line(g,[[-22-i*7,8+i*6],[-8-i*7,3+i*6]],P.main,1.2);}
@@ -170,9 +184,9 @@
         if(v.follow&&(!following||following.dead||following.dying))continue;
         if(v.buff&&ms>v.at+1100){
           if(ms<=v.at+v.dur&&layer==='top'){
-            g.save();g.translate(x,y-86);g.globalAlpha*=.55*Math.min(1,(v.at+v.dur-ms)/250);
-            if(design.cls==='taoist')paper(g,0,Math.sin(ms/300)*2,0,15,P);
-            else for(const side of [-1,1])feather(g,side*2,0,side>0?-.3:Math.PI+.3,14,P);
+            g.save();g.globalAlpha*=.55*Math.min(1,(v.at+v.dur-ms)/250);
+            if(design.cls==='taoist'){g.translate(x,y+12);g.globalAlpha*=.6;aura(g,38,P,(ms/1800)%1,5);}
+            else{g.translate(x,y-86);for(const side of [-1,1])feather(g,side*2,0,side>0?-.3:Math.PI+.3,14,P);}
             g.restore();
           }continue;
         }
@@ -202,6 +216,7 @@
     if(!groundKinds.has(design.motif))return;
     g.save();g.scale(1,.5);g.globalAlpha*=.6*(1-p*.65);
     if(['mercyLotus','heartLotus','emberFlower','nirvanaTree','phoenixSun'].includes(design.motif))lotus(g,R*(.3+smooth(clamp(p*2))*.65),6+A.grade,P,p);
+    else if(design.cls==='taoist'&&BLESS.has(design.id)){for(let i=0;i<2;i++)arc(g,0,0,R*(.45+i*.3)*(.6+clamp(p*3)*.4),0,TAU,i?P.accent:P.main,2-i*.6);}
     else if(design.cls==='taoist')seal(g,R*(.4+clamp(p*3)*.5),design.motif==='threeHeavens'?3:8,P,p*.3);
     else if(['mountainFang','bladeComet','skyLances','worldPillar'].includes(design.motif))fissure(g,R,P,clamp(p*4));
     else{for(let i=0;i<3;i++)arc(g,0,0,R*(.35+i*.22),i*2+p*2,i*2+p*2+1.2,P.accent,1.4);}
@@ -374,11 +389,16 @@
   M.thunderScript=(g,{P,p,R,A,i})=>{
     paper(g,0,-R*.5,p*.15,R*.7,P);for(let k=0;k<3+A.grade;k++){const a=k*TAU/(3+A.grade);lightning(g,Math.cos(a)*R*.6,Math.sin(a)*R*.3,R*(.65+fract(k+i)*.5),P,p);}seal(g,R*.55,8,P,p*.2);
   };
+  // Buffs (mercy / aegis / might / nirvana) are light round the body — no talismans orbiting the caster.
   M.mercyLotus=(g,{P,p,R,A})=>{
-    g.save();g.scale(1,.7);lotus(g,R*(.4+Math.sin(p*Math.PI)*.35),8+A.grade,P,p);g.restore();for(let k=0;k<A.n;k++){const a=k*TAU/A.n;paper(g,Math.cos(a)*R*.5,Math.sin(a)*R*.2-p*65,a*.15,14,P);}glow(g,0,-35,R*.45,P,.3);
+    g.save();g.scale(1,.7);lotus(g,R*(.4+Math.sin(p*Math.PI)*.35),8+A.grade,P,p);g.restore();
+    for(let k=0;k<A.n;k++){const a=k*TAU/A.n;glow(g,Math.cos(a)*R*.5,Math.sin(a)*R*.2-p*65,5+A.grade,P,.8*(1-p));}glow(g,0,-35,R*.5,P,.35);
   };
   M.wardGates=(g,{P,p,R,A})=>{
-    for(let k=0;k<4;k++){const a=k*Math.PI/2+.4;gate(g,Math.cos(a)*R*.7,Math.sin(a)*R*.35,R*.5,P,p);}g.save();g.scale(1,.5);seal(g,R*.85,8,P,0);g.restore();paper(g,0,-65,0,32+A.grade*3,P);
+    // a dome of light rising round the body, its rim breathing; evolved adds a second ring
+    const rise=Math.sin(clamp(p*1.5)*Math.PI/2);glow(g,0,-40,R*.75*rise,P,.35);
+    g.save();g.scale(1,.42);arc(g,0,0,R*.8,0,TAU,P.main,3);if(A.grade>=2)arc(g,0,0,R*.95,p*TAU,p*TAU+Math.PI,P.accent,1.6);g.restore();
+    arc(g,0,-10,R*.7*rise,Math.PI*1.05,Math.PI*1.95,P.core,2.5);arc(g,0,-10,R*.62*rise,Math.PI*1.1,Math.PI*1.9,P.main,1.2);
   };
   M.starBridge=(g,{P,p,R,A,i,fin})=>{
     const pts=Array.from({length:7},(_,k)=>[Math.cos(k*TAU/7+i*.1)*R*.7,Math.sin(k*TAU/7+i*.1)*R*.4]);line(g,pts.concat([pts[0]]),P.main,2);for(const [x,y]of pts){paper(g,x,y-25,0,22+A.grade*2,P);glow(g,x,y,10,P,.7);}gate(g,0,10,R*(fin?.9:.5),P,p);
@@ -387,10 +407,12 @@
     g.rotate(a);for(let k=0;k<3+A.grade;k++){const yy=(k-(2+A.grade)/2)*15,xx=-Math.abs(yy)*.5;blade(g,xx,yy,0,R*.65,P);paper(g,xx-R*.4,yy,Math.PI/2,17,P);}line(g,[[-R,0],[R*.7,0]],P.accent,1.5);
   };
   M.warBanners=(g,{P,p,R,A})=>{
-    for(const side of [-1,1]){const x=side*R*.6,h=70+A.grade*9;line(g,[[x,12],[x,-h]],P.accent,3);poly(g,[[x,-h+8],[x+side*36,-h+12+Math.sin(p*8)*5],[x+side*28,-h+49],[x,-h+45]],P.deep+'dd',P.accent);paper(g,x+side*15,-h+27,side*.1,22,P);}glow(g,0,-38,R*.4,P,.3);seal(g,R*.4,4,P,p*.2);
+    // war light: rays shooting up round the body and a bright core, no banners or talismans
+    const h=(70+A.grade*9)*Math.sin(clamp(p*1.6)*Math.PI/2);glow(g,0,-38,R*.55,P,.4);
+    for(let k=0;k<5+A.grade;k++){const a=k*TAU/(5+A.grade)+p*.6,x=Math.cos(a)*R*.45,y=Math.sin(a)*R*.18;line(g,[[x,y],[x,y-h]],P.main,3);line(g,[[x,y],[x,y-h*.8]],P.core,1);}
   };
   M.sealMeteors=(g,{P,p,R,A,i,fin})=>{
-    const fire={...P,main:'#ec7a40',core:'#fff0bd'};g.save();g.translate(0,-(1-clamp(p*4))*70);g.rotate(i*.7+p);seal(g,R*.45,6,fire,p);paper(g,0,0,0,R*.6,fire);g.restore();fissure(g,R,fire,clamp(p*4));for(let k=0;k<A.n;k++){const a=k*TAU/A.n;paper(g,Math.cos(a)*R*p,Math.sin(a)*R*p*.5-20*Math.sin(p*Math.PI),a+p,15,fire);}if(fin)glow(g,0,0,R*.6,fire,.5);
+    const fire={...P,...SkillFX.taoTones(P.f).fire};g.save();g.translate(0,-(1-clamp(p*4))*70);g.rotate(i*.7+p);seal(g,R*.45,6,fire,p);paper(g,0,0,0,R*.6,fire);g.restore();fissure(g,R,fire,clamp(p*4));for(let k=0;k<A.n;k++){const a=k*TAU/A.n;paper(g,Math.cos(a)*R*p,Math.sin(a)*R*p*.5-20*Math.sin(p*Math.PI),a+p,15,fire);}if(fin)glow(g,0,0,R*.6,fire,.5);
   };
   M.nirvanaTree=(g,{P,p,R,A})=>{
     const h=R*(.8+clamp(p*3)*.5);line(g,[[0,5],[0,-h]],P.accent,4);for(let k=0;k<3+A.grade;k++){const yy=-20-k*h/(4+A.grade),spread=R*(.6-k*.06);for(const side of [-1,1]){line(g,[[0,yy],[side*spread*.6,yy-12],[side*spread,yy-30]],P.accent,2);g.save();g.translate(side*spread,yy-30);lotus(g,13+A.grade,5,P,p);g.restore();}}g.save();g.scale(1,.5);lotus(g,R*.65,8,P,p);g.restore();

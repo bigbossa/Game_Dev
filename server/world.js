@@ -2800,6 +2800,9 @@ class World {
           const q = this.players.get(pid);
           if (legal(q) && (!prior || damage > (m.threat.get(prior.id) || 0))) prior = q;
         }
+        // Nobody else was fighting it: the taunt itself opened the fight (monsters never pick one on their own),
+        // so it keeps on the taunter until the normal break rules. Still no fake threat / XP / loot credit.
+        if (!prior && legal(forced)) prior = forced;
         m.taunt = null; m.target = prior ? prior.id : null; m.returning = !prior;
         m.nextRetarget = now + 2000;
         if (!inLeash) m.threat.clear(); // retain the existing leash-reset rule
