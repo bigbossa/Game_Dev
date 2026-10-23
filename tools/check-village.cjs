@@ -12,7 +12,7 @@ for(const seed of [20261119,1,42,98765]){
  assert(queue.length>7500,'Reachable play area');
  const reachable=(x,y)=>!!seen[Math.floor(y/C.TILE)*map.w+Math.floor(x/C.TILE)];
  for(const f of ['dharma','adharma']){const s=C.spawnOf(def,f);assert(reachable(s.x,s.y));assert(C.safeAt(def,s.x,s.y,f));assert(C.noMonster(def,s.x,s.y));checks++;}
- for(const kind of ['smith','apothecary','stone']){
+ for(const kind of ['smith','apothecary','enhancer','stone']){
   const target=def[kind];
   const near=queue.filter(([x,y])=>Math.hypot((x+.5)*C.TILE-target.x,(y+.5)*C.TILE-target.y)<180);
   assert(near.length>2,kind+' reachable within interaction distance');checks++;

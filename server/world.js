@@ -419,7 +419,7 @@ class World {
   nearCamp(p) {
     if (p.dead) return false;
     const st = C.stoneOf(this.defOf(p), p.faction);
-    return this.nearSmith(p) || this.nearApothecary(p) || Math.hypot(p.x - st.x, p.y - st.y) < 200;
+    return this.nearSmith(p) || this.nearApothecary(p) || this.nearEnhancer(p) || Math.hypot(p.x - st.x, p.y - st.y) < 200;
   }
   sendStorage(p) { p.socket.emit('storage', { items: p.storage, gold: p.storeGold }); }
   // d.cmd: 'open' · 'put' { idx, key } | { idxs, keys } (bag → storage) · 'take' { idx, key } (storage → bag)
@@ -1250,6 +1250,10 @@ class World {
     const s = C.apothecaryOf(this.defOf(p), p.faction);
     return Math.hypot(p.x - s.x, p.y - s.y) < 200;
   }
+  nearEnhancer(p) {
+    const s = C.enhancerOf(this.defOf(p), p.faction);
+    return Math.hypot(p.x - s.x, p.y - s.y) < 200;
+  }
 
   // ------------------------------------------------------------ maps
   // monsters chasing p let go (map change / logout)
@@ -1308,8 +1312,10 @@ class World {
   }
   onShop(p, d) {
     if (!d || p.dead) return;
-    const atSmith = this.nearSmith(p), atApoth = this.nearApothecary(p);
-    if (!atSmith && !atApoth) return this.toast(p, 'ต้องอยู่ใกล้ร้านช่างตีดาบหรือร้านขายยาในฐานของฝ่ายตัวเอง');
+    const atSmith = this.nearSmith(p), atApoth = this.nearApothecary(p), atEnh = this.nearEnhancer(p);
+    if (!atSmith && !atApoth && !atEnh) return this.toast(p, 'ต้องอยู่ใกล้ร้านช่างตีดาบ ร้านขายยา หรือร้านตีบวกในฐานของฝ่ายตัวเอง');
+    // ตีบวก / สุ่มออฟชั่นใหม่ happen at the enhancement shop only
+    if ((d.act === 'enhance' || d.act === 'reroll') && !atEnh) return this.toast(p, 'ตีบวกและสุ่มออฟชั่นได้ที่ร้านตีบวกเท่านั้น');
     if (d.act === 'buy') {
       const it = C.ITEMS[d.id];
       if (!it || it.plus || it.grade) return;          // d.id always names the base; grade (gear) is picked via d.grade
@@ -1395,10 +1401,10 @@ class World {
     this.sendInv(p);
     this.save(p);
   }
-  // enhancement at the blacksmith (weapon + the 4 armour pieces): d.where = 'eq' with d.slot (worn) | 'inv' with d.idx.
+  // enhancement at the ร้านตีบวก (weapon + the 4 armour pieces): d.where = 'eq' with d.slot (worn) | 'inv' with d.idx.
   // d.guard / d.luck: use one ยันต์กันแตก / ยันต์เพิ่มโอกาส on this attempt (used up whatever the result).
-  // Uses stones + a fee; the success chance falls with every + level. A failed try from C.ENHANCE.breakFrom up
-  // (every + level, every grade) destroys the item; below that the item just stays as it was.
+  // One gold payment (C.ENHANCE.quote): fee + the stones + any ticked talisman, owned stones / talismans used first.
+  // The success chance falls with every + level; a failed try may break or demote the item (see below).
   enhance(p, d) {
     const fromBag = d.where === 'inv';
     const slot = fromBag ? null : C.SLOTS.includes(d.slot) ? d.slot : 'weapon';
@@ -1409,20 +1415,19 @@ class World {
     const plus = it.plus || 0;
     if (plus >= C.MAX_PLUS) return this.toast(p, `${it.name} ตีบวกสูงสุดแล้ว`);
     // materials of the item's own tier (C.matTier: basic < Lv.60 · mid Lv.60-99 · high Lv.100+)
-    const base = C.ITEMS[C.parseId(key).id], cost = C.ENHANCE.cost(base, plus), need = C.ENHANCE.stoneCount(base, plus);
-    const tier = C.matTier(base.lvl || 1), stone = C.matDef('stone', tier), have = C.matHave(p, 'stone', tier);
+    const base = C.ITEMS[C.parseId(key).id], tier = C.matTier(base.lvl || 1);
     // materials of another tier never enhance anything (d.tier = the tier the shop meant to pay with)
     if (d.tier !== undefined && Number(d.tier) !== tier)
       return this.toast(p, `วัสดุผิดขั้น: ${it.name} Lv.${base.lvl} ใช้หินและยันต์${C.MAT_TIERS[tier].th}เท่านั้น`);
-    if (have < need) return this.toast(p, `${stone.name}ไม่พอ (ต้องการ ${need} ก้อน · มี ${have}) · ${it.name} Lv.${base.lvl} ใช้วัสดุ${C.MAT_TIERS[tier].th}`);
-    if (p.gold < cost) return this.toast(p, `ทองไม่พอ (ค่าช่าง ${cost.toLocaleString()} ทอง)`);
     const guard = !!d.guard, luck = !!d.luck, gk = C.matKey('guard', tier), lk = C.matKey('luck', tier);
-    if (guard && !(p.charms[gk] > 0)) return this.toast(p, `ไม่มี${C.ENH_CHARMS[gk].name} · ยันต์ขั้นอื่นใช้กับ ${it.name} Lv.${base.lvl} ไม่ได้ (ไม่ได้ตีบวก)`);
-    if (luck && !(p.charms[lk] > 0)) return this.toast(p, `ไม่มี${C.ENH_CHARMS[lk].name} · ยันต์ขั้นอื่นใช้กับ ${it.name} Lv.${base.lvl} ไม่ได้ (ไม่ได้ตีบวก)`);
-    if (tier) p.charms[C.matKey('stone', tier)] -= need; else p.stones -= need;
-    p.gold -= cost;
-    if (guard) p.charms[gk]--;
-    if (luck) p.charms[lk]--;
+    const q = C.ENHANCE.quote(p, base, plus, { guard, luck });
+    // d.total = the price the shop showed: never charge more than that (e.g. stones sold meanwhile)
+    if (d.total !== undefined && q.total > Number(d.total)) return this.toast(p, 'ราคาเปลี่ยนแล้ว กรุณากดตีบวกอีกครั้ง');
+    if (p.gold < q.total) return this.toast(p, `ทองไม่พอ (ตีบวกครั้งนี้ ${q.total.toLocaleString()} ทอง)`);
+    if (q.ownStones) { if (tier) p.charms[C.matKey('stone', tier)] -= q.ownStones; else p.stones -= q.ownStones; }
+    if (q.guardOwn) p.charms[gk]--;
+    if (q.luckOwn) p.charms[lk]--;
+    p.gold -= q.total;
     const ok = Math.random() < C.ENHANCE.rateWith(plus, luck);
     const soft = plus >= C.ENHANCE.softPlusMin && plus <= C.ENHANCE.softPlusMax;
     let saved = false, demoted = false, broke = false, next = plus;
@@ -1526,7 +1531,7 @@ class World {
       }
     }
     if (item) {
-      // grade: Epic+ only when this monster is 0-9 levels above the item (C.canDropHigh); bosses always Unique+
+      // grade: Epic+ on any item of the monster's own table (C.canDropHigh); bosses always Unique+
       const mon = C.MONSTERS[type];
       item = C.gradeId(item, C.rollGrade(mon.lvl, C.ITEMS[item].lvl, !!mon.boss));
     }

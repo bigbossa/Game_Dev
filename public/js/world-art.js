@@ -567,6 +567,7 @@
       case 'smith': return { img: SPR.smith[v], ax: 75, ay: 142, light: '#ff8a30', ly: -24, label: 'ร้านช่างตีดาบ', labelY: -150 };
       // ร้านขายยา: a second shop building, same sprite as the blacksmith's — only the label tells them apart
       case 'apothecary': return { img: SPR.smith[v], ax: 75, ay: 142, light: '#ff8a30', ly: -24, label: 'ร้านขายยา', labelY: -150 };
+      case 'enhancer': return { img: SPR.smith[v], ax: 75, ay: 142, light: '#ffb35a', ly: -24, label: 'ร้านตีบวก', labelY: -150 };
       case 'fence': return { img: SPR.fence[v], ax: 26, ay: 42 };
       case 'house': return { img: SPR.house[v], ax: 90, ay: 176 };
       case 'stone': return { img: SPR.stone, ax: 40, ay: 122, light: '#7ad8ff', ly: -70, label: 'ศิลาเคลื่อนย้าย', labelY: -128, icon: '✦' };

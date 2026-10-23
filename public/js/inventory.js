@@ -1,8 +1,8 @@
 // Inventory, equipment and blacksmith shop panels.
 (function () {
-  const INV = { state: { inv: [], eq: { weapon: 'w0' }, gold: 0 }, faction: 'dharma', shopOpen: false, potionShopOpen: false, shopTab: 'weapon', potQty: {} };
+  const INV = { state: { inv: [], eq: { weapon: 'w0' }, gold: 0 }, faction: 'dharma', shopOpen: false, potionShopOpen: false, enhShopOpen: false, shopTab: 'weapon', potQty: {} };
   window.INV = INV;
-  INV.anyShopOpen = () => INV.shopOpen || INV.potionShopOpen;
+  INV.anyShopOpen = () => INV.shopOpen || INV.potionShopOpen || INV.enhShopOpen;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = (n) => n.toLocaleString('th-TH');
@@ -234,13 +234,13 @@
       potionList.appendChild(row);
     }
     INV.syncPotionShop = () => potSyncs.forEach((f) => f());
-    document.querySelectorAll('#invPanel .close, #shopPanel .close, #potionPanel .close').forEach((b) => b.addEventListener('click', () => INV.closeAll()));
+    document.querySelectorAll('#invPanel .close, #shopPanel .close, #potionPanel .close, #enhPanel .close').forEach((b) => b.addEventListener('click', () => INV.closeAll()));
   };
   function setTab(tab) {
     INV.shopTab = tab;
     for (const b of document.querySelectorAll('#shopTabs button')) b.classList.toggle('on', b.dataset.tab === tab);
     for (const row of $('shopList').children) row.style.display = row.dataset.slot === tab ? '' : 'none';
-    const own = tab === 'enhance' || tab === 'mats';       // drawn into enhList, not shop rows
+    const own = tab === 'mats';                           // drawn into enhList, not shop rows
     $('shopList').classList.toggle('hidden', own);
     $('enhList').classList.toggle('hidden', !own);
     if (own) renderEnhance();
@@ -255,54 +255,105 @@
       .map((k) => `${L[k]} ${a[k] || 0} → <b>${b[k] || 0}</b>`).join(' · ') +
       ` · ดาเมจมอน +${Math.round(C.ENHANCE.pveShare(it) * 100)}% → <b>+${Math.round(C.ENHANCE.pveShare(next) * 100)}%</b>`;
   }
-  function enhRow(it, where, key, f) {
-    const plus = it.plus || 0, base = C.ITEMS[it.base || it.id], st = INV.state;
-    const row = document.createElement('div');
-    row.className = 'shop-row enh-row';
-    const max = plus >= C.MAX_PLUS;
-    const tier = C.matTier(base.lvl || 1), stone = C.matDef('stone', tier);
-    // a ticked talisman must exist in THIS item's tier: the other tiers never count (no silent unguarded try)
-    const guard = useCharm('guard', tier), luck = useCharm('luck', tier);
-    const missing = ['guard', 'luck'].filter((k) => INV.charmOn[k] && !useCharm(k, tier)).map((k) => C.matDef(k, tier).name);
-    const cost = max ? 0 : C.ENHANCE.cost(base, plus), rate = max ? 0 : C.ENHANCE.rateWith(plus, luck);
-    const need = max ? 0 : C.ENHANCE.stoneCount(base, plus), have = C.matHave(st, 'stone', tier);
-    const next = max ? null : C.ITEMS[C.plusId(it.id, plus + 1)];
-    const breaks = !max && plus >= C.ENHANCE.breakFrom;
-    const risk = !breaks ? '' : guard ? `<span class="risk safe"><img class="charm-ico" src="${INV.matIcon('guard', tier)}" alt=""> ${C.matDef('guard', tier).name}: ล้มเหลว = ระดับคงเดิม</span>`
-      : `<span class="risk">⚠ ล้มเหลว = ไอเทมแตกหาย (${Math.round((1 - rate) * 100)}%)</span>`;
-    row.innerHTML = `<div class="shop-icon" style="border-color:${C.RARITY[it.rarity].color}"><img src="${WeaponLook.iconSrc(base.id, f)}" alt="">${plus ? `<span class="plus p${plus}">+${plus}</span>` : ''}</div>
-      <div class="shop-info"><div class="shop-name" style="color:${C.RARITY[it.rarity].color}">${esc(it.name)}${where === 'eq' ? ' <small>(สวมอยู่)</small>' : ''}</div>
-      <div class="shop-meta">${max ? 'ตีบวกสูงสุดแล้ว' : `→ +${plus + 1} · ${enhGain(it, next)} · โอกาส <b>${Math.round(rate * 100)}%</b>${luck ? ' <small class="luck">(+ยันต์)</small>' : ''}<br>
-        <span class="need${have < need ? ' bad' : ''}"><img class="charm-ico" src="${INV.matIcon('stone', tier)}" alt=""> ${stone.name} ${need} ก้อน <small>(มี ${fmt(have)})</small></span> · ค่าช่าง ${fmt(cost)} ทอง`} ${risk}${
-        !max && missing.length ? `<br><span class="risk">⛔ ต้องใช้ ${missing.join(' และ ')} (Lv.${base.lvl} = วัสดุ${C.MAT_TIERS[tier].th}) · ยันต์ขั้นอื่นใช้ไม่ได้ — ซื้อเพิ่ม หรือเอาติ๊กออก</span>` : ''}</div></div>
-      <button class="buy" type="button" ${max || st.gold < cost || have < need || missing.length ? 'disabled' : ''}>${max ? 'MAX' : 'ตีบวก'}</button>`;
-    row.querySelector('.buy').addEventListener('click', () => {
-      if (breaks && !guard && !confirm(`ตีบวก ${it.name} → +${plus + 1}\nโอกาสสำเร็จ ${Math.round(rate * 100)}% · ถ้าล้มเหลว ไอเทมจะแตกหายไปถาวร\nต้องการตีบวกต่อ?`)) return;
-      if (missing.length) return;
-      // tier = the material tier this attempt pays with; the server refuses one that is not the item's
-      const use = { guard: INV.charmOn.guard ? 1 : 0, luck: INV.charmOn.luck ? 1 : 0, tier };
-      emit('shop', where === 'eq' ? { act: 'enhance', where, slot: key, ...use } : { act: 'enhance', where, idx: key, key: INV.state.inv[key], ...use });
-    });
-    // หินสุ่มออฟชั่น / หินสุ่มสกิลติดตัว: reroll just the green-font affixes (Rare+) or the ✦ passive (Legendary+),
-    // everything else on the item stays — shown only when the item actually has that part to reroll
-    const G = C.GRADES[it.grade || 0];
-    const rerollBtn = (kind, label, needGrade) => {
-      if (!needGrade) return '';
-      const mk = C.matKey(kind === 'affix' ? 'reaffix' : 'repassive', tier), m = C.matHave(st, kind === 'affix' ? 'reaffix' : 'repassive', tier);
-      return `<button type="button" class="reroll" data-kind="${kind}" ${m < 1 ? 'disabled' : ''}>${label}<br><small>${m < 1 ? `ไม่มี${C.ENH_CHARMS[mk].name}` : `ใช้ ${C.ENH_CHARMS[mk].name} (มี ${fmt(m)})`}</small></button>`;
-    };
-    if (G.affix[1] || G.passive) {
-      row.insertAdjacentHTML('beforeend', `<div class="reroll-row">${rerollBtn('affix', 'สุ่มออฟชั่นใหม่', G.affix[1])}${rerollBtn('passive', 'สุ่มสกิลติดตัวใหม่', G.passive)}</div>`);
-      row.querySelectorAll('.reroll').forEach((b) => b.addEventListener('click', () => {
-        const kind = b.dataset.kind;
-        if (!confirm(`สุ่ม${kind === 'affix' ? 'ออฟชั่น (ตัวหนังสือสีเขียว)' : 'สกิลติดตัว (✦)'}ใหม่ของ ${it.name}?\nค่าสถานะหลัก เกรด และระดับตีบวกไม่เปลี่ยน แต่ของเดิมจะหายไป`)) return;
-        emit('shop', where === 'eq' ? { act: 'reroll', where, slot: key, kind } : { act: 'reroll', where, idx: key, key: INV.state.inv[key], kind });
-      }));
+  // ------------------------------------------------------------ ร้านตีบวก: pick an item, tick talismans, pay one price
+  // INV.enhSel = { where: 'eq' | 'inv', key: slot | bag index } (the item there is looked up again on every render);
+  // INV.enhOpt = the ticked talismans. The price comes from C.ENHANCE.quote, the same formula the server charges.
+  INV.enhSel = null;
+  INV.enhOpt = { guard: false, luck: false };
+  function enhItems() {
+    const st = INV.state, out = [];
+    for (const slot of C.SLOTS) {
+      const it = C.ITEMS[st.eq[slot]] || (slot === 'weapon' ? C.WEAPONS[0] : null);
+      if (C.ENHANCE.canEnhance(it)) out.push({ where: 'eq', key: slot, it });
     }
-    row.addEventListener('mouseenter', (e) => showTip(e, INV.itemTip(it, `<br><small>ตีบวก +1 ถึง +10${it.slot === 'weapon' ? ': ยิ่งสูงแสงและสายฟ้าที่อาวุธยิ่งต่างและอลังการ' : ': เพิ่มป้องกัน พลังชีวิต และค่าสถานะของชุด'}</small>`)));
-    row.addEventListener('mousemove', moveTip);
-    row.addEventListener('mouseleave', hideTip);
-    return row;
+    st.inv.forEach((id, i) => { const it = C.ITEMS[id]; if (C.ENHANCE.canEnhance(it)) out.push({ where: 'inv', key: i, it }); });
+    return out;
+  }
+  // how a failed try ends (C.ENHANCE soft fails at +1..+6; dropping from +1 breaks it as well)
+  function failShare(plus) {
+    const E = C.ENHANCE, soft = plus >= E.softPlusMin && plus <= E.softPlusMax;
+    if (!soft) return { brk: 1, demote: 0 };
+    const demote = (1 - E.softBreakChance) * E.softDemoteChance;
+    return plus - 1 <= 0 ? { brk: E.softBreakChance + demote, demote: 0 } : { brk: E.softBreakChance, demote };
+  }
+  function renderEnhShop() {
+    const box = $('enhShop'), st = INV.state, f = INV.faction, E = C.ENHANCE, items = enhItems();
+    let sel = INV.enhSel && items.find((x) => x.where === INV.enhSel.where && x.key === INV.enhSel.key);
+    if (!sel) { sel = items[0] || null; INV.enhSel = sel && { where: sel.where, key: sel.key }; }
+    box.innerHTML = '';
+    // 1. the item
+    box.insertAdjacentHTML('beforeend', '<div class="enh-sec">1. เลือกอาวุธหรือชุดที่จะตีบวก</div>');
+    const pick = document.createElement('div');
+    pick.className = 'enh-pick';
+    for (const x of items) {
+      const b = document.createElement('button'), it = x.it;
+      b.type = 'button';
+      b.className = 'enh-item' + (x === sel ? ' on' : '');
+      b.style.borderColor = C.RARITY[it.rarity].color;
+      b.innerHTML = `<img src="${WeaponLook.iconSrc(it.base || it.id, f)}" alt="">${it.plus ? `<span class="plus p${it.plus}">+${it.plus}</span>` : ''}<small>${x.where === 'eq' ? 'สวมอยู่' : 'กระเป๋า'}</small>`;
+      b.addEventListener('click', () => { INV.enhSel = { where: x.where, key: x.key }; hideTip(); renderEnhShop(); });
+      b.addEventListener('mouseenter', (e) => showTip(e, INV.itemTip(it)));
+      b.addEventListener('mousemove', moveTip);
+      b.addEventListener('mouseleave', hideTip);
+      pick.appendChild(b);
+    }
+    box.appendChild(pick);
+    if (!sel) { box.insertAdjacentHTML('beforeend', '<div class="enh-hint">ไม่มีอาวุธหรือชุดที่ตีบวกได้</div>'); return; }
+    const it = sel.it, plus = it.plus || 0, base = C.ITEMS[it.base || it.id];
+    const card = document.createElement('div');
+    card.className = 'enh-card';
+    card.innerHTML = `<div class="shop-name" style="color:${C.RARITY[it.rarity].color}">${esc(it.name)} <small>(${sel.where === 'eq' ? 'สวมอยู่' : 'ในกระเป๋า'})</small></div>`;
+    box.appendChild(card);
+    if (plus >= C.MAX_PLUS) { card.insertAdjacentHTML('beforeend', '<div class="enh-hint">ตีบวกสูงสุดแล้ว (+10)</div>'); rerollRow(card, sel); return; }
+    const q = E.quote(st, base, plus, INV.enhOpt), rate = E.rateWith(plus, q.luck), next = C.ITEMS[C.plusId(it.id, plus + 1)];
+    const risk = failShare(plus);
+    const failTxt = q.guard ? '<span class="risk safe">ถ้าล้มเหลว: ยันต์กันแตกคุ้มครอง ไอเทมไม่แตก ระดับคงเดิม</span>'
+      : risk.brk >= 1 ? `<span class="risk">⚠ ถ้าล้มเหลว (${pct(1 - rate)}) ไอเทมแตกหาย</span>`
+      : `<span class="risk">⚠ ถ้าล้มเหลว: แตก ${pct(risk.brk)} · ลดระดับ ${pct(risk.demote)} · คงเดิม ${pct(1 - risk.brk - risk.demote)}</span>`;
+    card.insertAdjacentHTML('beforeend', `<div class="shop-meta">+${plus} → <b>+${plus + 1}</b> · ${enhGain(it, next)}</div>
+      <div class="enh-chance">โอกาสสำเร็จ <b>${pct(rate)}</b>${q.luck ? ' <small class="luck">(+ยันต์เพิ่มโอกาส)</small>' : ''}</div><div class="shop-meta">${failTxt}</div>`);
+    // 2. talismans: ticked = one used on this try (an owned one first, otherwise bought within the same price)
+    const opts = document.createElement('div');
+    opts.className = 'charm-use';
+    opts.innerHTML = '<span>2. ใช้ยันต์ (ติ๊กแล้วคิดรวมในราคาครั้งนี้):</span>' + ['guard', 'luck'].map((k) => {
+      const S = C.matDef(k, q.tier), have = C.matHave(st, k, q.tier);
+      return `<label><input type="checkbox" data-k="${k}" ${INV.enhOpt[k] ? 'checked' : ''}><img src="${INV.matIcon(k, q.tier)}" alt=""> ${S.name}
+        <small>${have > 0 ? `ใช้ของที่มี (มี ${fmt(have)} ใบ)` : `+${fmt(S.price)} ทอง`}</small></label>`;
+    }).join('');
+    opts.addEventListener('change', (e) => { const k = e.target.dataset.k; if (k) { INV.enhOpt[k] = e.target.checked; renderEnhShop(); } });
+    card.appendChild(opts);
+    // 3. the one price: fee + stones + ticked talismans
+    const stone = C.matDef('stone', q.tier), lines = [`ค่าช่าง <b>${fmt(q.fee)}</b>`];
+    lines.push(`${stone.name} ${q.need} ก้อน: ${[q.ownStones ? `<small>ใช้ของที่มี ${q.ownStones}</small>` : '', q.buyStones ? `ซื้อ ${q.buyStones} = <b>${fmt(q.stoneGold)}</b>` : ''].filter(Boolean).join(' · ')}`);
+    for (const k of ['guard', 'luck']) if (q[k]) lines.push(`${C.matDef(k, q.tier).name} ${q[k + 'Own'] ? '<small>ใช้ของที่มี</small>' : `<b>${fmt(q[k + 'Gold'])}</b>`}`);
+    const poor = st.gold < q.total;
+    card.insertAdjacentHTML('beforeend', `<div class="enh-bill">${lines.join(' · ')}<div class="enh-total">รวม <b>${fmt(q.total)}</b> ทอง${poor ? ' <span class="risk">ทองไม่พอ</span>' : ''}</div></div>
+      <button type="button" class="enh-go" ${poor ? 'disabled' : ''}>⚒ ตีบวก +${plus + 1} · ${fmt(q.total)} ทอง</button>`);
+    card.querySelector('.enh-go').addEventListener('click', () => {
+      if (!q.guard && !confirm(`ตีบวก ${it.name} → +${plus + 1}\nโอกาสสำเร็จ ${pct(rate)} · ราคา ${fmt(q.total)} ทอง\nถ้าล้มเหลว ไอเทมอาจแตกหายถาวร (ติ๊กยันต์กันแตกเพื่อป้องกัน)\nต้องการตีบวกต่อ?`)) return;
+      const use = { guard: q.guard ? 1 : 0, luck: q.luck ? 1 : 0, tier: q.tier, total: q.total };
+      emit('shop', sel.where === 'eq' ? { act: 'enhance', where: 'eq', slot: sel.key, ...use } : { act: 'enhance', where: 'inv', idx: sel.key, key: st.inv[sel.key], ...use });
+    });
+    rerollRow(card, sel);
+    const rates = E.rate.map((r, i) => `+${i + 1} ${pct(E.rateWith(i, q.luck))}`).join(' · ');
+    box.insertAdjacentHTML('beforeend', `<div class="enh-rates">โอกาสสำเร็จแต่ละขั้น: ${rates}</div>`);
+  }
+  // หินสุ่มออฟชั่น / หินสุ่มสกิลติดตัว (bought at the blacksmith): reroll just the green-font affixes (Rare+) or the ✦
+  // passive (Legendary+), everything else stays — shown only when the item has that part to reroll
+  function rerollRow(card, sel) {
+    const it = sel.it, st = INV.state, G = C.GRADES[it.grade || 0], tier = C.matTier(C.ITEMS[it.base || it.id].lvl || 1);
+    if (!G.affix[1] && !G.passive) return;
+    const btn = (kind, label, show) => {
+      if (!show) return '';
+      const kk = kind === 'affix' ? 'reaffix' : 'repassive', mk = C.matKey(kk, tier), m = C.matHave(st, kk, tier);
+      return `<button type="button" class="reroll" data-kind="${kind}" ${m < 1 ? 'disabled' : ''}>${label}<br><small>${m < 1 ? `ไม่มี${C.ENH_CHARMS[mk].name} (ซื้อที่ร้านช่างตีดาบ)` : `ใช้ ${C.ENH_CHARMS[mk].name} (มี ${fmt(m)})`}</small></button>`;
+    };
+    card.insertAdjacentHTML('beforeend', `<div class="reroll-row">${btn('affix', 'สุ่มออฟชั่นใหม่', G.affix[1])}${btn('passive', 'สุ่มสกิลติดตัวใหม่', G.passive)}</div>`);
+    card.querySelectorAll('.reroll').forEach((b) => b.addEventListener('click', () => {
+      const kind = b.dataset.kind;
+      if (!confirm(`สุ่ม${kind === 'affix' ? 'ออฟชั่น (ตัวหนังสือสีเขียว)' : 'สกิลติดตัว (✦)'}ใหม่ของ ${it.name}?\nค่าสถานะหลัก เกรด และระดับตีบวกไม่เปลี่ยน แต่ของเดิมจะหายไป`)) return;
+      emit('shop', sel.where === 'eq' ? { act: 'reroll', where: 'eq', slot: sel.key, kind } : { act: 'reroll', where: 'inv', idx: sel.key, key: st.inv[sel.key], kind });
+    }));
   }
   // enhancement materials: หินตีบวก + ยันต์กันแตก + ยันต์เพิ่มโอกาส, each with its count and buy / sell buttons
   // every tier (C.MAT_TIERS) × stone / guard / luck; the basic stone is ENH_STONE (buyStone), the rest are "charms"
@@ -370,42 +421,11 @@
     }
     return wrap;
   }
-  // talisman toggles of the enhance tab (a ticked one only counts while some are left)
-  // ticked = use one of the item's own tier on each attempt (only while some are left)
-  INV.charmOn = { guard: false, luck: false };
-  const useCharm = (k, tier) => INV.charmOn[k] && C.matHave(INV.state, k, tier || 0) > 0;
-  function charmToggles() {
-    const st = INV.state, box = document.createElement('div');
-    box.className = 'charm-use';
-    box.innerHTML = '<span>ใช้ยันต์ทุกครั้งที่ตีบวก <small>(ใช้ขั้นตามเลเวลอุปกรณ์)</small>:</span>' + ['guard', 'luck'].map((k) => {
-      const counts = C.MAT_TIERS.map((T, t) => C.matHave(st, k, t)), any = counts.some((n) => n > 0);
-      return `<label class="${any ? '' : 'off'}"><input type="checkbox" data-k="${k}" ${INV.charmOn[k] ? 'checked' : ''} ${any ? '' : 'disabled'}>
-        <img src="${CHARM_ICON[k]}" alt=""> ${C.ENH_CHARMS[k].name} <small>(มี ต้น ${counts[0]} · กลาง ${counts[1]} · สูง ${counts[2]})</small></label>`;
-    }).join('');
-    box.addEventListener('change', (e) => { const k = e.target.dataset.k; if (k) { INV.charmOn[k] = e.target.checked; renderEnhance(); } });
-    return box;
-  }
+  // ✦ วัสดุตีบวก tab of the blacksmith: buy / sell every material tier (the ร้านตีบวก uses owned ones first)
   function renderEnhance() {
-    const box = $('enhList'), f = INV.faction, st = INV.state, E = C.ENHANCE;
+    const box = $('enhList');
     box.innerHTML = '';
-    if (INV.shopTab === 'mats') { box.appendChild(matShop()); return; }
-    // enhance tab: only the material tiers the worn / carried items need (the mats tab lists them all)
-    const items = [...C.SLOTS.map((s) => C.ITEMS[st.eq[s]]), ...st.inv.map((id) => C.ITEMS[id])].filter((it) => C.ENHANCE.canEnhance(it));
-    box.appendChild(matShop(new Set(items.map((it) => C.matTier(C.ITEMS[it.base || it.id].lvl || 1)))));
-    box.appendChild(charmToggles());
-    const rates = E.rate.map((r, i) => `<b class="${i >= E.breakFrom ? 'brk' : ''}">+${i + 1} ${Math.round(E.rateWith(i, INV.charmOn.luck) * 100)}%</b>`).join(' · ');
-    const rule = E.breakFrom > 0
-      ? `ล้มเหลวที่ +1~+${E.breakFrom} = ระดับคงเดิม · <span class="brk">ล้มเหลวตั้งแต่ +${E.breakFrom + 1} ขึ้นไป = ไอเทมแตกหาย</span>`
-      : '<span class="brk">ล้มเหลวทุกขั้น = ไอเทมแตกหาย</span> (ทุกเกรด Normal – Mythic)';
-    box.insertAdjacentHTML('beforeend', `<div class="enh-rates">โอกาสสำเร็จ: ${rates}<br>${rule}</div>`);
-    box.insertAdjacentHTML('beforeend', '<div class="enh-sec">สวมใส่อยู่</div>');
-    for (const slot of C.SLOTS) {
-      const it = C.ITEMS[st.eq[slot]] || (slot === 'weapon' ? C.WEAPONS[0] : null);
-      if (it) box.appendChild(enhRow(it, 'eq', slot, f));
-    }
-    const bag = st.inv.map((id, i) => [C.ITEMS[id], i]).filter(([it]) => C.ENHANCE.canEnhance(it));
-    if (bag.length) box.insertAdjacentHTML('beforeend', '<div class="enh-sec">ในกระเป๋า</div>');
-    for (const [it, i] of bag) box.appendChild(enhRow(it, 'inv', i, f));
+    box.appendChild(matShop());
   }
 
   // bag actions send the item key too: the server refuses them if the bag was re-sorted meanwhile
@@ -584,7 +604,8 @@
     const tiers = (kind) => { const n = C.MAT_TIERS.map((T, t) => C.matHave(st, kind, t)); return n[1] || n[2] ? n.map(fmt).join(' · ') : fmt(n[0]); };
     for (const el of document.querySelectorAll('.stone-val')) { el.textContent = tiers('stone'); el.title = 'ขั้นต้น · ขั้นกลาง · ขั้นสูง'; }
     INV.renderStats();
-    if ((INV.shopTab === 'enhance' || INV.shopTab === 'mats') && INV.shopOpen) renderEnhance();
+    if (INV.shopTab === 'mats' && INV.shopOpen) renderEnhance();
+    if (INV.enhShopOpen) renderEnhShop();
     for (const el of document.querySelectorAll('.guard-val')) el.textContent = tiers('guard');
     for (const el of document.querySelectorAll('.luck-val')) el.textContent = tiers('luck');
     renderAutoSell();
@@ -645,6 +666,8 @@
   INV.openShop = function () {
     INV.potionShopOpen = false;
     $('potionPanel').classList.add('hidden');
+    INV.enhShopOpen = false;
+    $('enhPanel').classList.add('hidden');
     INV.shopOpen = true;
     $('shopPanel').classList.remove('hidden');
     INV.toggle(true);
@@ -659,6 +682,8 @@
   INV.openPotionShop = function () {
     INV.shopOpen = false;
     $('shopPanel').classList.add('hidden');
+    INV.enhShopOpen = false;
+    $('enhPanel').classList.add('hidden');
     INV.potionShopOpen = true;
     $('potionPanel').classList.remove('hidden');
     INV.toggle(true);
@@ -669,7 +694,21 @@
     $('potionPanel').classList.add('hidden');
     renderBagBar();
   };
-  INV.closeAll = function () { INV.closeShop(); INV.closePotionShop(); INV.toggle(false); STORE.toggle(false); };
+  // ร้านตีบวก: its own building / panel (pick an item, tick talismans, one price)
+  INV.openEnhShop = function () {
+    INV.closeShop(); INV.closePotionShop();
+    INV.enhShopOpen = true;
+    $('enhPanel').classList.remove('hidden');
+    INV.toggle(true);
+    renderEnhShop();
+    renderBagBar();
+  };
+  INV.closeEnhShop = function () {
+    INV.enhShopOpen = false;
+    $('enhPanel').classList.add('hidden');
+    renderBagBar();
+  };
+  INV.closeAll = function () { INV.closeShop(); INV.closePotionShop(); INV.closeEnhShop(); INV.toggle(false); STORE.toggle(false); };
 
   // live character preview (rotates through the 8 directions)
   let previewing = false;

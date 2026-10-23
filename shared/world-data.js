@@ -150,7 +150,8 @@
   // the PvP boss keeps its hand-tuned stats, it just gets drawn by the demon archetype
   Object.assign(C.MONSTERS.boss, { art: 'demon', size: 1, look: null });
   C.MONSTERS.boss.hp *= 2; C.MONSTERS.boss.def = Math.round(C.MONSTERS.boss.def * 1.25);   // as tough as the map bosses' raise
-  C.MONSTERS.boss.exp = Math.round(C.MONSTERS.boss.exp * C.monsterExpMul(C.MONSTERS.boss.lvl));
+  // its EXP follows the map bosses' formula at its level (between ราชาหมูป่า Lv.25 and the Lv.45 boss)
+  C.MONSTERS.boss.exp = Math.round((20 + 2.6 * Math.pow(C.MONSTERS.boss.lvl, 1.65)) * C.monsterExpMul(C.MONSTERS.boss.lvl) * BOSS_TOUGH.exp);
 
   // ---------------- maps ----------------
   // m: [normal monster ids in level order, the last one at the map's top level], boss: boss id (top level + 5).
@@ -359,6 +360,9 @@
     // second shop building (ร้านขายยา), same look as the smith's — a few tiles over so it never overlaps
     L.apothecary = open.includes('N') ? { tx: x0 + 3, ty: my + 4 } : { tx: mx + 1, ty: y0 + 2 };
     L.apothecary.x = (L.apothecary.tx + 1) * TILE; L.apothecary.y = (L.apothecary.ty + 1) * TILE - 4;
+    // ร้านตีบวก (enhancement shop): a third building, clear of the houses, the stone and the other two shops
+    L.enhancer = { tx: x1 - 6, ty: y1 - 5 };
+    L.enhancer.x = (L.enhancer.tx + 1) * TILE; L.enhancer.y = (L.enhancer.ty + 1) * TILE - 4;
     L.stone = ctr(open.includes('N') ? { tx: x1 - 5, ty: my } : { tx: x0 + 5, ty: y1 - 5 });
     L.backGate = main === 'E' ? { tx: x0 + 2, ty: my } : main === 'W' ? { tx: x1 - 2, ty: my } : { tx: mx, ty: y1 - 2 };
     L.lanterns = [];
@@ -381,7 +385,7 @@
     d.tpl = tp;
     d.w = tp.w; d.h = tp.h;
     const L = id === 'village' ? Village.layout() : campLayout(...tp.camp);
-    Object.assign(d, { camp: L.camp, spawn: L.spawn, smith: L.smith, apothecary: L.apothecary, stone: L.stone, lanterns: L.lanterns });
+    Object.assign(d, { camp: L.camp, spawn: L.spawn, smith: L.smith, apothecary: L.apothecary, enhancer: L.enhancer, stone: L.stone, lanterns: L.lanterns });
     const prev = ORDER[i - 1], next = ORDER[i + 1];
     d.gates = [];
     if (i > 0) d.gates.push(ctr({ ...L.backGate, to: prev, back: true }));
@@ -426,11 +430,25 @@
       if (si + 1 < SETS.length) for (const a of setIds(si + 1)) items.push([a, 2]);
       return { gold: [L * 20, L * 32], pickOne: true, items };
     }
-    const items = [[WEAP[wi].id, 0.012]];
-    if (wi > 0) items.push([WEAP[wi - 1].id, 0.016]);
-    for (const a of setIds(si)) items.push([a, 0.01]);
-    if (si > 0) for (const a of setIds(si - 1)) items.push([a, 0.013]);
-    return { gold: [Math.round(2 + L * 0.8), Math.round(5 + L * 1.5)], items };
+    // Ragnarok-like: gear is a rarer find (×DROP_RATE of the old chances, ~7% a kill instead of ~11%), and the
+    // sale value of the gear no longer dropped comes back as gold on the monster, so income per hour stays the same
+    const items = [[WEAP[wi].id, 0.012 * DROP_RATE]];
+    if (wi > 0) items.push([WEAP[wi - 1].id, 0.016 * DROP_RATE]);
+    for (const a of setIds(si)) items.push([a, 0.01 * DROP_RATE]);
+    if (si > 0) for (const a of setIds(si - 1)) items.push([a, 0.013 * DROP_RATE]);
+    const back = saleValue(L, items) * (1 / DROP_RATE - 1);
+    return { gold: [Math.round(2 + L * 0.8 + back * 0.8), Math.round(5 + L * 1.5 + back * 1.2)], items };
+  }
+  const DROP_RATE = 0.6;
+  // expected sell value of one kill's gear drop (first hit wins, each item at the grade odds rollGrade uses)
+  function saleValue(monLvl, items) {
+    let miss = 1, v = 0;
+    for (const [id, ch] of items) {
+      const p = miss * ch, it = C.ITEMS[id];
+      miss *= 1 - ch;
+      C.gradeChances(monLvl, it.lvl, false).forEach((pg, g) => { if (pg) v += p * pg * C.sellPrice(C.ITEMS[g ? C.gradeId(id, g) : id]); });
+    }
+    return v;
   }
   for (const id of Object.keys(C.MONSTERS)) if (id !== 'boss') C.DROPS[id] = lootFor(id);
   // Drop guide (world map 📖): what one monster type drops. Weapons one row each, the 4 armour pieces of a set as one row.
@@ -614,6 +632,9 @@
     const ap = def.apothecary;
     block(ap.tx, ap.ty, ap.tx + 1, ap.ty);
     objects.push(['apothecary', 0, ap.x, ap.y]);   // ร้านขายยา: a second building, same look as the blacksmith
+    const en = def.enhancer;
+    block(en.tx, en.ty, en.tx + 1, en.ty);
+    objects.push(['enhancer', 0, en.x, en.y]);     // ร้านตีบวก
     block(def.stone.tx, def.stone.ty, def.stone.tx, def.stone.ty);
     objects.push(['stone', 0, def.stone.x, (def.stone.ty + 1) * TILE - 6]);
     for (const [lx, ly] of def.lanterns) addObj('lantern', 0, lx, ly, true);
@@ -717,6 +738,7 @@
   const spawnOf = (def, faction) => (def.pvp ? C.spawnPoint(faction) : { x: def.spawn.x, y: def.spawn.y });
   const smithOf = (def, faction) => (def.pvp ? C.SMITH[faction] : def.smith);
   const apothecaryOf = (def, faction) => (def.pvp ? C.APOTHECARY[faction] : def.apothecary);
+  const enhancerOf = (def, faction) => (def.pvp ? C.ENHANCER[faction] : def.enhancer);
   const stoneOf = (def, faction) => (def.pvp ? C.STONES[faction] : def.stone);
   const levelText = (def) => `Lv.${def.lv[0]}-${def.lv[1]}`;
   // teleport stone fare: maps crossed (through the gates) × (base + perLvl × the higher starting level of the two maps);
@@ -743,7 +765,7 @@
 
   Object.assign(C, {
     THEMES, MON_ART, MAPS, MAP_ORDER: ORDER, START_MAP: 'village', generateField, arrival,
-    safeAt, noMonster, mapAreaName: areaName, spawnOf, smithOf, apothecaryOf, stoneOf, levelText, WARP_COST, warpHops, warpCost, MON_GATE: GATE, gateRef, gateStats, MON_EASE: EASE, monEase: easeOf, monStats, MON_LATE: LATE, monLate: lateOf,
+    safeAt, noMonster, mapAreaName: areaName, spawnOf, smithOf, apothecaryOf, enhancerOf, stoneOf, levelText, WARP_COST, warpHops, warpCost, MON_GATE: GATE, gateRef, gateStats, MON_EASE: EASE, monEase: easeOf, monStats, MON_LATE: LATE, monLate: lateOf,
   });
   return C;
 });

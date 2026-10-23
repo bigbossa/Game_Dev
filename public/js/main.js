@@ -753,6 +753,7 @@
   function interact() {
     if (nearSmith()) { if (INV.shopOpen) INV.closeAll(); else INV.openShop(); }
     else if (nearApothecary()) { if (INV.potionShopOpen) INV.closeAll(); else INV.openPotionShop(); }
+    else if (nearEnhancer()) { if (INV.enhShopOpen) INV.closeAll(); else INV.openEnhShop(); }
     else if (nearStone()) WARP.toggle();
   }
   // pointer events cover mouse, pen and touch: tap = click, hold and drag = walk toward the finger
@@ -805,6 +806,7 @@
     const w = mouseWorld();
     if (smithUnderMouse(w)) { const s = smithPos(); orderMove(s.x, s.y + 46, 'interact'); return; }
     if (apothecaryUnderMouse(w)) { const s = apothecaryPos(); orderMove(s.x, s.y + 46, 'potionshop'); return; }
+    if (enhancerUnderMouse(w)) { const s = enhancerPos(); orderMove(s.x, s.y + 46, 'enhshop'); return; }
     if (stoneUnderMouse(w)) { const s = stonePos(); orderMove(s.x, s.y + 44, 'stone'); return; }
     orderMove(w.x, w.y, 'move');
     FX.clickMark(w.x, w.y, '#7cff8a');
@@ -893,9 +895,10 @@
     if (!confirm('ออกจากตัวละครนี้เพื่อเปลี่ยนตัวละคร?')) return;
     socket.emit('leaveChar', {}, (res) => { if (res && res.ok) location.reload(); });
   });
-  // blacksmith, apothecary (ร้านขายยา) + teleport stone of the current map (own base on the PvP map)
+  // blacksmith, apothecary (ร้านขายยา), enhancement shop (ร้านตีบวก) + teleport stone of the current map (own base on the PvP map)
   const smithPos = () => C.smithOf(G.mapDef, G.me.faction);
   const apothecaryPos = () => C.apothecaryOf(G.mapDef, G.me.faction);
+  const enhancerPos = () => C.enhancerOf(G.mapDef, G.me.faction);
   const stonePos = () => C.stoneOf(G.mapDef, G.me.faction);
   function nearSmith() {
     const me = G.me;
@@ -909,7 +912,13 @@
     const s = apothecaryPos();
     return Math.hypot(me.x - s.x, me.y - s.y) < 170;
   }
-  G.nearCamp = () => nearSmith() || nearApothecary() || nearStone();          // storage (storage.js)
+  function nearEnhancer() {
+    const me = G.me;
+    if (!me || me.dead || G.mapLoading) return false;
+    const s = enhancerPos();
+    return Math.hypot(me.x - s.x, me.y - s.y) < 170;
+  }
+  G.nearCamp = () => nearSmith() || nearApothecary() || nearEnhancer() || nearStone();          // storage (storage.js)
   function nearStone() {
     const me = G.me;
     if (!me || me.dead || G.mapLoading) return false;
@@ -919,15 +928,16 @@
   // F prompt near the blacksmith / apothecary / teleport stone; walking away closes their panels
   let hintShown = '';
   function updateInteract() {
-    const near = nearSmith() ? 'smith' : nearApothecary() ? 'apothecary' : nearStone() ? 'stone' : '';
+    const near = nearSmith() ? 'smith' : nearApothecary() ? 'apothecary' : nearEnhancer() ? 'enhancer' : nearStone() ? 'stone' : '';
     if (near !== hintShown) {
       $('interactHint').classList.toggle('hidden', !near);
       $('interactHint').innerHTML = near === 'stone' ? 'กด <b>F</b> เพื่อใช้ศิลาเคลื่อนย้าย'
-        : near === 'apothecary' ? 'กด <b>F</b> เพื่อเปิดร้านขายยา' : 'กด <b>F</b> เพื่อเปิดร้านช่างตีดาบ';
+        : near === 'apothecary' ? 'กด <b>F</b> เพื่อเปิดร้านขายยา' : near === 'enhancer' ? 'กด <b>F</b> เพื่อเปิดร้านตีบวก' : 'กด <b>F</b> เพื่อเปิดร้านช่างตีดาบ';
       hintShown = near;
     }
     if (near !== 'smith' && INV.shopOpen) INV.closeShop();
     if (near !== 'apothecary' && INV.potionShopOpen) INV.closePotionShop();
+    if (near !== 'enhancer' && INV.enhShopOpen) INV.closeEnhShop();
     if (near !== 'stone' && WARP.open) WARP.toggle(false);
     if (!near && STORE.open) STORE.toggle(false);
   }
@@ -1023,6 +1033,10 @@
     const s = G.me && apothecaryPos();
     return s && Math.abs(w.x - s.x) < 72 && w.y < s.y + 12 && w.y > s.y - 140;
   }
+  function enhancerUnderMouse(w) {
+    const s = G.me && enhancerPos();
+    return s && Math.abs(w.x - s.x) < 72 && w.y < s.y + 12 && w.y > s.y - 140;
+  }
   function stoneUnderMouse(w) {
     const s = G.me && stonePos();
     return s && Math.abs(w.x - s.x) < 40 && w.y < s.y + 30 && w.y > s.y - 110;
@@ -1116,6 +1130,7 @@
       if (cur.type === 'travel' && cur.label) HUD.toast(`ถึง ${cur.label} แล้ว`);
       if (cur.type === 'interact' && nearSmith()) INV.openShop();
       if (cur.type === 'potionshop' && nearApothecary()) INV.openPotionShop();
+      if (cur.type === 'enhshop' && nearEnhancer()) INV.openEnhShop();
       if (cur.type === 'stone' && nearStone()) WARP.toggle(true);
       G.order = null;
     }
@@ -1922,7 +1937,7 @@
     HUD.target(best);
     // cursor: sword over enemies, hand over the blacksmith
     G.hoverFoe = enemyUnderMouse();
-    const cur = G.hoverFoe ? CURSOR_ATTACK : smithUnderMouse(w) || apothecaryUnderMouse(w) || stoneUnderMouse(w) ? 'pointer' : CURSOR_MOVE;
+    const cur = G.hoverFoe ? CURSOR_ATTACK : smithUnderMouse(w) || apothecaryUnderMouse(w) || enhancerUnderMouse(w) || stoneUnderMouse(w) ? 'pointer' : CURSOR_MOVE;
     if (canvas.style.cursor !== cur) canvas.style.cursor = cur;
   }
   const svgCursor = (svg, x, y, fallback) => `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${x} ${y}, ${fallback}`;

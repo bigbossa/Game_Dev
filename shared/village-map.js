@@ -24,14 +24,14 @@
   };
   const ctr=(tx,ty)=>({tx,ty,x:(tx+.5)*TILE,y:(ty+.5)*TILE});
   V.layout=()=>({camp:{x0:44,y0:31,x1:84,y1:67,open:'EW'},spawn:ctr(64,52),
-    smith:ctr(77,49),apothecary:ctr(52,49),stone:ctr(73,56),lanterns:[],backGate:{tx:46,ty:49}});
+    smith:ctr(77,49),apothecary:ctr(52,49),enhancer:ctr(77,63),stone:ctr(73,56),lanterns:[],backGate:{tx:46,ty:49}});
   // Object anchor is at the front edge of its actual foundation; roof overhang is visual only.
   V.buildings=[
     {asset:'pavilion',tx:64.5,ty:40,block:[61,37,67,39]},
     {asset:'apothecary',tx:52.5,ty:49,block:[50,46,55,48]},
     {asset:'smith',tx:77.5,ty:49,block:[75,46,80,48]},
     {asset:'house',tx:52.5,ty:63,block:[50,60,55,62]},
-    {asset:'house',tx:78,ty:63,block:[75,60,80,62]},
+    {asset:'enhancer',tx:77.5,ty:63,block:[75,60,80,62]},   // ร้านตีบวก (drawn with the forge art)
     {asset:'stone',tx:73.5,ty:56.8,block:[73,56,73,56]},
   ];
   V.distance=(x,y,pts)=>{

@@ -38,6 +38,9 @@
   // ร้านขายยา: a second shop building (same look as the smith's), a few tiles south of it in each base
   const APOTHECARY = { dharma: { tx: 21, ty: 71 }, adharma: { tx: MAP_W - 1 - 22, ty: 71 } };
   for (const f of Object.keys(APOTHECARY)) { APOTHECARY[f].x = (APOTHECARY[f].tx + 1) * TILE; APOTHECARY[f].y = (APOTHECARY[f].ty + 1) * TILE - 4; }
+  // ร้านตีบวก: the enhancement shop, a third building (same look) west of the blacksmith in each base
+  const ENHANCER = { dharma: { tx: 16, ty: 67 }, adharma: { tx: MAP_W - 1 - 17, ty: 67 } };
+  for (const f of Object.keys(ENHANCER)) { ENHANCER[f].x = (ENHANCER[f].tx + 1) * TILE; ENHANCER[f].y = (ENHANCER[f].ty + 1) * TILE - 4; }
   // Teleport stone inside each base (warp to the hunting maps); x/y = tile centre
   const STONES = {
     dharma: { tx: 8, ty: 64 },
@@ -723,16 +726,27 @@
   };
   const gradeLight = (faction, grade) => GRADE_LIGHT[faction === 'adharma' ? 'adharma' : 'dharma'][grade || 0];
   const EPIC = 2;
-  // Epic and above only drop from monsters 0..9 levels above the item (Lv.80-89 monsters → Lv.80 items).
-  const DROP_LVL_RANGE = 9;
+  // Epic and above drop from monsters up to 19 levels above the item, or up to DROP_LVL_BELOW under it: that is every
+  // item of a monster's own table (world-data lootFor: the tier at its level +4 and the one below), so no monster
+  // of a map pays twice its neighbour.
+  const DROP_LVL_RANGE = 19, DROP_LVL_BELOW = 4;
   // the top items (Lv.100) also roll Epic+ from every monster above them (Lv.100-130 maps)
   const TOP_ITEM_LVL = 100;
   // (bosses are not limited: their one guaranteed item is always Unique or better, see BOSS_GRADES)
-  const canDropHigh = (monLvl, itemLvl) => monLvl >= itemLvl && (monLvl - itemLvl <= DROP_LVL_RANGE || itemLvl >= TOP_ITEM_LVL);
-  // Unique / Legendary / Mythic weight by the monster's level [from level, multiplier]: generous in the early game,
-  // a little stingier in the end game. Normal / Rare / Epic keep their weight.
-  const HIGH_BANDS = [[70, 0.75], [61, 1], [10, 2.5], [1, 1]];
-  const highMul = (monLvl) => (HIGH_BANDS.find(([from]) => monLvl >= from) || [0, 1])[1];
+  const canDropHigh = (monLvl, itemLvl) => monLvl >= itemLvl - DROP_LVL_BELOW && (monLvl - itemLvl <= DROP_LVL_RANGE || itemLvl >= TOP_ITEM_LVL);
+  // Unique / Legendary / Mythic weight by the monster's level: ×1 below Lv.10, ×1.7 for Lv.10-40, then easing
+  // down in a straight line to ×0.8 at Lv.130 (no cliff at any map). Normal / Rare / Epic keep their weight.
+  // Solo (~600 kills an hour) that is about 2 Unique+ an hour early on, easing to about 1 at Lv.130.
+  // HIGH_CURVE = [level, multiplier] points; HIGH_BANDS = the level rows the drop guide / README table show.
+  const HIGH_CURVE = [[1, 1], [9, 1], [10, 1.7], [40, 1.7], [130, 0.8]];
+  const highMul = (monLvl) => {
+    for (let i = 1; i < HIGH_CURVE.length; i++) {
+      const [a, x] = HIGH_CURVE[i - 1], [b, y] = HIGH_CURVE[i];
+      if (monLvl <= b) return Math.round((monLvl <= a ? x : x + ((y - x) * (monLvl - a)) / (b - a)) * 100) / 100;
+    }
+    return HIGH_CURVE[HIGH_CURVE.length - 1][1];
+  };
+  const HIGH_BANDS = [1, 10, 41, 61, 81, 101, 121].map((from) => [from, highMul(from)]);
   const UNIQUE = 3;
   // bosses: every kill drops one item (World.rollLoot, pickOne) and it is always Unique or better
   const BOSS_GRADES = [0, 0, 0, 70, 24, 6];
@@ -1006,9 +1020,9 @@
 
   // ---------------- enhancement (+1..+10): weapons and the 4 armour pieces ----------------
   // An enhanced item is stored as "<key>+<n>" (e.g. "w5+3", "sh5#3.120+3"); ITEMS[key] resolves to the boosted item.
-  // Every attempt uses enhancement stones (หินตีบวก, bought / sold at the blacksmith) and a small smith's fee.
+  // Every attempt uses enhancement stones (หินตีบวก, owned ones first, the rest paid in gold at the ร้านตีบวก) and a small fee.
   const ENH_STONE = { name: 'หินตีบวก', price: 120, sell: 60, max: 9999,
-    desc: 'หินสำหรับตีบวกอาวุธและชุดสวมใส่ (+1 ถึง +10) ที่ร้านช่างตีดาบ · ขั้นยิ่งสูงยิ่งใช้หินมาก' };
+    desc: 'หินสำหรับตีบวกอาวุธและชุดสวมใส่ (+1 ถึง +10) ที่ร้านตีบวก (ไม่มีหิน ร้านคิดเป็นทองรวมในราคาตีบวก) · ขั้นยิ่งสูงยิ่งใช้หินมาก' };
   const ENHANCE = {
     // chance to reach +n (index n-1): high at first, lower with every + level
     rate: [0.95, 0.9, 0.8, 0.7, 0.6, 0.45, 0.35, 0.25, 0.08, 0.03],   // +9 / +10 are the hard ones
@@ -1067,7 +1081,7 @@
   const tierRange = (t) => (t === 2 ? `อุปกรณ์ Lv.${MAT_TIERS[2].from} ขึ้นไป` : t === 1 ? `อุปกรณ์ Lv.${MAT_TIERS[1].from}–${MAT_TIERS[2].from - 1}` : `อุปกรณ์ต่ำกว่า Lv.${MAT_TIERS[1].from}`);
   const guardDesc = (t) => `ใช้ตอนตีบวก${tierRange(t)}: ถ้าล้มเหลว ไอเทมไม่แตก ระดับคงเดิม · ใช้ 1 ใบต่อการตีบวก 1 ครั้ง (หมดไปแม้สำเร็จ)`;
   const luckDesc = (t) => `ใช้ตอนตีบวก${tierRange(t)}: โอกาสสำเร็จ +10% (ตีไป +9 เพิ่ม +4% · ตีไป +10 เพิ่ม +2%) · ใช้ 1 ใบต่อการตีบวก 1 ครั้ง`;
-  const stoneDesc = (t) => `หินสำหรับตีบวก${tierRange(t)} (+1 ถึง +10) ที่ร้านช่างตีดาบ · ใช้ 1–6 ก้อนต่อครั้งตามขั้นที่ตี`;
+  const stoneDesc = (t) => `หินสำหรับตีบวก${tierRange(t)} (+1 ถึง +10) ที่ร้านตีบวก · ใช้ 1–6 ก้อนต่อครั้งตามขั้นที่ตี (ไม่มีหิน ร้านคิดเป็นทองรวมในราคาตีบวก)`;
   // หินสุ่มออฟชั่น / หินสุ่มสกิลติดตัว: reroll the green-font affixes, or the ✦ passive skill, of a Rare+/Legendary+
   // item — everything else on the item (base stats, grade, the other random part) stays exactly as it was.
   // Priced by the ITEM's own level bracket (ไม่ใช่เลเวลผู้เล่น): Lv.1-60 100,000 · Lv.70-90 300,000 · Lv.100-130 1,000,000
@@ -1097,6 +1111,21 @@
   // what a luck talisman adds per attempt to reach +n (index n-1): the full bonus up to +8, little at +9 / +10
   ENHANCE.luckBonus = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.04, 0.02];
   ENHANCE.rateWith = (plus, luck) => { const i = Math.min(plus, MAX_PLUS - 1); return Math.min(1, ENHANCE.rate[i] + (luck ? ENHANCE.luckBonus[i] : 0)); };
+  // ร้านตีบวก: one gold price per attempt (st = the player / client state, base = the item's base, plus = its + level,
+  // opt.guard / opt.luck = the ticked talismans). The fee (ค่าช่าง), the stones and any ticked talisman are all in it:
+  // stones / talismans already owned (bought earlier at the blacksmith) are used first and cost nothing more, the rest
+  // is bought at the blacksmith's price as part of the same payment.
+  ENHANCE.quote = (st, base, plus, opt = {}) => {
+    const tier = matTier(base.lvl || 1), need = ENHANCE.stoneCount(base, plus), own = Math.min(need, matHave(st, 'stone', tier));
+    const q = { tier, need, ownStones: own, buyStones: need - own, fee: ENHANCE.cost(base, plus) };
+    q.stoneGold = q.buyStones * matDef('stone', tier).price;
+    for (const k of ['guard', 'luck']) {
+      const on = !!opt[k], own1 = on && matHave(st, k, tier) > 0;
+      q[k] = on; q[k + 'Own'] = own1; q[k + 'Gold'] = on && !own1 ? matDef(k, tier).price : 0;
+    }
+    q.total = q.fee + q.stoneGold + q.guardGold + q.luckGold;
+    return q;
+  };
   const cleanCharms = (c) => Object.fromEntries(Object.entries(ENH_CHARMS).map(([k, S]) =>
     [k, Math.max(0, Math.min(S.max, Math.floor(Number(c && c[k]) || 0)))]));
   // grades picked for auto-sell (sold the moment they drop instead of going into the bag)
@@ -1403,6 +1432,9 @@
       const ap = APOTHECARY[f];
       block(ap.tx, ap.ty, ap.tx + 1, ap.ty);
       objects.push(['apothecary', fv, ap.x, ap.y]);
+      const en = ENHANCER[f];
+      block(en.tx, en.ty, en.tx + 1, en.ty);
+      objects.push(['enhancer', fv, en.x, en.y]);
       // Teleport stone back to the hunting maps
       const st = STONES[f];
       block(st.tx, st.ty, st.tx, st.ty);
@@ -1505,7 +1537,7 @@
     BAG_SIZE, STORAGE_SIZE, RARITY, GRADES, GRADE_LIGHT, gradeLight, EPIC, AFFIXES, OPTIONS, PASSIVES, DROP_LVL_RANGE, TOP_ITEM_LVL, canDropHigh, rollGrade, gradeChances, gradeBands, HIGH_BANDS, BOSS_GRADES, BOSS_RESPAWN,
     makeKey, gradeId, gearFx, gearGrade, gearGrades, gearPlus, WEAPONS, WEAPON_BY_TIER, ARMORS, ARMOR_SETS, ALL_ITEMS, ITEMS, SLOTS, SLOT_NAMES, ARMOR_SLOTS,
     MAX_PLUS, REAPER_CD_MS, passiveChance, gearProcs, ENHANCE, MAT_TIERS, matTier, matKey, matDef, matHave, PVE_PLUS_MAX, SLOT_PVE, SET_BONUS, gearPve, ENH_STONE, ENH_CHARMS, cleanCharms, cleanAutoSell, sortBag, parseId, plusId, shopGearPrice, SHOP_BUY_GRADE_MAX, newSeed,
-    DROPS, SMITH, APOTHECARY, sellPrice, playerStats, armorTiers, armorLookTier,
+    DROPS, SMITH, APOTHECARY, ENHANCER, sellPrice, playerStats, armorTiers, armorLookTier,
     MONSTERS, MONSTER_TYPES, ZONES, DIR_COL,
     SKILL_MAX, SKILL_STEP, SKILL_LVL_GAP, EVO_NEED, EVO_COST, BAR_KEYS, SKILL_PATHS, skillPtsTotal, skillCap, basicOf, skillPtsFree,
     evoBlock, autoSkills, cleanSkills, skillRankOf, skillPower, skillInfoAt, SKILL_VER, BUFF_SKILLS, MOVE_SKILLS, meteorPoints, blastPoints,

@@ -21,10 +21,11 @@
   V.ready=true;
  };
  V.prop=function(o){
-  const p=props.get(o[1]);if(!p)return null;
+  const p=props.get(o[1]==='enhancer'?'smith':o[1]);if(!p)return null;
   const extra={
    smith:{label:'โรงตีเหล็ก',light:'#efb165',ly:-48},
    apothecary:{label:'ร้านยา',light:'#d4c28b',ly:-80},
+   enhancer:{label:'ร้านตีบวก',light:'#ffb35a',ly:-48},
    stone:{label:'ศิลาเคลื่อนย้าย',light:'#89d6c1',ly:-65,icon:'✦'},
    gate:{label:'ด่านผาหลิว · Lv.20–40',gate:true,icon:'➜'},
    lantern:{light:'#f5cb88',ly:-65},
