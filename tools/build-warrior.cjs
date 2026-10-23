@@ -2,11 +2,11 @@
 // Preserve source alpha and art; only crop, remove isolated matte dust, scale and mirror.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const L=require('./img-lib'),{mirror,trim}=require('./sheet-cut');
-const root=path.join(__dirname,'..'),out=path.join(root,'public/assets/warrior-v1');
+const root=path.join(__dirname,'..'),out=path.join(root,'public/assets/warrior-v3');
 fs.mkdirSync(out,{recursive:true});
 const FW=320,FH=280,AX=160,AY=252,SCALE=.72;
-const cols=[0,295,590,880,1145,1402],rows=[0,316,610,897,1122],dirs=[0,1,2,3,4,3,2,1];
-const meta={version:1,frameWidth:FW,frameHeight:FH,anchorX:AX,anchorY:AY,walkFrames:4,attackFrames:3,heldWeapon:true,landmarks:{}};
+const cols=[0,305,590,875,1145,1402],rows=[0,309,609,897,1122],dirs=[0,1,2,3,4,3,2,1];
+const meta={version:3,source:'warrior-v3',paintedHelmet:true,frameWidth:FW,frameHeight:FH,anchorX:AX,anchorY:AY,walkFrames:4,attackFrames:3,heldWeapon:true,landmarks:{}};
 function cut(src,c,r){
   const x0=cols[c],y0=rows[r],w=cols[c+1]-x0,h=rows[r+1]-y0,d=new Uint8ClampedArray(w*h*4);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4,j=((y+y0)*src.width+x+x0)*4;d.set(src.data.subarray(j,j+4),i);if(d[i+3]<50)d[i+3]=0;}
@@ -26,10 +26,17 @@ function cut(src,c,r){
   const centre=(minX+maxX)/2,img=L.scaleImg({w,h,d},SCALE),frame={w:FW,h:FH,d:new Uint8ClampedArray(FW*FH*4)};
   L.blit(frame.d,FW,FH,img,Math.round(AX-centre*SCALE),Math.round(AY-foot*SCALE));
   assert(largest>4000,`empty source cell ${c}/${r}`);
-  return {img:frame,headTop:Math.round(AY-(foot-top)*SCALE),feetY:AY,sourceCentre:Math.round(x0+centre),sourceFeet:y0+foot};
+  // Anchor the final resampled soles: asymmetric slash poses can otherwise shift sideways.
+  let sole=0,head=FH,left=FW,right=0;
+  for(let y=0;y<FH;y++){let n=0;for(let x=0;x<FW;x++)if(frame.d[(y*FW+x)*4+3]>128)n++;if(n>=5){sole=y;head=Math.min(head,y);}}
+  for(let y=Math.max(0,sole-11);y<=sole;y++)for(let x=0;x<FW;x++)if(frame.d[(y*FW+x)*4+3]>128){left=Math.min(left,x);right=Math.max(right,x);}
+  const anchored={w:FW,h:FH,d:new Uint8ClampedArray(FW*FH*4)},dy=AY-sole;
+  L.blit(anchored.d,FW,FH,frame,Math.round(AX-(left+right)/2),dy);
+  return {img:anchored,headTop:head+dy,feetY:AY,sourceCentre:Math.round(x0+centre),sourceFeet:y0+foot,
+    sourceCell:[c,r],sourceScale:SCALE,sourceOffset:[Math.round(AX-centre*SCALE)+Math.round(AX-(left+right)/2),Math.round(AY-foot*SCALE)+dy]};
 }
 for(const faction of ['dharma','adharma']){
-  const src=L.readPng(path.join(root,'class-art/warrior-v1',faction+'-source.png'));assert.equal(src.width,1402);assert.equal(src.height,1122);
+  const src=L.readPng(path.join(root,'class-art/warrior-v3',faction+'-source.png'));assert.equal(src.width,1402);assert.equal(src.height,1122);
   const cells=Array.from({length:4},(_,r)=>Array.from({length:5},(_,c)=>cut(src,c,r)));
   const expand=row=>dirs.map((c,i)=>({...row[c],img:i>4?mirror(row[c].img):row[c].img}));
   const walk=[expand(cells[1]),expand(cells[0]),expand(cells[2]),expand(cells[0])];

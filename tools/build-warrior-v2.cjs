@@ -4,10 +4,11 @@
 //               G = 128 cool steel of the blade (tinted per weapon tier),
 //               B = topknot above the helmet bowl (erased: the helmet covers it)
 //   model.json  V1 metadata + landmarks[f][pose][i].head = { x0, x1, top, dome, bottom, face } in frame px
-// Run after tools/build-warrior.cjs; nothing in the V1 art is changed.
+// With --v3, analyse the new painted helmet without erasing its crest. npm run warrior uses this mode.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const L=require('./img-lib');
-const root=path.join(__dirname,'..'),src=path.join(root,'public/assets/warrior-v1'),out=path.join(root,'public/assets/warrior-v2');
+const paintedHelmet=process.argv.includes('--v3');
+const root=path.join(__dirname,'..'),src=path.join(root,'public/assets',paintedHelmet?'warrior-v3':'warrior-v1'),out=path.join(root,'public/assets',paintedHelmet?'warrior-v3':'warrior-v2');
 fs.mkdirSync(out,{recursive:true});
 const meta=JSON.parse(fs.readFileSync(path.join(src,'model.json'),'utf8'));
 const FW=meta.frameWidth,FH=meta.frameHeight;
@@ -42,7 +43,7 @@ for(const faction of ['dharma','adharma']){
       // head width from the upper half of the main hair mass only (a raised sleeve can touch its lower edge)
       let x0=FW,x1=-1;
       for(let y=dome;y<dome+(bottom-dome)*0.5;y++)for(let x=0;x<FW;x++)if(comp[y*FW+x]===main){x0=Math.min(x0,x);x1=Math.max(x1,x);}
-      for(let y=0;y<dome+2;y++)for(let x=Math.max(0,x0-4);x<=Math.min(FW-1,x1+4);x++){const i=at(x,y);if(D[i+3])mask[i+2]=255;}
+      if(!paintedHelmet)for(let y=0;y<dome+2;y++)for(let x=Math.max(0,x0-4);x<=Math.min(FW-1,x1+4);x++){const i=at(x,y);if(D[i+3])mask[i+2]=255;}
       for(let y=0;y<FH;y++)for(let x=0;x<FW;x++){const k=y*FW+x,i=at(x,y);
         if(comp[k]<0&&D[i+3]>=110&&steelOf(D[i],D[i+1],D[i+2]))mask[i+1]=128;
         if(mask[i]|mask[i+1]|mask[i+2])mask[i+3]=255;}
@@ -51,10 +52,17 @@ for(const faction of ['dharma','adharma']){
       for(let y=dome;y<bottom&&face===null;y++){let k=0;for(let x=x0;x<=x1;x++){const i=at(x,y);if(D[i+3]<110)continue;
         const [h,sa,l]=L.rgb2hsl(D[i],D[i+1],D[i+2]);if(h>=8&&h<=45&&sa>0.3&&l>=0.55&&l<=0.93)k++;}if(k>=6)face=y;}
       m.head={x0,x1,top,dome,bottom:Math.min(bottom,dome+85),face};
+      if(paintedHelmet){
+        // Read the helmet silhouette itself; the new cropped hair is much narrower than the helmet.
+        let left=FW,right=0;
+        const upper=Math.round(headTop+BH*.13),lower=Math.round(headTop+BH*.31);
+        for(let y=upper;y<=lower;y++)for(let x=90;x<=230;x++)if(D[at(x,y)+3]>128){left=Math.min(left,x);right=Math.max(right,x);}
+        m.head={x0:left,x1:right,top:headTop,dome:headTop+16,bottom:Math.round(headTop+BH*.46),face};
+      }
     }
     L.writePng(path.join(out,`${faction}-${pose}-mask.png`),W,H,mask);
   }
 }
-meta.version=2;meta.source='warrior-v1';
+meta.version=paintedHelmet?3:2;meta.source=paintedHelmet?'warrior-v3':'warrior-v1';
 fs.writeFileSync(path.join(out,'model.json'),JSON.stringify(meta));
-console.log('PASS: warrior V2 masks + head landmarks, 2 factions × (walk + attack).');
+console.log(`PASS: warrior V${meta.version} masks + head landmarks, 2 factions × (walk + attack).`);

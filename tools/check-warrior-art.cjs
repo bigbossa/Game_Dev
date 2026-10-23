@@ -6,10 +6,11 @@ const crypto = require('node:crypto');
 const { readPng } = require('./img-lib');
 
 const root = path.join(__dirname, '..');
-const assetDir = path.join(root, 'public/assets/warrior-v1');
+const assetDir = path.join(root, 'public/assets/warrior-v3');
 const meta = JSON.parse(fs.readFileSync(path.join(assetDir, 'model.json'), 'utf8'));
 const { frameWidth: width, frameHeight: height, anchorX, anchorY } = meta;
-assert.equal(meta.version, 1);
+assert.equal(meta.version, 3);
+assert.equal(meta.paintedHelmet, true);
 assert.equal(width, 320);
 assert.equal(height, 280);
 assert.equal(anchorX, 160);
@@ -68,7 +69,7 @@ const digest = pixels => crypto.createHash('sha256').update(pixels).digest('hex'
 const summary = { frames: 0, portraits: 0, sources: 0, minAtlasMargin: Infinity, maxFeetOffset: 0, maxCentreOffset: 0 };
 const factionDigests = [];
 for (const faction of ['dharma', 'adharma']) {
-  const source = readPng(path.join(root, 'class-art/warrior-v1', faction + '-source.png'));
+  const source = readPng(path.join(root, 'class-art/warrior-v3', faction + '-source.png'));
   assert.equal(source.width, 1402); assert.equal(source.height, 1122);
   const sourceBounds = bounds(source.data, source.width, source.height);
   assert(sourceBounds.transparent > source.width * source.height * .1, faction + ': source must preserve transparency');

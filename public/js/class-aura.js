@@ -9,6 +9,7 @@
   const stepOf = (lvl) => (lvl >= 130 ? 3 : lvl >= 120 ? 2 : lvl >= 100 ? 1 : 0);
   // faction tints within each class identity (ธรรมะ light / อธรรม dark-red)
   const PAL = {
+    warrior: { dharma:{main:'#91d9ee',hi:'#fff9dc',deep:'#23465c',gold:'#eac77c'},adharma:{main:'#eb536e',hi:'#ffe0c6',deep:'#35142b',gold:'#c58f68'} },
     dualblade: { dharma: { main: '#7cc8ff', hi: '#f2fbff', deep: '#1d4f86', gold: '#ffe39a' }, adharma: { main: '#ff4a62', hi: '#ffd6dc', deep: '#4a0a18', gold: '#ffb070' } },
     archer: { dharma: { main: '#7cf0a8', hi: '#f6ffe8', deep: '#1f5a3c', gold: '#ffe08a' }, adharma: { main: '#bf304c', hi: '#e98290', deep: '#240b14', gold: '#b97375' } },
     spearman: { dharma: { main: '#ffd76a', hi: '#fffbe6', deep: '#6a4a14', gold: '#7cc8ff' }, adharma: { main: '#ff5a3a', hi: '#ffe0c8', deep: '#4a0a0a', gold: '#ffb040' } },
@@ -48,6 +49,16 @@
   // ---------------------------------------------------------------- behind the sprite
   // x, y = the feet (pose already applied); B = the body height in world px
   const BACK = {
+    warrior(g,e,x,y,t,B,n,P){
+      const count=1+n*2,R=B*(.5+n*.06),cy=y-B*.57;
+      glow(g,x,cy,R*1.2,P.main,.18+n*.04);
+      for(let i=0;i<count;i++){
+        const a=Math.PI+(i/(count-1))*Math.PI,px=x+Math.cos(a)*R,py=cy+Math.sin(a)*R*.8;
+        g.save();g.globalAlpha=.28+n*.07;g.translate(px,py);g.rotate((a-Math.PI*1.5)*.25);
+        WarriorLook.shield(g,0,0,B*.0028,WarriorLook.palette(e.faction),n+3);g.restore();
+      }
+      if(n>=2){g.strokeStyle=P.gold;g.lineWidth=1;g.beginPath();g.ellipse(x,cy,R,R*.82,0,0,TAU);g.stroke();}
+    },
     dualblade(g, e, x, y, t, B, n, P) {
       const cx = x, cy = y - B * .6, R = B * .62;
       glow(g, cx, cy, R * 1.25, P.main, .35 + .1 * n);
@@ -123,6 +134,10 @@
 
   // ---------------------------------------------------------------- on the ground round the feet
   const GROUND = {
+    warrior(g,x,y,t,K,n,P){
+      g.translate(x,y);g.scale(1,.36);g.rotate(t*.12);g.globalAlpha=.4;g.strokeStyle=P.main;g.lineWidth=1.4;
+      for(let ring=0;ring<n;ring++){const R=(32+ring*11)*K;g.beginPath();for(let i=0;i<=6;i++){const a=i*TAU/6;i?g.lineTo(Math.cos(a)*R,Math.sin(a)*R):g.moveTo(Math.cos(a)*R,Math.sin(a)*R);}g.stroke();}
+    },
     dualblade(g, x, y, t, K, n, P) {                            // a compass of swords lying round the feet
       g.translate(x, y); g.scale(1, .36);
       const R = 50 * K;

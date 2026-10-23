@@ -4,9 +4,10 @@
   "description": "2D MMORPG - ธรรมะ vs อธรรม",
   "main": "server/index.js",
   "scripts": {
-    "warrior": "node tools/build-warrior.cjs",
+    "warrior": "node tools/build-warrior.cjs && node tools/build-warrior-v2.cjs --v3 && node tools/build-warrior-gear.cjs",
     "check:warrior": "node tools/check-warrior.cjs && node tools/check-warrior-art.cjs",
     "check:warrior-browser": "node tools/check-warrior-browser.cjs",
+    "check:warrior-model": "node tools/check-warrior-model.cjs",
     "audit:balance": "node tools/audit-class-balance.cjs",
     "check:gm-exp": "node tools/check-gm-exp.cjs",
     "sprites": "node tools/build-sprites.js && node tools/item-icons.js && node tools/armor-masks.js && node tools/weapon-sprites.js",

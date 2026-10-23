@@ -182,6 +182,7 @@
   // light and lightning along weapon polylines (relative to the feet, unscaled): the whisk handle -> tip, or each
   // visible bow limb hand -> tip (ArcherGear's authored anchors, same curve as its bow; none while the body hides it)
   WL.ownLines = function (e, F) {
+    if(e.cls==='warrior'){const line=WarriorGear.weaponLine(e,F);return line.length?[line]:[];}
     if (e.cls === 'spearman') { const line = SpearmanLook.weaponLine(e,F); return line.length ? [line] : []; }
     const f = e.faction === 'adharma' ? 'adharma' : 'dharma', cm = classPts[e.cls];
     const m = cm && (F.atk ? cm.attack : cm.walk)[f];
@@ -316,6 +317,7 @@
   WL.setClassPoints = (cls, meta) => { classPts[cls] = meta; };
   // points along the blades (relative to the feet, unscaled) for aura particles
   WL.points = function (F, tier, e) {
+    if(e?.cls==='warrior'){const line=WarriorGear.weaponLine(e,F);return line.length?[.65,.85].map(q=>line[0].map((v,i)=>v+(line[1][i]-v)*q)):[];}
     if (e?.cls === 'spearman') {
       const line=SpearmanLook.weaponLine({...e,wt:tier},F);
       return line.length ? [.65,.85].map(q=>line[0].map((v,i)=>v+(line[1][i]-v)*q)) : [];

@@ -33,6 +33,7 @@
   };
 
   function armor(e, F, meta) {
+    if(e.cls==='warrior')return WarriorGear.glintAnchors(e,F).map(slot=>slot.map(p=>[p[0]-meta.anchorX,p[1]-meta.anchorY]));
     const key = ModelTiers.key(e.faction, F.atk, e.cls), col = C.DIR_COL[F.dir];
     const dual = window.DualbladeModel?.ready && DualbladeLook.is(e),stage=dual?DualbladeLook.stageOf(e.lvl):0;
     const archer=e.cls==='archer'&&window.ArcherModel?.ready,arcTier=archer?ModelTiers.tierOf(e.lvl||1):0;

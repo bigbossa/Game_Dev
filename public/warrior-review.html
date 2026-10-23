@@ -1,0 +1,27 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>นักรบแนวหน้า — ห้องลองโมเดล</title>
+<style>body{margin:0;background:#101a27;color:#e3e9ef;font:16px system-ui}main{max-width:1100px;margin:auto;padding:24px}h1{font-size:24px;color:#efcf8b}section{display:flex;flex-wrap:wrap;gap:16px;margin:20px 0}label{display:grid;gap:6px;font-size:13px;color:#9cb0c4}select,input{background:#203247;color:#fff;border:1px solid #40536a;border-radius:6px;padding:8px}canvas{display:block;width:100%;height:auto;background:radial-gradient(ellipse at 50% 75%,#2c4351,#142031 65%);border-radius:16px}p{color:#9cb0c4;line-height:1.7}a{color:#efcf8b}</style>
+<main><h1>นักรบแนวหน้า · เกราะพิทักษ์</h1><p>ลองเปลี่ยนเลเวลและสวมอุปกรณ์แยกชิ้น ภาพนี้ใช้ตัววาดเดียวกับในเกม</p>
+<section id="controls">
+<label>ฝ่าย<select id="faction"><option value="dharma">ธรรมะ</option><option value="adharma">อธรรม</option></select></label>
+<label>เลเวล<select id="level"></select></label><label>อาวุธ<select id="weapon"></select></label>
+<label>เสื้อ<select id="body"></select></label><label>กางเกง<select id="legs"></select></label><label>ปลอกแขน<select id="arms"></select></label><label>เกราะไหล่<select id="shoulders"></select></label>
+<label>เกรดอุปกรณ์<select id="grade"></select></label><label>ตีบวก<input id="plus" type="number" min="0" max="10" value="0"></label>
+<label>ท่าทาง<select id="pose"><option value="idle">ยืน</option><option value="walk">เดิน</option><option value="attack">โจมตี</option></select></label>
+<label>ทิศ<select id="direction"></select></label>
+</section><canvas id="preview" width="1100" height="580"></canvas><p id="status">กำลังโหลดโมเดล…</p><a href="/">กลับเข้าเกม</a></main>
+<script src="/shared/common.js"></script><script src="js/model-tiers.js"></script><script src="js/wings.js"></script><script src="js/warrior-weapons.js"></script><script src="js/warrior-gear.js"></script><script src="js/warrior-look.js"></script><script src="js/weapon-look.js"></script><script src="js/equipment-glints.js"></script><script src="js/equipment-aura.js"></script><script src="js/class-aura.js"></script>
+<script>
+const $=id=>document.getElementById(id),add=(id,value,text)=>$(id).add(new Option(text,value));
+for(const lv of [1,15,30,50,60,80,100,120,130])add('level',lv,'Lv.'+lv);
+for(const w of C.WEAPONS)add('weapon',w.tier,'Lv.'+w.lvl+' · '+(w.names?.warrior||w.name));
+for(const id of ['body','legs','arms','shoulders']){add(id,0,'ไม่สวม');C.ARMOR_SETS.forEach((a,i)=>add(id,i+1,'Lv.'+a.lvl+' · '+a.name));}
+C.GRADES.forEach((g,i)=>add('grade',i,g.name));for(let i=0;i<8;i++)add('direction',i,['ขวา','ขวาล่าง','หน้า','ซ้ายล่าง','ซ้าย','ซ้ายบน','หลัง','ขวาบน'][i]);$('direction').value=2;
+window.reviewEntity=()=>{const ar=['body','legs','arms','shoulders'].map(id=>+$(id).value),p=Math.max(0,Math.min(10,+$('plus').value||0));return {cls:'warrior',faction:$('faction').value,lvl:+$('level').value,wt:+$('weapon').value,ar,gg:[+$('grade').value,...ar.map(t=>t?+$('grade').value:0)],gp:[p,...ar.map(t=>t?p:0)],wp:p,x:550,y:420};};
+(async()=>{await WarriorLook.load(src=>new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(Error(src));i.src=src;}));window.reviewReady=true;
+const g=$('preview').getContext('2d');function draw(now){g.clearRect(0,0,1100,580);const e=reviewEntity(),pose=$('pose').value,F={atk:pose==='attack',dir:+$('direction').value,frame:pose==='idle'?1:Math.floor(now/(pose==='walk'?180:260))%(pose==='attack'?3:4)};
+WarriorLook.draw(g,e,F,550,440,1.2,now,{auraBounds:{width:1000,height:530}});
+for(let i=0;i<8;i++)WarriorLook.draw(g,{...e,lvl:1,gg:[0,0,0,0,0],gp:[0,0,0,0,0],wp:0},{...F,dir:i},70+i*137,566,.34,now,{noGlow:true});
+$('status').textContent=ModelTiers.nameOf(ModelTiers.tierOf(e.lvl),e.faction,'warrior')+' · เลเวลเปลี่ยนผมและพลังประจำตัว / อุปกรณ์เปลี่ยนวัสดุและอาวุธ / เกรดและตีบวกเพิ่มแสง';requestAnimationFrame(draw);}requestAnimationFrame(draw);
+})().catch(e=>{$('status').textContent=e.message;console.error(e);});
+</script></html>

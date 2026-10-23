@@ -1486,7 +1486,7 @@
   // draws one character frame: body (armour colours) + the equipped weapon in the hands
   function drawSprite(e, F, x, y, opts = {}) {
     const g = opts.ctx || ctx, s = opts.scale || PLAYER_SCALE;
-    if (e.cls === 'warrior') return WarriorLook.draw(g, e, F, x, y, s);
+    if (e.cls === 'warrior') return WarriorLook.draw(g, e, F, x, y, s,performance.now(),opts);
     const costumeTier = DualbladeLook.is(e) ? DualbladeLook.stageOf(e.lvl || 1) : ModelTiers.tierOf(e.lvl || 1);
     const meta = metaOf(e, F);
     const O = ownOf(e);
@@ -1555,7 +1555,7 @@
     if (me.cls === 'warrior') {
       const px=w/2+(bodyPose?.dx||0),py=h-16+(bodyPose?.dy||0)-(bodyPose?.lift||0);
       g.save();g.translate(px,py);g.rotate(bodyPose?.roll||0);g.scale(bodyPose?.sx||1,bodyPose?.sy||1);
-      WarriorLook.draw(g,me,F,0,0,Math.min(.86,(h-25)/215));g.restore();return;
+      WarriorLook.draw(g,me,F,0,0,Math.min(.86,(h-25)/215),t*1000,{auraBounds:{width:w-16,height:h-24}});g.restore();return;
     }
     const K = sizeK(me);
     g.save(); g.translate(w / 2, h - 16); g.scale(K, K); g.translate(-w / 2, -(h - 16));   // class size (ทวน = 1)
@@ -1731,7 +1731,9 @@
       if(e.dead){ctx.globalAlpha=.35;ctx.filter='grayscale(1)';}
       else if(e.flash>0)ctx.filter=`brightness(${1+e.flash*1.4})`;
       ctx.translate(px,py);ctx.rotate(pose.roll||0);ctx.scale(pose.sx||1,pose.sy||1);
-      WarriorLook.draw(ctx,e,F,0,0,PLAYER_SCALE,now);ctx.restore();return;
+      WarriorLook.draw(ctx,e,F,0,0,PLAYER_SCALE,now);ctx.restore();
+      if(!e.dead)WeaponLook.emitPlus(e,F,px,py,PLAYER_SCALE,G.dt||.016);
+      return;
     }
     ctx.save(); ctx.translate(e.x, e.y); ctx.scale(K, K); ctx.translate(-e.x, -e.y);   // ground layers: class size
     if (!e.dead) {

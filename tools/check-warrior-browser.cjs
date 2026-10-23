@@ -23,7 +23,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       document.querySelector('.cls[data-c="warrior"]').click();
     })()`);
     assert(await run("document.getElementById('clsDesc').textContent.includes('นักรบแนวหน้า')"));
-    assert(await run("WarriorLook.ready && [...document.querySelectorAll('.fcard img')].every(i=>i.src.startsWith('data:image/png')||i.src.includes('warrior-v1'))"));
+    assert(await run("WarriorLook.ready && [...document.querySelectorAll('.fcard img')].every(i=>i.src.startsWith('data:image/png')||i.src.includes('warrior-v3'))"));
     fs.mkdirSync(out,{recursive:true});
     fs.writeFileSync(path.join(out,'warrior-create.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
     await run(`(()=>{
