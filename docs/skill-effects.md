@@ -1,5 +1,10 @@
 # Class skill art
 
+> 23 Oct 2026: all 55 skills now also use [the class choreography and skill-stage system](skill-performance.md).
+> `skill-performance.js` adds caster motion, training/evolution ornaments and cancellation handling;
+> existing skill/ritual renderers still own their projectiles and impact art. Warrior art now includes
+> shield formations, sword windups and timed ground fractures. The spear combo/area changes are described in the same document.
+
 > 21 Oct 2026: the skill sets were redesigned (see [class-skills.md](class-skills.md)). The renderers now live in
 > `SkillFX.render.<skill id>` and are dispatched by `SkillFX.play(fxEvent)`; the helpers, budgets and test rules below still apply,
 > the per-skill descriptions below describe the previous skill set.

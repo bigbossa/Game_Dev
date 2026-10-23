@@ -216,6 +216,7 @@
     const now = performance.now();
     G.control = { stunUntil: now + (d?.stun || 0), rootUntil: now + (d?.root || 0), slowUntil: now + (d?.slow || 0) };
     if (G.me && (d?.stun || d?.root)) {
+      if(d?.stun || G.me.cls==='spearman') SkillPerformance.cancel(G.me.id);
       G.me.moving = false; G.me.dash = null; G.me.leap = null;
       if (Number.isFinite(d.x) && Number.isFinite(d.y)) Motion.correction(G.me, d.x, d.y);
     }
@@ -231,6 +232,7 @@
     const me = G.me;
     if (!me) return;
     G.mapLoading = true;
+    SkillPerformance.clear();
     FX.list=FX.list.filter(f=>!f.monsterEffect);
     syncControl(null);
     G.order = null; me.dash = null; me.atk = null;
@@ -323,6 +325,7 @@
     const e = G.ents.get(d.id);
     if (!e) return;
     e.dying = performance.now();
+    SkillPerformance.cancel(e.id);
     const col = e.kind === 'm' ? (e.boss ? '#ff4a3a' : '#e8f4ff') : C.FACTIONS[e.faction].color;
     FX.death(e.x, e.y, col);
     if (e.boss) FX.shake = 18;
@@ -335,6 +338,7 @@
   });
   socket.on('fx', (d) => {
     const e = G.ents.get(d.id);
+    SkillPerformance.play(d);
     if (C.ALL_SKILLS[d.t]?.frontline) {
       if (e) { startAtk(e, d.t, d.a); e.atk.dur = d.dur; }
       WarriorLook.play(d); return;
@@ -364,7 +368,7 @@
       case 'spearThrust': case 'spearCrush': case 'spearChain': case 'spearBreak': case 'spearExecution':
       case 'spearHeart': case 'spearPin': case 'spearBoss': case 'spearHeaven':
         startAtk(e, d.t, d.a);
-        if (e && e.atk) Object.assign(e.atk, { dur: d.dur, delay: d.delay, gap: d.g, hits: d.n, beats:d.beats });
+        if (e && e.atk && C.ALL_SKILLS[d.t]?.spear) Object.assign(e.atk, { dur: d.dur, delay: d.delay, gap: d.g, hits: d.n, beats:d.beats });
         SkillFX.play(d); break;
       case 'spearBeat': SpearmanFX.impact(d); break;
       case 'spearCancel':
@@ -1155,7 +1159,7 @@
     const sk = SKILL[id];
     if (!sk || sk.cls !== (G.cls || 'dualblade') || AscendedSkills.active(me)) return;
     if (performance.now() < (G.control?.stunUntil || 0)) return;
-    if (performance.now() < (G.control?.rootUntil || 0) && (sk.ritual || C.MOVE_SKILLS.includes(id))) return;
+    if (performance.now() < (G.control?.rootUntil || 0) && (sk.spear || sk.ritual || C.MOVE_SKILLS.includes(id))) return;
     if (st.lvl < sk.lvl) { if (id !== basicId()) HUD.toast(`ต้องการเลเวล ${sk.lvl}`); return; }
     if (G.skl && !G.skl.sk[id]) { HUD.toast(`ยังไม่ได้เรียน ${sk.name} — กด K เพื่อใช้แต้มสกิล`); return; }
     if (HUD.cdLeft(id) > 0 || (id !== basicId() && HUD.cdLeft('gcd') > 0)) return;
@@ -1411,6 +1415,10 @@
     stormphoenix: [[0.25, 0], [0.55, 1], [1, 2]],
   };
   function playerFrame(e, now) {
+    return SkillPerformance.frame(e,now,basePlayerFrame(e,now));
+  }
+  G.skillFrame=playerFrame;
+  function basePlayerFrame(e, now) {
     if (e.cls === 'warrior') return WarriorLook.frame(e, now);
     const ritual = AscendedSkills.frame(e, now);
     if (ritual) return ritual;
@@ -1529,7 +1537,11 @@
     const attacking = (ownOf(me) ? !!ownOf(me).attack[me.faction] : !!SPR.attack) && Math.floor(t / 0.9) % 4 === 3;
     const F = poseFrame ? {...poseFrame} : attacking ? { atk: true, dir, frame: Math.floor((t % 0.9) / 0.3) } : { atk: false, dir, frame: me.cls === 'archer' && t % .9 < .4 ? 3 : [0, 1, 2, 1][Math.floor(t * 8) % 4] };
     F.faction = me.faction;
-    if (me.cls === 'warrior') { WarriorLook.draw(g, me, F, w/2, h-16, Math.min(.86,(h-25)/215)); return; }
+    if (me.cls === 'warrior') {
+      const px=w/2+(bodyPose?.dx||0),py=h-16+(bodyPose?.dy||0)-(bodyPose?.lift||0);
+      g.save();g.translate(px,py);g.rotate(bodyPose?.roll||0);g.scale(bodyPose?.sx||1,bodyPose?.sy||1);
+      WarriorLook.draw(g,me,F,0,0,Math.min(.86,(h-25)/215));g.restore();return;
+    }
     const K = sizeK(me);
     g.save(); g.translate(w / 2, h - 16); g.scale(K, K); g.translate(-w / 2, -(h - 16));   // class size (ทวน = 1)
     g.fillStyle = 'rgba(0,0,0,0.3)';
@@ -1560,6 +1572,10 @@
 
   // body pose offsets while casting: lift (px above the ground) and a lunge along the swing
   function poseOf(e, now) {
+    return SkillPerformance.pose(e,now,basePoseOf(e,now));
+  }
+  G.skillPose=poseOf;
+  function basePoseOf(e, now) {
     const o = { lift: Motion.bodyLift(e, now), dx: e.correctX || 0, dy: e.correctY || 0 };
     if (AscendedSkills.active(e, now)) return AscendedSkills.pose(e, now, o);
     if (e.cls === 'spearman') return SpearmanLook.pose(e,now,o);
@@ -1699,7 +1715,8 @@
       ctx.beginPath(); ctx.ellipse(e.x,e.y,24,8,0,0,Math.PI*2); ctx.stroke();
       if(e.dead){ctx.globalAlpha=.35;ctx.filter='grayscale(1)';}
       else if(e.flash>0)ctx.filter=`brightness(${1+e.flash*1.4})`;
-      WarriorLook.draw(ctx,e,F,px,py,PLAYER_SCALE,now);ctx.restore();return;
+      ctx.translate(px,py);ctx.rotate(pose.roll||0);ctx.scale(pose.sx||1,pose.sy||1);
+      WarriorLook.draw(ctx,e,F,0,0,PLAYER_SCALE,now);ctx.restore();return;
     }
     ctx.save(); ctx.translate(e.x, e.y); ctx.scale(K, K); ctx.translate(-e.x, -e.y);   // ground layers: class size
     if (!e.dead) {

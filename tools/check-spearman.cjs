@@ -136,6 +136,12 @@ try {
     for(const a of allies)pk.w.players.set(a.id,a);const damaged=[];pk.w.applyDamage=(p,t)=>damaged.push(t.id);cast(pk,sk);flush(pk.w);
     assert(damaged.includes(pk.other.id));for(const a of allies)assert(!damaged.includes(a.id),a.id+' excluded from area');
   }
+  // Splitting strikes and adding collateral must not farm extra mana from gear.
+  for(const sk of C.CLASSES.spearman.skills.filter(s=>s.spear))for(let rank=0;rank<=sk.evo.length;rank++){
+    const f=fixture();f.p.stats.fx={mana:.01};f.p.mp=1000;cast(f,sk,rank);const spent=f.p.mp;flush(f.w);
+    const legacyHits=sk.id==='spearChain'?(rank?5:3):sk.id==='spearHeaven'&&rank?2:1;
+    assert(Math.abs(f.p.mp-spent-f.p.stats.maxMp*.01*legacyHits)<1e-6,'Mana proc budget '+sk.id);
+  }
   const ctx = { window: {} }; vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../public/js/model-tiers.js'),'utf8'), ctx);
   const MT = ctx.window.ModelTiers;
   for (const faction of ['dharma','adharma']) for (const [i,lvl] of [1,15,30,50,60,80,100,130].entries()) {

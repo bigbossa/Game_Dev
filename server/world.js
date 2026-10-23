@@ -532,7 +532,7 @@ class World {
     p.socket.emit('cast', { id: sk.id, cd });
     // rank = evolutions the player unlocked (r tells clients which look to draw); power also grows with the skill level
     const rank = C.skillRankOf(p.skl, sk.id), mult = C.skillPower(sl, rank);
-    const fx = (data) => this.fx(p, { id: p.id, r: rank, ...data });
+    const fx = (data) => this.fx(p, { id: p.id, r: rank, sl, ...data });
     const alive = () => this.alive(p);
     if (front) {
       const mapId = p.mapId, epoch = p.controlEpoch || 0;
@@ -606,7 +606,7 @@ class World {
         fx({t:'spearBeat',skill:sk.id,tid:target.id,step:i,final:last,x:target.x,y:target.y,cx,cy,a:face,area});
         let power = beat.power;
         if (!isPlayer(target) && sk.id !== 'spearThrust') power *= C.SPEAR_PVE_MULT;    // PvE-only skill buff; basic attack and PvP untouched
-        const opts = {defK:beat.defK};
+        const opts = {defK:beat.defK,onHitWeight:beat.defK};
         if (last&&sk.id === 'spearBreak') opts.armorBreak = rank ? 0.35 : 0.25;
         if (last&&sk.id === 'spearHeart') { opts.bleed = true; if (rank) opts.slow = 1500; }
         if (last&&sk.id === 'spearCrush' && rank) opts.slow = 1000;
@@ -619,7 +619,7 @@ class World {
         for(const e of others){
           // Collateral has its own PvE scaling, no boss/execute bonus or primary-only debuffs.
           const power=beat.power*area.scale*mult*(isPlayer(e)?1:C.SPEAR_PVE_MULT);
-          this.applyDamage(p,e,power,{defK:beat.defK*area.scale});
+          this.applyDamage(p,e,power,{defK:beat.defK*area.scale,onHitWeight:0});
         }
       });
       return;
@@ -2279,8 +2279,10 @@ class World {
   // special options / passives of the attacker's gear on a landed hit
   onHitFx(p, tgt, dmg, opts) {
     const fx = p.stats.fx;
-    if (fx.mana) p.mp = Math.min(p.stats.maxMp, p.mp + p.stats.maxMp * fx.mana);
-    if (fx.thunder && !opts.proc && Math.random() < fx.thunder)
+    // Splitting a spear strike must not multiply its mana/proc budget.
+    const weight=opts.onHitWeight??1;
+    if (fx.mana) p.mp = Math.min(p.stats.maxMp, p.mp + p.stats.maxMp * fx.mana * weight);
+    if (fx.thunder && !opts.proc && Math.random() < Math.min(1,fx.thunder*weight))
       this.later(140, () => {
         if (!this.alive(p) || tgt.dead) return;
         this.emitNear(tgt.mapId, tgt.x, tgt.y, 'fx', { t: 'bolt', x: Math.round(tgt.x), y: Math.round(tgt.y), f: p.faction });

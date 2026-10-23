@@ -35,6 +35,7 @@
     "dualblade": "node tools/build-dualblade-v2.cjs",
     "check:dualblade-browser": "node tools/check-dualblade-v2.cjs",
     "check:spearman": "node tools/check-spearman.cjs",
+    "check:skill-performance": "node tools/check-skill-performance.cjs",
     "check:ascended": "node tools/check-ascended.cjs",
     "drop-table": "node tools/drop-table.cjs",
     "gear-gate": "node tools/gear-gate.cjs",

@@ -226,7 +226,7 @@ async function recordChoreography(){
           e.atk={t0:now,dur:beats.at(-1).at+240,kind:sk.id,dir:0,a:0,beats,delay:wind,gap,hits};
           FX.list=[];SpearmanFX.play({t:sk.id,id:e.id,tid:t.id,f:e.faction,n:hits,beats,g:gap,delay:wind});actors[i].fx=fx=FX.list.slice();actors[i].cycle=cycle;actors[i].impacts.clear();
         }
-        for(const [step,b]of e.atk.beats.entries())if(now-e.atk.t0>=b.at&&!actors[i].impacts.has(step)){
+        for(const [step,b]of (e.atk?.beats||[]).entries())if(now-e.atk.t0>=b.at&&!actors[i].impacts.has(step)){
           FX.list=[];SpearmanFX.impact({id:e.id,tid:t.id,skill:sk.id,step,final:step===e.atk.beats.length-1,x:t.x,y:t.y,cx:b.area?.shape==='cone'?e.x:t.x,cy:t.y,a:0,area:b.area});fx.push(...FX.list);actors[i].impacts.add(step);
         }
         G.me=e;cg.clearRect(0,0,600,320);
