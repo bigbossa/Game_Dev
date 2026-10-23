@@ -597,17 +597,143 @@
   };
 
   // ------------------------------------------------------------ messages
+  // chat options, remembered in the browser: lowest grade of the own drops logged (-1 = none), clock, chime
+  const CHAT_KEY = 'chatOpts';
+  const chatOpts = { minGrade: 1, time: true, sound: true };
+  try { Object.assign(chatOpts, JSON.parse(localStorage.getItem(CHAT_KEY) || '{}')); } catch (e) { /* storage optional */ }
+  const saveChatOpts = () => { try { localStorage.setItem(CHAT_KEY, JSON.stringify(chatOpts)); } catch (e) { /* storage optional */ } };
+  // the tabs a line shows under besides "ทั้งหมด" (style.css hides the rest by #chatLog[data-tab])
+  const chatCats = (m) => [Number.isInteger(m.g) ? 'item' : m.sys ? 'sys' : '', m.ch === 'f' || m.ch === 'p' ? m.ch : ''].filter(Boolean);
+  // a shared item (m.item, checked by the server) takes the place of {i} in the text: grade colour, stats on hover / tap
+  const linked = (key, cls) => { const it = C.ITEMS[key]; return it && !it.kind && window.WHO && WHO.asOf ? WHO.asOf(it, cls) : it; };
+  function chatText(m) {
+    const it = m.item && linked(m.item, m.cls), at = it ? m.t.indexOf('{i}') : -1;
+    if (at < 0) return esc(m.t);
+    const gr = C.GRADES[it.grade || 0];
+    return `${esc(m.t.slice(0, at))}<span class="ilink" data-key="${esc(m.item)}" data-cls="${esc(m.cls || '')}" style="--gc:${gr.color}">[${esc(it.name)}]</span>${esc(m.t.slice(at + 3))}`;
+  }
+  const clock = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  // m.g = grade of the item a system line announces (drops, enhancement): the line takes the grade colour,
+  // the item name m.it is set in bold, Legendary+ glow (style.css .msg.loot) · m.own = own drop, logged from
+  // chatOpts.minGrade up · m.big = also the banner in the middle of the screen (HUD.announce)
   HUD.chat = function (m) {
+    if (m.own && (chatOpts.minGrade < 0 || (m.g || 0) < chatOpts.minGrade)) return;
+    if (m.big) HUD.announce(m);
     const log = $('chatLog');
     const div = document.createElement('div');
-    div.className = 'msg' + (m.sys ? ' sys' : m.ch === 'f' ? ' fch' : m.ch === 'p' ? ' pch' : '');
-    if (m.sys) div.textContent = m.t;
-    else div.innerHTML = `${m.ch === 'f' ? '[ฝ่าย] ' : m.ch === 'p' ? '[ปาร์ตี้] ' : ''}<span class="${m.f === 'dharma' ? 'fd' : 'fa'}">${esc(m.n)}</span>: ${esc(m.t)}`;
+    const gr = m.sys && Number.isInteger(m.g) && C.GRADES[m.g];
+    div.className = 'msg' + (gr ? ` sys loot g${m.g}` : m.sys ? ' sys' : m.ch === 'f' ? ' fch' : m.ch === 'p' ? ' pch' : '')
+      + chatCats(m).map((c) => ` cat-${c}`).join('');
+    const ts = `<span class="ts">${clock()}</span>`;
+    if (gr) {
+      div.style.setProperty('--gc', gr.color);
+      const at = m.it ? m.t.indexOf(m.it) : -1;
+      div.innerHTML = ts + (at < 0 ? esc(m.t) : `${esc(m.t.slice(0, at))}<b class="it">${esc(m.it)}</b>${esc(m.t.slice(at + m.it.length))}`);
+    } else if (m.sys) div.innerHTML = ts + esc(m.t);
+    else div.innerHTML = `${ts}${m.ch === 'f' ? '[ฝ่าย] ' : m.ch === 'p' ? '[ปาร์ตี้] ' : ''}<span class="${m.f === 'dharma' ? 'fd' : 'fa'}">${esc(m.n)}</span>: ${chatText(m)}`;
+    const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 24;     // scrolled up to read: don't jump
     log.appendChild(div);
-    while (log.children.length > 80) log.firstChild.remove();
-    log.scrollTop = log.scrollHeight;
-    if (HUD.chatHidden()) { HUD.unread++; showUnread(); }
+    while (log.children.length > 200) log.firstChild.remove();
+    if (atEnd) log.scrollTop = log.scrollHeight;
+    const tab = log.dataset.tab;
+    if (HUD.chatHidden() && (tab === 'all' || chatCats(m).includes(tab))) { HUD.unread++; showUnread(); }
   };
+  // ------------------------------------------------------------ chat tabs + options (⚙)
+  {
+    const log = $('chatLog'), tabs = $('chatTabs'), opts = $('chatOpts');
+    const setTab = (t) => {
+      log.dataset.tab = t;
+      for (const b of tabs.querySelectorAll('button:not(.ct-opts)')) b.classList.toggle('on', b.dataset.tab === t);
+      log.scrollTop = log.scrollHeight;
+      try { localStorage.setItem('chatTab', t); } catch (e) { /* storage optional */ }
+    };
+    let tab = 'all';
+    try { const v = localStorage.getItem('chatTab'); if (v && v !== 'opts' && tabs.querySelector(`[data-tab="${v}"]`)) tab = v; } catch (e) { /* storage optional */ }
+    setTab(tab);
+    tabs.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      e.stopPropagation();
+      if (b.dataset.tab !== 'opts') return setTab(b.dataset.tab);
+      const open = !opts.classList.toggle('hidden');
+      b.classList.toggle('on', open); b.setAttribute('aria-expanded', String(open));
+    });
+    const sel = $('chatMinGrade');
+    sel.innerHTML = '<option value="-1">ไม่แสดง</option>' + C.GRADES.slice(0, 3).map((g, i) => `<option value="${i}">${g.name}</option>`).join('');
+    sel.value = String(Math.max(-1, Math.min(2, Math.floor(Number(chatOpts.minGrade)) || 0)));
+    sel.title = 'ของที่ได้เองระดับต่ำกว่านี้ไม่ขึ้นแชท (Unique ขึ้นไปประกาศทั้งเซิร์ฟเสมอ)';
+    $('chatTime').checked = !!chatOpts.time; $('chatSound').checked = !!chatOpts.sound;
+    log.classList.toggle('no-ts', !chatOpts.time);
+    opts.addEventListener('change', () => {
+      chatOpts.minGrade = +sel.value; chatOpts.time = $('chatTime').checked; chatOpts.sound = $('chatSound').checked;
+      log.classList.toggle('no-ts', !chatOpts.time);
+      saveChatOpts();
+    });
+    opts.addEventListener('keydown', (e) => e.stopPropagation());       // the select is not a hotkey
+    // a shared item: its stats on hover, or on a tap (touch has no hover)
+    const tipOf = (el) => { const it = linked(el.dataset.key, el.dataset.cls); return it && window.INV ? INV.itemTip(it) : ''; };
+    log.addEventListener('mouseover', (e) => { const el = e.target.closest('.ilink'), h = el && tipOf(el); if (h) INV.tip.show(e, h); });
+    log.addEventListener('mousemove', (e) => { if (e.target.closest('.ilink') && window.INV) INV.tip.move(e); });
+    log.addEventListener('mouseout', (e) => { if (e.target.closest('.ilink') && window.INV) INV.tip.hide(); });
+    log.addEventListener('click', (e) => {
+      const el = e.target.closest('.ilink'), h = el && tipOf(el);
+      if (!h) return;
+      e.stopPropagation();
+      INV.tip.show(e, h);
+      setTimeout(() => addEventListener('pointerdown', () => INV.tip.hide(), { once: true }), 0);
+    });
+  }
+  // แชร์ไอเทม (Shift+click in the bag / equipment, or "แชร์ในแชท" in the touch item menu): "[name]" goes into the
+  // chat box; sending turns it into {i} + the item key (HUD.takeLink), the server checks the sender has the piece
+  let link = null;
+  HUD.linkItem = function (key) {
+    const it = C.ITEMS[key];
+    if (!it || it.kind) return;
+    if (HUD.chatHidden()) HUD.setChat(true);
+    if (window.G && G.touch) $('chat').classList.add('open');
+    const input = $('chatInput'), label = `[${it.name}]`;
+    if (link) input.value = input.value.replace(link.label, '').replace(/\s{2,}/g, ' ');   // one item per line
+    link = { key, label };
+    const v = input.value.trimEnd();
+    input.value = `${v}${v ? ' ' : ''}${label} `.slice(0, 140);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  };
+  // what the chat sends: { text } or { text with {i}, item } while the "[name]" is still in the line
+  HUD.takeLink = function (text) {
+    const l = link; link = null;
+    if (!l || !text.includes(l.label)) return { text };
+    return { text: text.replace(l.label, '{i}'), item: l.key };
+  };
+  // ------------------------------------------------------------ big announcement (m.big): Mythic drops, +10
+  let annTimer = 0, audio = null;
+  HUD.announce = function (m) {
+    const el = $('announce');
+    if (!el) return;
+    el.style.setProperty('--gc', C.GRADES[m.g || 0].color);
+    el.textContent = m.t;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');      // restart the animation
+    clearTimeout(annTimer);
+    annTimer = setTimeout(() => el.classList.remove('show'), 5000);
+    if (chatOpts.sound) chime();
+  };
+  // a short rising arpeggio made on the spot (no sound file); browsers only allow it after the first click / key
+  function chime() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+      const t0 = audio.currentTime + 0.02;
+      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
+        const o = audio.createOscillator(), g = audio.createGain(), t = t0 + i * 0.09;
+        o.type = 'triangle'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+        o.connect(g).connect(audio.destination);
+        o.start(t); o.stop(t + 0.95);
+      });
+    } catch (e) { /* no audio */ }
+  }
   // ------------------------------------------------------------ chat box shown / hidden (button on the box, L key)
   // remembered in the browser; while hidden, new messages are counted on the button
   HUD.unread = 0;

@@ -1524,8 +1524,8 @@ class World {
     else if (saved) this.toast(p, `ตีบวกล้มเหลว · ${C.ENH_CHARMS[gk].name}คุ้มครองไว้ ${it.name} ไม่แตก`);
     else if (demoted) this.toast(p, `ตีบวกล้มเหลว · ${it.name} ลดระดับเหลือ +${next}`);
     else this.toast(p, 'ตีบวกล้มเหลว (ระดับคงเดิม)');
-    if (ok && next >= 8) this.systemChat(`⚡ ${p.name} ตีบวก "${C.ITEMS[nk].name}" สำเร็จ!`);
-    if (broke && plus >= 7) this.systemChat(`💥 ${p.name} ตีบวก "${it.name}" ล้มเหลว ไอเทมแตกสลาย`);
+    if (ok && next >= 8) this.systemChat(`⚡ ${p.name} ตีบวก "${C.ITEMS[nk].name}" สำเร็จ!`, C.ITEMS[nk], next >= C.MAX_PLUS);
+    if (broke && plus >= 7) this.systemChat(`💥 ${p.name} ตีบวก "${it.name}" ล้มเหลว ไอเทมแตกสลาย`, it);
     this.sendInv(p);
     this.save(p);
   }
@@ -1631,12 +1631,18 @@ class World {
       to = order.find((q) => (q.autoSell || []).includes(C.ITEMS[item].grade || 0) || q.inv.includes(null)) || order[0];
       turnHolder.lootTurn = (roster.indexOf(to.id) + 1) % roster.length;
     }
-    for (const q of near) this.giveLoot(q, base / near.length, q === to ? item : null);
-    if (to && !(to.autoSell || []).includes(C.ITEMS[item].grade || 0))
-      this.partyNotice(this.partyOf(p), `${to.name} ได้รับ ${C.ITEMS[item].name}${C.ITEMS[item].grade ? ` [${C.GRADES[C.ITEMS[item].grade].name}]` : ''}`);
+    for (const q of near) this.giveLoot(q, base / near.length, q === to ? item : null, false);
+    // Unique+ already went to everyone (giveLoot → systemChat)
+    if (to && !(to.autoSell || []).includes(C.ITEMS[item].grade || 0) && (C.ITEMS[item].grade || 0) < 3) {
+      const it = C.ITEMS[item], text = `${to.name} ได้รับ ${it.name}${it.grade ? ` [${C.GRADES[it.grade].name}]` : ''}`, pt = this.partyOf(p);
+      if (pt) this.partyNotice(pt, text, it);
+      else for (const q of near) q.socket.emit('chat', { sys: 1, t: text, ...this.chatItem(it) });   // boss contributors without a party
+    }
   }
-  // one player's part of a kill: gold (+ own gold bonus) and maybe an item (auto-sold when its grade is ticked)
-  giveLoot(p, baseGold, item) {
+  // one player's part of a kill: gold (+ own gold bonus) and maybe an item (auto-sold when its grade is ticked).
+  // log = put a gear drop below Unique in the own chat (own: 1, the client hides grades under its chosen lowest one);
+  // Unique+ are announced to everyone, a shared kill has its own party notice
+  giveLoot(p, baseGold, item, log = true) {
     const gold = Math.round(baseGold * (1 + (p.stats.fx.gold || 0)));
     p.gold += gold;
     let got = null, sold = null, soldGold = 0;
@@ -1650,7 +1656,8 @@ class World {
     p.socket.emit('loot', sold ? { gold, item: null, sold, soldGold } : { gold, item: got });
     const it = got && C.ITEMS[got];
     if (it && it.grade >= 3)
-      this.systemChat(`✨ ${p.name} ได้รับ${C.SLOT_NAMES[it.slot]}ระดับ ${C.GRADES[it.grade].name} "${it.name}"!`);
+      this.systemChat(`✨ ${p.name} ได้รับ${C.SLOT_NAMES[it.slot]}ระดับ ${C.GRADES[it.grade].name} "${it.name}"!`, it, it.grade >= 5);
+    else if (it && log && !it.kind) p.socket.emit('chat', { sys: 1, own: 1, t: `ได้รับ ${it.name} [${C.GRADES[it.grade || 0].name}]`, ...this.chatItem(it) });
     if (it && !it.kind) this.autoWear(p);
     this.sendInv(p);
   }
@@ -1835,14 +1842,15 @@ class World {
     p.follow = on;
     if (pt) this.sendParty(pt);
   }
-  partyNotice(pt, text) {
-    for (const id of pt.members) { const q = this.players.get(id); if (q) q.socket.emit('chat', { sys: 1, t: `[ปาร์ตี้] ${text}` }); }
+  partyNotice(pt, text, it) {
+    const m = { sys: 1, ch: 'p', t: `[ปาร์ตี้] ${text}`, ...this.chatItem(it) };
+    for (const id of pt.members) { const q = this.players.get(id); if (q) q.socket.emit('chat', m); }
   }
-  partyChat(p, text) {
+  partyChat(p, text, link = {}) {
     const pt = this.partyOf(p);
     if (!pt) return this.toast(p, 'คุณไม่ได้อยู่ในปาร์ตี้');
     if (!text) return;
-    for (const id of pt.members) { const q = this.players.get(id); if (q) q.socket.emit('chat', { n: p.name, f: p.faction, t: text, ch: 'p' }); }
+    for (const id of pt.members) { const q = this.players.get(id); if (q) q.socket.emit('chat', { n: p.name, f: p.faction, t: text, ch: 'p', ...link }); }
   }
   // members' HP/MP/level/map, sent to every member twice a second
   sendParty(pt) {
@@ -2115,14 +2123,20 @@ class World {
     p.lastChat = now;
     let text = String((d && d.text) || '').slice(0, 140).trim();
     if (!text) return;
+    // แชร์ไอเทม: d.item = a gear piece the sender has (bag or worn), shown where the text says {i}
+    const key = d && d.item, link = typeof key === 'string' && key.length < 80 && text.includes('{i}') && C.ITEMS[key]
+      && !C.ITEMS[key].kind && (p.inv.includes(key) || Object.values(p.eq).includes(key)) ? { item: key, cls: p.cls } : {};
+    if (!link.item) text = text.split('{i}').join('').trim();
+    if (!text) return;
+    if (/^\/p\s/i.test(text)) return this.partyChat(p, text.slice(3).trim(), link);
     if (text.startsWith('/') && !text.startsWith('/f ')) return this.chatCommand(p, text);
     if (text.startsWith('/f ')) {
       text = text.slice(3).trim();
       if (!text) return;
       for (const q of this.players.values())
-        if (q.faction === p.faction) q.socket.emit('chat', { n: p.name, f: p.faction, t: text, ch: 'f' });
+        if (q.faction === p.faction) q.socket.emit('chat', { n: p.name, f: p.faction, t: text, ch: 'f', ...link });
     } else {
-      for (const q of this.players.values()) q.socket.emit('chat', { n: p.name, f: p.faction, t: text, ch: 'a' });
+      for (const q of this.players.values()) q.socket.emit('chat', { n: p.name, f: p.faction, t: text, ch: 'a', ...link });
     }
   }
 
@@ -3103,7 +3117,13 @@ class World {
   }
   fx(p, data) { this.emitNear(p.mapId, p.x, p.y, 'fx', { ...data, f: p.faction }); }
   toast(p, text) { p.socket.emit('toast', text); }
-  systemChat(text) { for (const p of this.players.values()) p.socket.emit('chat', { sys: 1, t: text }); }
+  // `it` = the item a line announces: the chat colours the line by its grade (g) and highlights its name (it);
+  // big = also a banner in the middle of every screen with a chime (Mythic drops, +10 enhancement)
+  systemChat(text, it, big) {
+    const m = { sys: 1, t: text, ...this.chatItem(it), ...(big ? { big: 1 } : {}) };
+    for (const p of this.players.values()) p.socket.emit('chat', m);
+  }
+  chatItem(it) { return it && !it.kind ? { g: it.grade || 0, it: it.name } : {}; }
 }
 
 module.exports = World;

@@ -716,7 +716,7 @@
         // /gm opens the GM panel; it is handled here and never sent, so it never shows in the chat
         if (/^\/gm(\s|$)/i.test(t)) { if (GM.enabled) GM.toggle(true); else HUD.toast('ไม่รู้จักคำสั่งนี้'); }
         else if (/^\/user(\s|$)/i.test(t)) { if (GM.enabled) GM.users(true); else HUD.toast('ไม่รู้จักคำสั่งนี้'); }
-        else if (t) socket.emit('chat', { text: t });
+        else if (t) socket.emit('chat', HUD.takeLink(t));                // a shared item: { text with {i}, item }
         chatInput.value = ''; chatInput.blur();
       } else if (e.key === 'Escape') chatInput.blur();
       return;

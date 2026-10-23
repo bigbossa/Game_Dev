@@ -186,7 +186,7 @@
       s.addEventListener('mouseenter', (e) => {
         const it = C.ITEMS[INV.state.inv[i]];
         const verb = it && it.kind ? 'ใช้' : 'สวมใส่';
-        if (it) showTip(e, INV.itemTip(it, `<br><small style="color:#e8c26a">${INV.anyShopOpen() ? `คลิกขวา = ขาย · ดับเบิลคลิก = ${verb}` : `ดับเบิลคลิก/คลิกขวา = ${verb}`} · Shift+คลิกขวา = ทิ้ง${it.kind ? '' : ` · Ctrl+คลิก = ${locked(INV.state.inv[i]) ? 'ปลดล็อก' : 'ล็อก'}`}</small>${locked(INV.state.inv[i]) ? '<br><small style="color:#ffd76a">🔒 ล็อกอยู่: ขายและทิ้งไม่ได้</small>' : ''}`, it.kind ? C.stackCount(INV.state.inv[i]) : 1));
+        if (it) showTip(e, INV.itemTip(it, `<br><small style="color:#e8c26a">${INV.anyShopOpen() ? `คลิกขวา = ขาย · ดับเบิลคลิก = ${verb}` : `ดับเบิลคลิก/คลิกขวา = ${verb}`} · Shift+คลิกขวา = ทิ้ง${it.kind ? '' : ` · Ctrl+คลิก = ${locked(INV.state.inv[i]) ? 'ปลดล็อก' : 'ล็อก'} · Shift+คลิก = แชร์ในแชท`}</small>${locked(INV.state.inv[i]) ? '<br><small style="color:#ffd76a">🔒 ล็อกอยู่: ขายและทิ้งไม่ได้</small>' : ''}`, it.kind ? C.stackCount(INV.state.inv[i]) : 1));
       });
       s.addEventListener('mousemove', moveTip);
       s.addEventListener('mouseleave', hideTip);
@@ -194,12 +194,14 @@
       s.addEventListener('click', (e) => {
         if (e.target.closest('.bag-check')) { e.stopPropagation(); return toggleSel(i); }
         if (e.ctrlKey || e.metaKey) { hideTip(); return lockKeys([INV.state.inv[i]]); }
+        if (e.shiftKey) { hideTip(); return HUD.linkItem(INV.state.inv[i]); }
         const it = window.G && G.touch && C.ITEMS[INV.state.inv[i]];
         if (!it) return;
         hideTip();
         itemMenu(INV.itemTip(it, '', it.kind ? C.stackCount(INV.state.inv[i]) : 1), [
           { label: it.kind ? 'ใช้' : 'สวมใส่', fn: () => useItem(i) },
-          ...(it.kind ? [] : [{ label: locked(INV.state.inv[i]) ? '🔓 ปลดล็อก' : '🔒 ล็อก', cls: 'ghost', fn: () => lockKeys([INV.state.inv[i]]) }]),
+          ...(it.kind ? [] : [{ label: locked(INV.state.inv[i]) ? '🔓 ปลดล็อก' : '🔒 ล็อก', cls: 'ghost', fn: () => lockKeys([INV.state.inv[i]]) },
+            { label: '💬 แชร์ในแชท', cls: 'ghost', fn: () => HUD.linkItem(INV.state.inv[i]) }]),
           ...(INV.anyShopOpen() ? [{ label: `ขาย ${fmt(C.sellPrice(it) * (it.kind ? C.stackCount(INV.state.inv[i]) : 1))} ทอง`, fn: () => sell(i) }] : []),
           { label: 'ทิ้ง', cls: 'warn', fn: () => { if (confirm(`ทิ้ง ${it.name}?`)) discard(i); } },
         ]);
@@ -213,16 +215,18 @@
       el.addEventListener('contextmenu', (e) => { e.preventDefault(); off(); });
       el.addEventListener('mouseenter', (e) => {
         const it = C.ITEMS[INV.state.eq[slot]];
-        if (it) showTip(e, INV.itemTip(it, `<br><small style="color:#9fe89f">กำลังสวมใส่${slot !== 'weapon' ? ' · ดับเบิลคลิก/คลิกขวา = ถอด' : ''}</small>`));
+        if (it) showTip(e, INV.itemTip(it, `<br><small style="color:#9fe89f">กำลังสวมใส่${slot !== 'weapon' ? ' · ดับเบิลคลิก/คลิกขวา = ถอด' : ''} · Shift+คลิก = แชร์ในแชท</small>`));
         else showTip(e, `<b>${C.SLOT_NAMES[slot]}</b><br><small>ยังไม่ได้สวมใส่ · ได้จากมอนสเตอร์หรือร้านช่างตีดาบ</small>`);
       });
       el.addEventListener('mousemove', moveTip);
       el.addEventListener('mouseleave', hideTip);
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        if (e.shiftKey && INV.state.eq[slot]) { hideTip(); return HUD.linkItem(INV.state.eq[slot]); }
         const it = window.G && G.touch && C.ITEMS[INV.state.eq[slot]];
         if (!it) return;
         hideTip();
-        itemMenu(INV.itemTip(it), slot !== 'weapon' ? [{ label: 'ถอด', fn: off }] : []);
+        const share = { label: '💬 แชร์ในแชท', cls: 'ghost', fn: () => HUD.linkItem(INV.state.eq[slot]) };
+        itemMenu(INV.itemTip(it), slot !== 'weapon' ? [{ label: 'ถอด', fn: off }, share] : [share]);
       });
     }
 

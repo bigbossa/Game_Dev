@@ -35,6 +35,7 @@
     if (it.plus) name = `+${it.plus} ${name}`;
     return { ...it, name, desc: (b.descs && b.descs[cls]) || it.desc };
   }
+  WHO.asOf = asOf;                                   // shared item links in the chat name the item as the sender's class
   // item icons are drawn for a class: draw them for the inspected player's class
   function iconOf(it, cls, f) {
     const saved = G.cls; G.cls = cls;

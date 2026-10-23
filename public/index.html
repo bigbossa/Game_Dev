@@ -164,14 +164,28 @@
 
     <div id="feed"></div>
     <div id="zoneBanner"></div>
+    <div id="announce" aria-live="polite"></div>
     <div id="toasts"></div>
 
     <div id="skillbar"></div>
 
     <div id="chat">
       <button id="chatToggle" type="button" title="ซ่อน / แสดงแชท (L)"><span class="ct-label">💬 แชท</span><b id="chatUnread"></b><span class="ct-arrow"></span></button>
-      <div id="chatLog"></div>
-      <input id="chatInput" maxlength="140" placeholder="Enter เพื่อแชท · /f = แชทฝ่าย · /p = แชทปาร์ตี้">
+      <div id="chatTabs" role="tablist" aria-label="กรองแชท">
+        <button type="button" data-tab="all" class="on">ทั้งหมด</button>
+        <button type="button" data-tab="sys">ระบบ</button>
+        <button type="button" data-tab="item">ไอเทม</button>
+        <button type="button" data-tab="f">ฝ่าย</button>
+        <button type="button" data-tab="p">ปาร์ตี้</button>
+        <button type="button" data-tab="opts" class="ct-opts" title="ตั้งค่าแชท" aria-label="ตั้งค่าแชท" aria-expanded="false">⚙</button>
+      </div>
+      <div id="chatOpts" class="hidden">
+        <label>ของที่ได้เองขึ้นแชทตั้งแต่ <select id="chatMinGrade"></select></label>
+        <label><input type="checkbox" id="chatTime"> แสดงเวลา</label>
+        <label><input type="checkbox" id="chatSound"> เสียงประกาศ Mythic / +10</label>
+      </div>
+      <div id="chatLog" data-tab="all"></div>
+      <input id="chatInput" maxlength="140" placeholder="Enter เพื่อแชท · /f = แชทฝ่าย · /p = แชทปาร์ตี้ · Shift+คลิกไอเทม = แชร์">
     </div>
 
     <button id="bagBtn" type="button" title="กระเป๋า (I)">🎒</button>
@@ -249,7 +263,7 @@
             <ul>
               <li><b>ดับเบิลคลิก / คลิกขวา</b> = สวมใส่หรือใช้ · ดับเบิลคลิกช่องชุดที่สวม = ถอด</li>
               <li><b>ติ๊ก ☐ มุมไอเทม</b> = เลือกหลายชิ้น แล้วขาย / ทิ้ง / ล็อก / ฝาก พร้อมกัน</li>
-              <li><b>Ctrl+คลิก</b> = ล็อก 🔒 (ขายและทิ้งไม่ได้) · <b>Shift+คลิกขวา</b> = ทิ้ง</li>
+              <li><b>Ctrl+คลิก</b> = ล็อก 🔒 (ขายและทิ้งไม่ได้) · <b>Shift+คลิกขวา</b> = ทิ้ง · <b>Shift+คลิก</b> = แชร์ไอเทมในแชท</li>
               <li><b style="color:#7cff8a">▲</b> = ดีกว่าที่สวมอยู่ · ป้ายมุมซ้ายล่าง = ออปชันพิเศษ (เช่น <b>EXP</b>, <b>คริ</b>)</li>
               <li>ที่ร้าน: <b>คลิกขวา</b> = ขาย</li>
             </ul>

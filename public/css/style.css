@@ -174,6 +174,13 @@ body.touch #storagePanel { top: 6px; left: 6px; right: auto; max-height: calc(10
 
 #zoneBanner { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); font-size: 30px; font-weight: 800; color: #fff; text-shadow: 0 0 6px #000, 0 0 14px rgba(0,0,0,0.9), 0 0 24px var(--gold); opacity: 0; transition: opacity .6s; white-space: nowrap; }
 #zoneBanner.show { opacity: 1; }
+/* big announcement (HUD.announce): Mythic drops and +10 enhancement, in the item's grade colour (--gc) */
+#announce { position: absolute; top: 12%; left: 50%; max-width: min(720px, calc(100vw - 32px)); padding: 10px 22px; transform: translate(-50%, 0); text-align: center; font-size: 22px; font-weight: 800; color: #fff;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.7) 15%, rgba(0,0,0,0.7) 85%, transparent); border-top: 1px solid var(--gc); border-bottom: 1px solid var(--gc);
+  text-shadow: 0 0 6px #000, 0 0 14px var(--gc); opacity: 0; visibility: hidden; pointer-events: none; }
+#announce.show { visibility: visible; animation: announce-in 5s ease-out forwards; }
+@keyframes announce-in { 0% { opacity: 0; transform: translate(-50%, -12px) scale(.96); } 8% { opacity: 1; transform: translate(-50%, 0) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #announce.show { animation: none; opacity: 1; } }
 #zoneBanner small { display: block; text-align: center; font-size: 15px; font-weight: 600; color: #ffd98a; text-shadow: 0 0 4px #000, 0 0 8px #000, 0 1px 2px #000; }
 #toasts { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .toast { background: rgba(10,10,14,0.85); border: 1px solid var(--panel-b); color: #ffe7a8; padding: 6px 16px; border-radius: 20px; font-size: 14px; animation: fadeOut 3s forwards; }
@@ -198,8 +205,30 @@ body.touch #storagePanel { top: 6px; left: 6px; right: auto; max-height: calc(10
 #chat { position: absolute; left: 14px; bottom: 14px; width: min(380px, calc(100vw - 28px)); }
 #chatLog { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.45)); border-radius: 10px 10px 0 0; font-size: 13px; scrollbar-width: thin; }
 #chatLog .msg { text-shadow: 0 1px 2px #000; word-break: break-word; }
+#chatLog .ts { margin-right: 5px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+#chatLog.no-ts .ts { display: none; }
+/* chat tabs: a line shows under "ทั้งหมด" and its own cat-* tabs (hud.js chatCats) */
+#chatLog[data-tab="sys"] .msg:not(.cat-sys), #chatLog[data-tab="item"] .msg:not(.cat-item),
+#chatLog[data-tab="f"] .msg:not(.cat-f), #chatLog[data-tab="p"] .msg:not(.cat-p) { display: none; }
+#chatTabs { display: flex; gap: 3px; padding: 0 2px 3px; }
+#chatTabs button { padding: 2px 8px; font-family: inherit; font-size: 11px; color: var(--muted); background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; cursor: pointer; }
+#chatTabs button:hover { color: var(--text); }
+#chatTabs button.on { color: var(--gold); border-color: var(--gold); }
+#chatTabs .ct-opts { margin-left: auto; }
+#chatOpts { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-bottom: 3px; padding: 6px 8px; font-size: 12px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; }
+#chatOpts label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+#chatOpts select { font-family: inherit; font-size: 12px; color: var(--text); background: #1a1d26; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; }
+#chatLog .ilink { color: var(--gc); font-weight: 600; cursor: help; }
+#chatLog .ilink:hover { text-decoration: underline; }
 #chatLog .sys { color: var(--gold); }
 #chatLog .fch { color: #b6ffb0; }
+/* item lines (drops, enhancement) in the colour of the item's grade (--gc = C.GRADES[g].color, hud.js) */
+#chatLog .msg.loot { color: var(--gc); padding-left: 6px; border-left: 2px solid var(--gc); }
+#chatLog .msg.loot .it { font-weight: 600; }
+#chatLog .msg.loot.g4, #chatLog .msg.loot.g5 { text-shadow: 0 1px 2px #000, 0 0 6px var(--gc); }
+#chatLog .msg.loot.g5 .it { animation: chat-mythic 1.6s ease-in-out infinite alternate; }
+@keyframes chat-mythic { from { text-shadow: 0 1px 2px #000, 0 0 4px var(--gc); } to { text-shadow: 0 1px 2px #000, 0 0 10px var(--gc), 0 0 16px var(--gc); } }
+@media (prefers-reduced-motion: reduce) { #chatLog .msg.loot.g5 .it { animation: none; } }
 #chatInput { width: 100%; padding: 7px 10px; font-family: inherit; font-size: 13px; border-radius: 0 0 10px 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.55); color: var(--text); outline: none; }
 #chatInput:focus { border-color: var(--gold); }
 /* show / hide button on the chat box (hud.js HUD.setChat); hidden = only the button, with the unread count */
@@ -213,7 +242,7 @@ body.touch #storagePanel { top: 6px; left: 6px; right: auto; max-height: calc(10
 #chatUnread:empty { display: none; }
 #chatUnread { min-width: 18px; padding: 0 5px; border-radius: 9px; background: #e0343a; color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
 #chat.collapsed { width: auto; }
-#chat.collapsed #chatLog, #chat.collapsed #chatInput { display: none; }
+#chat.collapsed #chatLog, #chat.collapsed #chatInput, #chat.collapsed #chatTabs, #chat.collapsed #chatOpts { display: none; }
 #chat.collapsed #chatToggle { align-self: flex-start; }
 
 #helpBtn { position: absolute; right: 14px; bottom: 14px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); color: var(--gold); font-size: 20px; font-weight: 800; cursor: pointer; }
@@ -754,6 +783,8 @@ body.touch #help { right: 6px; top: 56px; bottom: auto; max-height: calc(100vh -
 body.touch #chat { left: 6px; top: 96px; bottom: auto; width: min(300px, 46vw); pointer-events: none; }
 body.touch #chatLog { max-height: 54px; font-size: 11px; background: none; padding: 2px 4px; overflow: hidden; opacity: 0.85; }
 body.touch #chatInput { display: none; }
+body.touch #chat:not(.open) #chatTabs, body.touch #chat:not(.open) #chatOpts { display: none; }
+body.touch #announce { font-size: 16px; top: 14%; }
 body.touch #chatToggle { display: none; }
 body.touch #chat.open #chatToggle { display: flex; }
 body.touch #chat.collapsed:not(.open) { display: none; }
