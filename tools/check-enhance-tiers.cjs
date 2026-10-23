@@ -30,33 +30,33 @@ try {
     p.inv[0] = id; Math.random = () => 0;
     const sk = C.matKey('stone', tier), gk = C.matKey('guard', tier), lk = C.matKey('luck', tier);
     if (tier) { p.stones = 999; p.charms.guard = p.charms.luck = 9; }
-    let gold = p.gold, q = C.ENHANCE.quote(p, base, 0, { guard: 1, luck: 1 });
-    assert.equal(q.total, C.ENHANCE.cost(base, 0) + C.ENHANCE.stoneCount(base, 0) * C.matDef('stone', tier).price
-      + C.matDef('guard', tier).price + C.matDef('luck', tier).price, id + ': fee + stones + both talismans in one price');
+    let gold = p.gold, q = C.ENHANCE.quote(p, base, 0, { guard: 1, luck: 1, item: base });
+    assert.equal(q.total, C.ENHANCE.cost(base, 0) + q.guardPrice + q.luckPrice, id + ': work (stones included) + both talismans in one price');
+    assert(q.guardPrice > 0 && q.luckPrice > 0 && q.stoneOff === 0);
     enhance(w, p, 0, { guard: 1, luck: 1 });
     assert.equal(p.inv[0], `${id}+1`, `${id}: enhanced without owning any materials`);
     assert.equal(gold - p.gold, q.total, 'charged exactly the quoted price, once');
     if (tier) { assert.equal(p.stones, 999); assert.equal(p.charms.guard, 9, 'other tiers untouched'); }
-    // owned materials of its own tier are used first: only the fee is left to pay
+    // owned materials of its own tier are used first: the stones' share comes off the price, owned talismans cost nothing
     if (tier) p.charms[sk] = 10; else p.stones = 999;
     p.charms[gk] = 2; p.charms[lk] = 2;
     gold = p.gold; enhance(w, p, 0, { guard: 1, luck: 1 });
     assert.equal(p.inv[0], `${id}+2`);
-    assert.equal(gold - p.gold, C.ENHANCE.cost(base, 1), 'own materials cost nothing more');
+    assert.equal(gold - p.gold, C.ENHANCE.cost(base, 1) - Math.round(C.ENHANCE.cost(base, 1) * C.ENHANCE.STONE_SHARE / 10) * 10, 'own stones take their share off');
     assert.equal(C.matHave(p, 'stone', tier), (tier ? 10 : 999) - C.ENHANCE.stoneCount(base, 1));
     assert.equal(p.charms[gk], 1); assert.equal(p.charms[lk], 1);
     // a failed try with the guard ticked keeps the item (talisman bought on the spot once none are left)
     p.charms[gk] = 0; Math.random = () => 0.99; gold = p.gold;
     enhance(w, p, 0, { guard: 1 });
     assert.equal(p.inv[0], `${id}+2`, 'guarded failure keeps the item');
-    assert.equal(gold - p.gold, C.ENHANCE.quote({ ...p, charms: { ...p.charms } }, base, 2, { guard: 1 }).total);
+    assert.equal(gold - p.gold, C.ENHANCE.quote({ ...p, charms: { ...p.charms } }, base, 2, { guard: 1, item: C.ITEMS[`${id}+2`] }).total);
   }
   // refused before anything is spent: a request paying with another tier, a price above the one shown, too little gold
   for (const [id, tier, wrongs] of [['w5', 0, [1, 2]], ['w8', 1, [0, 2]], ['sh8', 2, [0, 1]]]) {
     const { w, p } = fixture(); p.inv[0] = id; Math.random = () => 0;
     const before = () => JSON.stringify([p.stones, p.charms, p.gold, p.inv[0]]), was = before();
     for (const t of wrongs) enhance(w, p, 0, { tier: t });
-    const q = C.ENHANCE.quote(p, C.ITEMS[id], 0, { guard: 1 });
+    const q = C.ENHANCE.quote(p, C.ITEMS[id], 0, { guard: 1, item: C.ITEMS[id] });
     enhance(w, p, 0, { guard: 1, total: q.total - 1 });
     assert.equal(before(), was, 'nothing spent on a refused try');
     p.gold = q.total - 1; enhance(w, p, 0, { guard: 1 }); assert.equal(p.inv[0], id, 'not enough gold');
@@ -71,26 +71,40 @@ try {
     w.nearSmith = () => false; w.nearEnhancer = () => true;
     w.onShop(p, { act: 'enhance', where: 'inv', idx: 0, key: 'w5' }); assert.equal(p.inv[0], 'w5+1', 'at the enhancement shop');
   }
-  // the shop buys and sells every material tier
+  // the material shop
   {
-    const { w, p } = fixture(), gold = p.gold;
+    const { w, p } = fixture();
+    let gold = p.gold;
     w.nearSmith = () => true; w.nearApothecary = () => false; w.nearEnhancer = () => false; // standing at the blacksmith
-    const bought = ['stone2', 'guard2', 'luck2', 'stone3', 'guard3', 'luck3'];
-    for (const k of bought) {
-      w.onShop(p, { act: 'buyCharm', k, n: 1 }); assert.equal(p.charms[k], 1, `buy ${k}`);
+    // enhancement stones / talismans are part of the ร้านตีบวก price: the blacksmith only buys them back
+    for (const k of ['stone2', 'guard2', 'luck2', 'stone3', 'guard3', 'luck3', 'guard', 'luck']) {
+      w.onShop(p, { act: 'buyCharm', k, n: 1 }); assert.equal(p.charms[k], 0, `${k} is no longer sold`);
     }
-    const spent = bought.reduce((t, k) => t + C.ENH_CHARMS[k].price, 0);
-    assert.equal(gold - p.gold, spent);
-    w.onShop(p, { act: 'sellCharm', k: 'stone3', n: 1 }); assert.equal(p.charms.stone3, 0);
-    // typed quantities: one request buys / sells many (bounded by what one can hold and the gold)
-    w.onShop(p, { act: 'buyCharm', k: 'stone2', n: 250 }); assert.equal(p.charms.stone2, 251);
-    w.onShop(p, { act: 'buyCharm', k: 'luck2', n: 150 }); assert.equal(p.charms.luck2, 151, 'more than the old 99 per request');
-    w.onShop(p, { act: 'sellCharm', k: 'stone2', n: 51 }); assert.equal(p.charms.stone2, 200);
-    w.onShop(p, { act: 'buyStone', n: 5000 }); assert.equal(p.stones, 5000);
-    p.gold = C.ENH_CHARMS.guard3.price * 2 + 5; w.onShop(p, { act: 'buyCharm', k: 'guard3', n: 3 });
-    assert.equal(p.charms.guard3, 1, 'not enough gold for 3: nothing bought');
+    w.onShop(p, { act: 'buyStone', n: 10 }); assert.equal(p.stones, 0, 'basic stones are no longer sold');
+    assert.equal(p.gold, gold, 'nothing charged');
+    p.charms.stone3 = 3; p.stones = 20;
+    w.onShop(p, { act: 'sellCharm', k: 'stone3', n: 1 }); assert.equal(p.charms.stone3, 2, 'old stock sells back');
+    w.onShop(p, { act: 'sellStone', n: 10 }); assert.equal(p.stones, 10);
+    // reroll stones are not sold any more either (paid at the ร้านตีบวก)
+    for (const k of ['reaffix', 'reaffix2', 'repassive3']) { w.onShop(p, { act: 'buyCharm', k, n: 1 }); assert.equal(p.charms[k], 0, `${k} is no longer sold`); }
   }
-  console.log('PASS: enhancement shop one-price attempts (fee + stones + talismans, own materials first, own tier only), refusals, shop gating, material shop');
+  // สุ่มออฟชั่นใหม่ at the ร้านตีบวก: an owned stone of the item's tier first, otherwise its price in gold
+  {
+    const { w, p } = fixture(); w.nearEnhancer = () => true; w.nearSmith = w.nearApothecary = () => false;
+    p.inv[0] = C.gradeId('w8', 2);
+    const base = C.ITEMS.w8, cost = C.ENHANCE.rerollPrice(base, 'affix');
+    assert(cost < C.ENH_CHARMS.reaffix2.price, 'cheaper than the old fixed stone');
+    let gold = p.gold, key = p.inv[0];
+    w.onShop(p, { act: 'reroll', where: 'inv', idx: 0, key, kind: 'affix' });
+    assert.notEqual(p.inv[0], key, 'rerolled'); assert.equal(gold - p.gold, cost, 'paid in gold');
+    p.charms.reaffix2 = 1; gold = p.gold; key = p.inv[0];
+    w.onShop(p, { act: 'reroll', where: 'inv', idx: 0, key, kind: 'affix' });
+    assert.equal(p.charms.reaffix2, 0); assert.equal(p.gold, gold, 'owned stone used, no gold');
+    p.gold = cost - 1; key = p.inv[0];
+    w.onShop(p, { act: 'reroll', where: 'inv', idx: 0, key, kind: 'affix' });
+    assert.equal(p.inv[0], key, 'not enough gold: nothing rerolled');
+  }
+  console.log('PASS: enhancement shop one-price attempts (work + talismans priced by the item, own materials first, own tier only), refusals, shop gating, material shop sells back only');
 } finally {
   Math.random = realRandom;
 }

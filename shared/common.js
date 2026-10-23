@@ -398,7 +398,7 @@
   const monsterExpMul = (lvl) => EXP_RATE / (1 + lvl / 8);
   // EXP from monsters × this by the PLAYER's level: the first levels go fast, the top ones slow down
   // (×3 up to Lv.10 → ×1 at Lv.50 · ×1 to Lv.80 → ×0.7 at Lv.129). Solo at the own level (~6 s a kill):
-  // Lv.10 ≈ 0.1 h · Lv.30 ≈ 1.4 h · Lv.50 ≈ 9 h · Lv.70 ≈ 33 h · Lv.100 ≈ 117 h · Lv.130 ≈ 295 h in all.
+  // Lv.10 ≈ 0.1 h · Lv.30 ≈ 1.4 h · Lv.50 ≈ 9 h · Lv.70 ≈ 33 h · Lv.100 ≈ 101 h · Lv.130 ≈ 222 h in all (Lv.100+ monsters +30% EXP, world-data TOP_EXP).
   // [from level, to level, multiplier at "from", multiplier at "to"]
   const EXP_LEVEL = { early: [10, 50, 3, 1], late: [80, 129, 1, 0.7] };
   const ramp = (l, [a, b, x, y]) => (l <= a ? x : l >= b ? y : x + ((y - x) * (l - a)) / (b - a));
@@ -1016,7 +1016,11 @@
   // the level's own gold economy instead of a flat number that goes stale as levels rise.
   const SHOP_BUY_GRADE_MAX = 3;                    // Unique (index 3); higher grades are never sold here
   const SHOP_GRADE_KILLS = [60, 220, 900, 3500];   // Normal · Rare · Epic · Unique: kills-worth of price
-  const shopGearPrice = (base, grade) => Math.round((3.5 + 1.15 * Math.max(1, base.lvl)) * SHOP_GRADE_KILLS[grade || 0]);
+  // never below SHOP_RESALE × what the piece sells back for (its graded price × 25%, sellPrice): otherwise Lv.60+
+  // gear bought here sold back at a profit — an endless gold loop. Drops still sell at the same price as before.
+  const SHOP_RESALE = 3;
+  const shopGearPrice = (base, grade) => Math.max(Math.round((3.5 + 1.15 * Math.max(1, base.lvl)) * SHOP_GRADE_KILLS[grade || 0]),
+    SHOP_RESALE * sellPrice({ price: Math.round((base.price || 20) * GRADES[grade || 0].price) }));
 
   // ---------------- enhancement (+1..+10): weapons and the 4 armour pieces ----------------
   // An enhanced item is stored as "<key>+<n>" (e.g. "w5+3", "sh5#3.120+3"); ITEMS[key] resolves to the boosted item.
@@ -1039,8 +1043,12 @@
     atkPct: [0, 0.03, 0.06, 0.1, 0.15, 0.21, 0.28, 0.36, 0.46, 0.58, 0.72],
     // armour: share of its own defence / hp / mp / attack gained per + level
     armPct: [0, 0.04, 0.08, 0.13, 0.19, 0.26, 0.34, 0.43, 0.54, 0.67, 0.82],
-    // gold fee to go from +plus to +plus+1
-    cost: (base, plus) => Math.round(((base.price || 20) * 0.04 + 20) * Math.pow(plus + 1, 1.4) / 10) * 10,
+    // gold for one attempt from +plus (the stones and the smith's work together) = the item's base price × work[plus].
+    // Every item level pays the same share of its own worth, and item prices follow the farming income of their maps
+    // (~15× the price an hour), so an attempt costs about the same time at every level, with no jump at Lv.60 / Lv.100:
+    // ≈ 2-3 min farming at +1 … ≈ 30 min at +10.
+    work: [0.6, 0.8, 1.1, 1.5, 2, 2.7, 3.5, 4.5, 6, 8],
+    cost: (base, plus) => Math.round(Math.max(50, (base.price || 20) * ENHANCE.work[Math.min(plus, MAX_PLUS - 1)]) / 10) * 10,
   };
   // ---- damage against monsters (playerStats.pveMult, not used in PvP): it comes from enhancing the whole outfit
   // and from wearing a full set, not from the item level (monsters already scale with the level).
@@ -1112,18 +1120,32 @@
   ENHANCE.luckBonus = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.04, 0.02];
   ENHANCE.rateWith = (plus, luck) => { const i = Math.min(plus, MAX_PLUS - 1); return Math.min(1, ENHANCE.rate[i] + (luck ? ENHANCE.luckBonus[i] : 0)); };
   // ร้านตีบวก: one gold price per attempt (st = the player / client state, base = the item's base, plus = its + level,
-  // opt.guard / opt.luck = the ticked talismans). The fee (ค่าช่าง), the stones and any ticked talisman are all in it:
-  // stones / talismans already owned (bought earlier at the blacksmith) are used first and cost nothing more, the rest
-  // is bought at the blacksmith's price as part of the same payment.
+  // opt.guard / opt.luck = the ticked talismans, opt.item = the item itself for the guard's price).
+  //   work   ENHANCE.cost: stones + the smith's work; stones of the item's tier already owned (bought before at the
+  //          blacksmith) are used first and take STONE_SHARE of it off, pro rata
+  //   guard  a share of what the try risks: the item's worth (grade and earlier enhancement included) × the chance
+  //          to fail × GUARD.loss, at least GUARD.min × work — cheap for +1, worth it for +9 / +10 on a Mythic
+  //   luck   LUCK × work
+  // A talisman of the item's tier already owned is used instead of paying.
+  ENHANCE.STONE_SHARE = 0.6;
+  ENHANCE.GUARD = { loss: 0.3, min: 0.2 };
+  ENHANCE.LUCK = 0.4;
+  // หินสุ่มออฟชั่น / หินสุ่มสกิลติดตัว at the ร้านตีบวก: paid on the spot as a share of the item's base price (same
+  // share at every level, like the enhancement work), or one owned stone of the item's tier is used instead
+  ENHANCE.REROLL = { affix: 0.8, passive: 2 };
+  const r10 = (v) => Math.round(v / 10) * 10;
+  ENHANCE.rerollPrice = (base, kind) => Math.max(100, r10((base.price || 20) * ENHANCE.REROLL[kind === 'passive' ? 'passive' : 'affix']));
   ENHANCE.quote = (st, base, plus, opt = {}) => {
     const tier = matTier(base.lvl || 1), need = ENHANCE.stoneCount(base, plus), own = Math.min(need, matHave(st, 'stone', tier));
-    const q = { tier, need, ownStones: own, buyStones: need - own, fee: ENHANCE.cost(base, plus) };
-    q.stoneGold = q.buyStones * matDef('stone', tier).price;
+    const work = ENHANCE.cost(base, plus), value = (opt.item && opt.item.price) || base.price || 20;
+    const q = { tier, need, ownStones: own, work, stoneOff: need ? r10(work * ENHANCE.STONE_SHARE * own / need) : 0 };
+    q.fee = work - q.stoneOff;
+    const price = { guard: r10(Math.max(work * ENHANCE.GUARD.min, value * (1 - ENHANCE.rateWith(plus, false)) * ENHANCE.GUARD.loss)), luck: r10(work * ENHANCE.LUCK) };
     for (const k of ['guard', 'luck']) {
       const on = !!opt[k], own1 = on && matHave(st, k, tier) > 0;
-      q[k] = on; q[k + 'Own'] = own1; q[k + 'Gold'] = on && !own1 ? matDef(k, tier).price : 0;
+      q[k] = on; q[k + 'Own'] = own1; q[k + 'Price'] = price[k]; q[k + 'Gold'] = on && !own1 ? price[k] : 0;
     }
-    q.total = q.fee + q.stoneGold + q.guardGold + q.luckGold;
+    q.total = q.fee + q.guardGold + q.luckGold;
     return q;
   };
   const cleanCharms = (c) => Object.fromEntries(Object.entries(ENH_CHARMS).map(([k, S]) =>
@@ -1143,7 +1165,7 @@
   function enhancedItem(b, plus, key) {
     const base = BASE_ITEMS[b.base || b.id];
     let spent = 0;
-    for (let k = 0; k < plus; k++) spent += ENHANCE.cost(base, k) + ENHANCE.stoneCount(base, k) * matDef('stone', matTier(base.lvl || 1)).price;
+    for (let k = 0; k < plus; k++) spent += ENHANCE.cost(base, k);   // the attempt prices (stones included)
     const it = { ...b, id: key, base: base.id, plus, name: `+${plus} ${b.name}`, core: { ...b.core }, price: b.price + Math.round(spent * 0.5) };
     const add = (k, v) => { if (!v) return; it[k] = k === 'crit' ? r3((b[k] || 0) + v) : (b[k] || 0) + v; it.core[k] = k === 'crit' ? r3((b.core[k] || 0) + v) : (b.core[k] || 0) + v; };
     if (b.slot === 'weapon') {

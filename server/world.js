@@ -1358,6 +1358,7 @@ class World {
     } else if (d.act === 'buyStone' || d.act === 'sellStone') {
       const S = C.ENH_STONE, n = Math.max(1, Math.min(S.max, Math.floor(Number(d.n)) || 1));   // typed quantity (inventory.js)
       if (d.act === 'buyStone') {
+        return this.toast(p, 'ไม่ต้องซื้อหินแล้ว: ร้านตีบวกรวมค่าหินไว้ในราคาตีบวก (ขายหินที่มีอยู่คืนได้)');
         const k = Math.min(n, S.max - p.stones);
         if (k <= 0) return this.toast(p, `${S.name}เต็มแล้ว`);
         if (p.gold < k * S.price) return this.toast(p, 'ทองไม่พอ');
@@ -1375,6 +1376,7 @@ class World {
       const n = Math.max(1, Math.min(S.max, Math.floor(Number(d.n)) || 1));                   // typed quantity (inventory.js)
       const have = p.charms[d.k] || 0;
       if (d.act === 'buyCharm') {
+        if (['stone', 'guard', 'luck', 'reaffix', 'repassive'].includes(S.kind)) return this.toast(p, `ซื้อ${S.name}ไม่ได้แล้ว: ติ๊กยันต์ที่ร้านตีบวกแล้วจ่ายรวมในราคาตีบวก (ขายของที่มีอยู่คืนได้)`);
         const k = Math.min(n, S.max - have);
         if (k <= 0) return this.toast(p, `${S.name}เต็มแล้ว`);
         if (p.gold < k * S.price) return this.toast(p, `ทองไม่พอ (${S.name} ใบละ ${S.price.toLocaleString()} ทอง)`);
@@ -1420,7 +1422,7 @@ class World {
     if (d.tier !== undefined && Number(d.tier) !== tier)
       return this.toast(p, `วัสดุผิดขั้น: ${it.name} Lv.${base.lvl} ใช้หินและยันต์${C.MAT_TIERS[tier].th}เท่านั้น`);
     const guard = !!d.guard, luck = !!d.luck, gk = C.matKey('guard', tier), lk = C.matKey('luck', tier);
-    const q = C.ENHANCE.quote(p, base, plus, { guard, luck });
+    const q = C.ENHANCE.quote(p, base, plus, { guard, luck, item: it });
     // d.total = the price the shop showed: never charge more than that (e.g. stones sold meanwhile)
     if (d.total !== undefined && q.total > Number(d.total)) return this.toast(p, 'ราคาเปลี่ยนแล้ว กรุณากดตีบวกอีกครั้ง');
     if (p.gold < q.total) return this.toast(p, `ทองไม่พอ (ตีบวกครั้งนี้ ${q.total.toLocaleString()} ทอง)`);
@@ -1474,9 +1476,11 @@ class World {
     if (kind === 'affix' && !G.affix[1]) return this.toast(p, `${it.name} ไม่มีออฟชั่นให้สุ่มใหม่ (ต้อง Rare ขึ้นไป)`);
     if (kind === 'passive' && !G.passive) return this.toast(p, `${it.name} ไม่มีสกิลติดตัวให้สุ่มใหม่ (ต้อง Legendary ขึ้นไป)`);
     const base = C.ITEMS[C.parseId(key).id], tier = C.matTier(base.lvl || 1);
-    const mk = C.matKey(kind === 'affix' ? 'reaffix' : 'repassive', tier);
-    if (!(p.charms[mk] > 0)) return this.toast(p, `ไม่มี${C.ENH_CHARMS[mk].name} · ${it.name} Lv.${base.lvl} ใช้วัสดุ${C.MAT_TIERS[tier].th}เท่านั้น`);
-    p.charms[mk]--;
+    // an owned stone of the item's tier first, otherwise the ร้านตีบวก price in gold (C.ENHANCE.rerollPrice)
+    const mk = C.matKey(kind === 'affix' ? 'reaffix' : 'repassive', tier), cost = C.ENHANCE.rerollPrice(base, kind);
+    if (p.charms[mk] > 0) p.charms[mk]--;
+    else if (p.gold < cost) return this.toast(p, `ทองไม่พอ (สุ่ม${kind === 'affix' ? 'ออฟชั่น' : 'สกิลติดตัว'}ใหม่ ${cost.toLocaleString()} ทอง)`);
+    else p.gold -= cost;
     const k = C.parseId(key);
     const nk = kind === 'affix' ? C.makeKey(k.id, k.grade, k.seed, k.plus, C.newSeed(), k.pSeed)
       : C.makeKey(k.id, k.grade, k.seed, k.plus, k.aSeed, C.newSeed());

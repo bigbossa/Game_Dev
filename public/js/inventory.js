@@ -305,7 +305,7 @@
     card.innerHTML = `<div class="shop-name" style="color:${C.RARITY[it.rarity].color}">${esc(it.name)} <small>(${sel.where === 'eq' ? 'สวมอยู่' : 'ในกระเป๋า'})</small></div>`;
     box.appendChild(card);
     if (plus >= C.MAX_PLUS) { card.insertAdjacentHTML('beforeend', '<div class="enh-hint">ตีบวกสูงสุดแล้ว (+10)</div>'); rerollRow(card, sel); return; }
-    const q = E.quote(st, base, plus, INV.enhOpt), rate = E.rateWith(plus, q.luck), next = C.ITEMS[C.plusId(it.id, plus + 1)];
+    const q = E.quote(st, base, plus, { ...INV.enhOpt, item: it }), rate = E.rateWith(plus, q.luck), next = C.ITEMS[C.plusId(it.id, plus + 1)];
     const risk = failShare(plus);
     const failTxt = q.guard ? '<span class="risk safe">ถ้าล้มเหลว: ยันต์กันแตกคุ้มครอง ไอเทมไม่แตก ระดับคงเดิม</span>'
       : risk.brk >= 1 ? `<span class="risk">⚠ ถ้าล้มเหลว (${pct(1 - rate)}) ไอเทมแตกหาย</span>`
@@ -318,13 +318,13 @@
     opts.innerHTML = '<span>2. ใช้ยันต์ (ติ๊กแล้วคิดรวมในราคาครั้งนี้):</span>' + ['guard', 'luck'].map((k) => {
       const S = C.matDef(k, q.tier), have = C.matHave(st, k, q.tier);
       return `<label><input type="checkbox" data-k="${k}" ${INV.enhOpt[k] ? 'checked' : ''}><img src="${INV.matIcon(k, q.tier)}" alt=""> ${S.name}
-        <small>${have > 0 ? `ใช้ของที่มี (มี ${fmt(have)} ใบ)` : `+${fmt(S.price)} ทอง`}</small></label>`;
+        <small>${have > 0 ? `ใช้ของที่มี (มี ${fmt(have)} ใบ)` : `+${fmt(q[k + 'Price'])} ทอง`}</small></label>`;
     }).join('');
     opts.addEventListener('change', (e) => { const k = e.target.dataset.k; if (k) { INV.enhOpt[k] = e.target.checked; renderEnhShop(); } });
     card.appendChild(opts);
-    // 3. the one price: fee + stones + ticked talismans
-    const stone = C.matDef('stone', q.tier), lines = [`ค่าช่าง <b>${fmt(q.fee)}</b>`];
-    lines.push(`${stone.name} ${q.need} ก้อน: ${[q.ownStones ? `<small>ใช้ของที่มี ${q.ownStones}</small>` : '', q.buyStones ? `ซื้อ ${q.buyStones} = <b>${fmt(q.stoneGold)}</b>` : ''].filter(Boolean).join(' · ')}`);
+    // 3. the one price: the work (stones included) + ticked talismans
+    const stone = C.matDef('stone', q.tier), lines = [`ค่าตีบวก (รวมหิน) <b>${fmt(q.work)}</b>`];
+    if (q.ownStones) lines.push(`ใช้${stone.name}ที่มี ${q.ownStones} ก้อน ลด <b>-${fmt(q.stoneOff)}</b>`);
     for (const k of ['guard', 'luck']) if (q[k]) lines.push(`${C.matDef(k, q.tier).name} ${q[k + 'Own'] ? '<small>ใช้ของที่มี</small>' : `<b>${fmt(q[k + 'Gold'])}</b>`}`);
     const poor = st.gold < q.total;
     card.insertAdjacentHTML('beforeend', `<div class="enh-bill">${lines.join(' · ')}<div class="enh-total">รวม <b>${fmt(q.total)}</b> ทอง${poor ? ' <span class="risk">ทองไม่พอ</span>' : ''}</div></div>
@@ -338,7 +338,7 @@
     const rates = E.rate.map((r, i) => `+${i + 1} ${pct(E.rateWith(i, q.luck))}`).join(' · ');
     box.insertAdjacentHTML('beforeend', `<div class="enh-rates">โอกาสสำเร็จแต่ละขั้น: ${rates}</div>`);
   }
-  // หินสุ่มออฟชั่น / หินสุ่มสกิลติดตัว (bought at the blacksmith): reroll just the green-font affixes (Rare+) or the ✦
+  // หินสุ่มออฟชั่น / หินสุ่มสกิลติดตัว (paid here in gold, or an owned stone): reroll just the green-font affixes (Rare+) or the ✦
   // passive (Legendary+), everything else stays — shown only when the item has that part to reroll
   function rerollRow(card, sel) {
     const it = sel.it, st = INV.state, G = C.GRADES[it.grade || 0], tier = C.matTier(C.ITEMS[it.base || it.id].lvl || 1);
@@ -346,7 +346,8 @@
     const btn = (kind, label, show) => {
       if (!show) return '';
       const kk = kind === 'affix' ? 'reaffix' : 'repassive', mk = C.matKey(kk, tier), m = C.matHave(st, kk, tier);
-      return `<button type="button" class="reroll" data-kind="${kind}" ${m < 1 ? 'disabled' : ''}>${label}<br><small>${m < 1 ? `ไม่มี${C.ENH_CHARMS[mk].name} (ซื้อที่ร้านช่างตีดาบ)` : `ใช้ ${C.ENH_CHARMS[mk].name} (มี ${fmt(m)})`}</small></button>`;
+      const cost = C.ENHANCE.rerollPrice(C.ITEMS[it.base || it.id], kind), poor = m < 1 && st.gold < cost;
+      return `<button type="button" class="reroll" data-kind="${kind}" ${poor ? 'disabled' : ''}>${label}<br><small>${m > 0 ? `ใช้ ${C.ENH_CHARMS[mk].name} (มี ${fmt(m)})` : `${fmt(cost)} ทอง${poor ? ' · ทองไม่พอ' : ''}`}</small></button>`;
     };
     card.insertAdjacentHTML('beforeend', `<div class="reroll-row">${btn('affix', 'สุ่มออฟชั่นใหม่', G.affix[1])}${btn('passive', 'สุ่มสกิลติดตัวใหม่', G.passive)}</div>`);
     card.querySelectorAll('.reroll').forEach((b) => b.addEventListener('click', () => {
@@ -361,9 +362,10 @@
   C.MAT_TIERS.forEach((T, tier) => {
     const col = TIER_COL[tier], hi = tier > 0;
     for (const kind of ['stone', 'guard', 'luck', 'reaffix', 'repassive']) {
-      const k = C.matKey(kind, tier), basicStone = kind === 'stone' && !tier;
+      // stones / guard / luck are paid inside the ร้านตีบวก price now: listed only to sell back old stock
+      const k = C.matKey(kind, tier), basicStone = kind === 'stone' && !tier, noBuy = true;
       MATS.push({ k, tier, kind, S: C.matDef(kind, tier), icon: INV.matIcon(kind, tier), col, unit: kind === 'stone' ? 'ก้อน' : 'ใบ',
-        buy: kind === 'stone' ? (hi ? [1, 5, 10] : [1, 10, 50]) : hi ? [1] : [1, 5], sell: kind === 'stone' && !hi ? [1, 10] : [1],
+        noBuy, buy: noBuy ? [] : hi ? [1] : [1, 5], sell: kind === 'stone' && !hi ? [1, 10] : [1],
         have: (st) => C.matHave(st, kind, tier), act: (sell) => (basicStone ? (sell ? 'sellStone' : 'buyStone') : sell ? 'sellCharm' : 'buyCharm') });
     }
   });
@@ -374,19 +376,22 @@
   function matShop(tiers) {
     const st = INV.state, wrap = document.createElement('div');
     wrap.className = 'mat-shop';
+    let shownTier = -1;
     for (const M of MATS) {
       if (tiers && !tiers.has(M.tier)) continue;
-      if (M.kind === 'stone') wrap.insertAdjacentHTML('beforeend', `<div class="mat-tier" style="color:${M.col}">วัสดุ${C.MAT_TIERS[M.tier].th} <small>· ใช้ตีบวก${TIER_NOTE[M.tier]}</small></div>`);
+      if (M.noBuy && !M.have(st)) continue;
+      if (M.tier !== shownTier && (shownTier = M.tier) >= 0) wrap.insertAdjacentHTML('beforeend', `<div class="mat-tier" style="color:${M.col}">วัสดุ${C.MAT_TIERS[M.tier].th} <small>· ใช้ตีบวก${TIER_NOTE[M.tier]}</small></div>`);
       const have = M.have(st), box = document.createElement('div');
       box.className = `stone-shop mat-${M.k}`;
       box.innerHTML = `<div class="shop-icon"><img src="${M.icon}" alt=""></div>
         <div class="shop-info"><div class="shop-name" style="color:${M.col}">${M.S.name} <small>มี <b>${fmt(have)}</b> ${M.unit}</small></div>
-        <div class="shop-meta">ซื้อ <b class="price">${fmt(M.S.price)}</b> · ขาย ${fmt(M.S.sell)} ทอง/${M.unit}</div></div>
+        <div class="shop-meta">${M.noBuy ? 'ขายคืนได้ (ร้านตีบวกรวมค่านี้ในราคาตีบวกแล้ว)' : `ซื้อ <b class="price">${fmt(M.S.price)}</b>`} · ขาย ${fmt(M.S.sell)} ทอง/${M.unit}</div></div>
         <div class="btns">${M.buy.map((n) => `<button type="button" data-n="${n}" ${st.gold < n * M.S.price ? 'disabled' : ''}>ซื้อ ×${n}</button>`).join('')}
           ${M.sell.map((n) => `<button type="button" class="sell" data-n="${n}" data-sell="1" ${have < n ? 'disabled' : ''}>ขาย ×${n}</button>`).join('')}</div>
         <div class="mat-qty"><span>จำนวน</span><input type="number" min="1" max="${M.S.max}" step="1" value="${INV.matQty[M.k] || 1}" inputmode="numeric">
           <button type="button" class="q-max" title="จำนวนมากที่สุดที่ทองพอ">สูงสุด</button>
           <button type="button" class="q-buy">ซื้อ</button><button type="button" class="q-sell sell">ขาย</button><span class="q-tot"></span></div>`;
+      if (M.noBuy) box.querySelectorAll('.q-max, .q-buy').forEach((b) => { b.hidden = true; });
       // typed quantity: 1..the most one can hold; the total updates while typing
       const input = box.querySelector('.mat-qty input'), tot = box.querySelector('.q-tot');
       const qty = () => Math.max(1, Math.min(M.S.max, Math.floor(Number(input.value) || 1)));

@@ -118,6 +118,10 @@
   // Bosses keep their own tuning.
   const LATE = { from: 80, hp: 1.8, exp: 1.4 };
   const lateOf = (lvl, top) => 1 + (top - 1) * Math.max(0, Math.min(1, (lvl - LATE.from) / (C.MAX_LVL - LATE.from)));
+  // Lv.100+ normal monsters: a further ×TOP_EXP.exp EXP, eased in over Lv.TOP_EXP.from..to (no cliff inside a map),
+  // so a Lv.110-130 level takes ~4-5.5 h solo instead of 5.5-7.5 h and the bar visibly moves with every kill
+  const TOP_EXP = { from: 90, to: 105, exp: 1.3 };
+  const topExpOf = (lvl) => 1 + (TOP_EXP.exp - 1) * Math.max(0, Math.min(1, (lvl - TOP_EXP.from) / (TOP_EXP.to - TOP_EXP.from)));
   // a monster's hp / atk / def at a level before its own multipliers: base curve × toughness, the gear gate, the ease
   function monStats(lvl, boss) {
     const B = boss ? BOSS_TOUGH : MON_TOUGH, gate = gateStats(lvl, boss);
@@ -135,7 +139,7 @@
       hp: Math.round(S.hp * (o.hp || 1)),
       atk: Math.round(S.atk * (o.atk || 1)),
       def: Math.round(S.def * (o.def || 1)),
-      exp: Math.max(1, Math.round((20 + 2.6 * Math.pow(lvl, 1.65)) * C.monsterExpMul(lvl) * B.exp * (boss ? 1 : lateOf(lvl, LATE.exp)) * (o.exp || 1))),
+      exp: Math.max(1, Math.round((20 + 2.6 * Math.pow(lvl, 1.65)) * C.monsterExpMul(lvl) * B.exp * (boss ? 1 : lateOf(lvl, LATE.exp) * topExpOf(lvl)) * (o.exp || 1))),
       speed: o.speed || Math.round(A.speed * (boss ? 0.85 : 1)),
       radius: Math.round(A.r * size),
       aggro: o.aggro ?? (boss ? 300 : A.aggro),
