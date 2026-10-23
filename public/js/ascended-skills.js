@@ -6,8 +6,8 @@
   const poly = (g,p,c,edge) => { g.beginPath();p.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fillStyle=c;g.fill();if(edge){g.strokeStyle=edge;g.lineWidth=1;g.stroke();} };
   const ring = (g,x,y,r,c,w=1) => { g.beginPath();g.arc(x,y,Math.max(.1,r),0,TAU);g.strokeStyle=c;g.lineWidth=w;g.stroke(); };
   const colors = (f,cls) => f==='adharma'
-    ? ({dualblade:['#ff557a','#ffe4c1','#391329'],archer:['#da77ef','#ffc4de','#301733'],taoist:['#fa7252','#f7d097','#361526'],spearman:['#f35263','#ffdfac','#301c28']}[cls]||['#ff6385','#e5a7ff','#391329'])
-    : ({dualblade:['#9ad9ff','#fff1c6','#294b61'],archer:['#a5f4bc','#fff2b5','#294b43'],taoist:['#8ff1db','#fff0c1','#294b52'],spearman:['#f5d48b','#fffbe0','#5a4226']}[cls]||['#9ef5ed','#ffe6a1','#294b61']);
+    ? ({dualblade:['#ff557a','#ffe4c1','#391329'],archer:['#da77ef','#ffc4de','#301733'],taoist:['#fa7252','#f7d097','#361526'],spearman:['#f35263','#ffdfac','#301c28'],warrior:['#ff7a4a','#ffd9b0','#3a1414']}[cls]||['#ff6385','#e5a7ff','#391329'])
+    : ({dualblade:['#9ad9ff','#fff1c6','#294b61'],archer:['#a5f4bc','#fff2b5','#294b43'],taoist:['#8ff1db','#fff0c1','#294b52'],spearman:['#f5d48b','#fffbe0','#5a4226'],warrior:['#ffcf6a','#fff6dc','#5a3a1a']}[cls]||['#9ef5ed','#ffe6a1','#294b61']);
   function glow(g,x,y,r,P,alpha=.4){
     const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,P[1]+'a0');gr.addColorStop(.3,P[0]+'55');gr.addColorStop(1,P[0]+'00');
     g.save();g.globalAlpha*=alpha;g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2);g.restore();
@@ -21,6 +21,13 @@
     g.save();g.translate(x,y);g.rotate(a);
     poly(g,[[0,-L],[-L*.10,-L*.25],[-3,0],[3,0],[L*.10,-L*.25]],P[0],P[1]);
     line(g,[[-L*.16,0],[L*.16,0]],P[1],2);line(g,[[0,0],[0,L*.2]],P[2],3);g.restore();
+  }
+  // a heater shield of light, its point along `a` + PI/2 (upright when a = 0), L = its height
+  function shield(g,x,y,a,L,P) {
+    const w=L*.4,h=L*.5;g.save();g.translate(x,y);g.rotate(a);
+    poly(g,[[-w,-h],[w,-h],[w,h*.15],[w*.55,h*.7],[0,h],[-w*.55,h*.7],[-w,h*.15]],P[0]+'cc',P[1]);
+    line(g,[[0,-h*.82],[0,h*.78]],P[1],2);line(g,[[-w*.7,-h*.25],[w*.7,-h*.25]],P[1],2);
+    poly(g,[[0,-h*.42],[w*.14,-h*.25],[0,-h*.08],[-w*.14,-h*.25]],P[1]);g.restore();
   }
   function arrow(g,x,y,a,L,P) {
     g.save();g.translate(x,y);g.rotate(a);line(g,[[0,0],[0,L]],P[1],2);
@@ -134,6 +141,22 @@
       const q=clamp((el-thr)/Math.max(1,r.cast-thr));return at(E,90*(1-q*q),ang(E,Z),'land',{q});
     },
   };
+  // แนวหน้า 120: raise the shield, charge straight through the foes (a bash on the way), leap back and slam the middle
+  ROUTES.charge=(r,el,H,Z)=>{
+    const u=fwd(r),F=[Z[0]+u[0]*r.R*.7,Z[1]+u[1]*r.R*.45],rush=lastHit(r)+60,land=r.cast-30,HIGH=110;
+    if(el<r.windup)return at(lerp(H,[H[0]-u[0]*8,H[1]-u[1]*5],el/r.windup),0,ang(H,Z),'crouch');
+    if(el<rush){const q=(el-r.windup)/(rush-r.windup);return at(lerp(H,F,easeIO(q)),Math.abs(Math.sin(q*Math.PI*4))*5,ang(H,F),'rush');}
+    if(el<land){const q=(el-rush)/(land-rush);return at(lerp(F,Z,easeIO(q)),Math.sin(q*Math.PI)*HIGH,ang(F,Z),'leap',{q});}
+    return at(Z,0,ang(F,Z),'crash',{q:1});
+  };
+  // แนวหน้า 130: crouch, soar over the spot, hold still in the sky while the shields fall, dive shield-first
+  ROUTES.bastion=(r,el,H,Z)=>{
+    const up=r.windup,top=r.first-80,dive=lastHit(r)+60,HIGH=200;
+    if(el<up)return at(H,-6*Math.sin(el/up*Math.PI/2),ang(H,Z),'crouch');
+    if(el<top){const q=(el-up)/(top-up);return at(lerp(H,Z,easeIO(q)),HIGH*ease(q),ang(H,Z),'soar');}
+    if(el<dive)return at(Z,HIGH+Math.sin(el/110)*4,ang(H,Z),'hover');
+    const q=clamp((el-dive)/Math.max(1,r.cast-dive));return at(Z,HIGH*(1-easeIn(q)),Math.PI/2,'dive',{q});
+  };
   S.route=(r,el)=>window.SkillArts?.ritualRoute(r,el)||(ROUTES[r.move]||ROUTES.star)(r,el,[r.hx,r.hy],[r.zx,r.zy]);
   const BLINK=140;                                             // landing spot -> home after the finishing blow
   function spot(r,el){
@@ -167,6 +190,7 @@
     if(cls==='archer')return arrow(g,x,y,ang+Math.PI/2,L,P);
     if(cls==='taoist'){g.save();g.translate(x,y);g.rotate(ang);poly(g,[[-L*.28,-L*.17],[L*.28,-L*.17],[L*.28,L*.17],[-L*.28,L*.17]],'#f6e7b8',P[0]);
       line(g,[[-L*.14,0],[L*.14,0]],P[2],2);line(g,[[0,-L*.1],[0,L*.1]],P[2],1.5);g.restore();return;}
+    if(cls==='warrior')return shield(g,x,y,ang+Math.PI/2,L,P);
     blade(g,x,y,ang+Math.PI/2,L,P);
   }
   function sparkle(g,x,y,R,P,rot){
@@ -416,6 +440,47 @@
         weapon(g,'spearman',x,y,a,90,P);g.restore();
       });
     },
+    // แนวหน้า 120: a furrow behind the charge, the raised shield in front of the body, a bash flash at every hit
+    charge(d,r,P,e){
+      const rush=lastHit(r)+60;
+      danger(d,r,P);groundPath(d,r,P,r.windup,rush,10);trail(d,r,P,r.windup,'warrior');
+      add(d,'move',r.windup,rush-r.windup,'top',(g,p)=>{
+        const q=S.route(r,r.windup+p*(rush-r.windup)),x=q.x+Math.cos(q.face)*30,y=q.y-32-q.lift+Math.sin(q.face)*16;
+        g.save();g.globalCompositeOperation='lighter';glow(g,x,y,46,P,.8);shield(g,x,y,0,58,P);g.restore();
+      });
+      for(let i=0;i<r.hits;i++){
+        const hit=(r.first??r.windup)+i*r.gap,[x,y]=chestAt(r,hit),q=S.route(r,hit);
+        flare(d,x+Math.cos(q.face)*30,y,hit,P,40,260);spark(d,x,y,hit,P,12,{angle:q.face,spread:1.4,shake:3});
+        add(d,'move',hit,520,'ground',(g,p)=>{g.save();g.globalAlpha*=1-p;g.translate(q.x,q.y);g.scale(1,.5);ring(g,0,0,14+p*70,P[1],4*(1-p)+.5);g.restore();});
+      }
+    },
+    // แนวหน้า 130: six giant spirit shields fall round the spot one per hit, then stand as a fortress wall
+    bastion(d,r,P,e){
+      const first=r.first??r.windup,dive=lastHit(r)+60,Q=i=>{const a=-Math.PI/2+i*TAU/r.hits;return [d.x+Math.cos(a)*r.R*.85,d.y+Math.sin(a)*r.R*.85*.55];};
+      danger(d,r,P);trail(d,r,P,r.windup,'warrior');
+      add(d,'move',0,r.cast,'ground',(g,p)=>{g.save();g.globalAlpha*=.4+.5*p;g.translate(d.x,d.y);g.scale(1,.55);ring(g,0,0,r.R*.85,P[1],2);ring(g,0,0,r.R*.6*p,P[0],1.5);g.restore();});
+      add(d,'move',first,r.cast+600-first,'ground',(g,p)=>{          // the wall between the fallen shields
+        const el=first+p*(r.cast+600-first),pts=[];for(let i=0;i<r.hits;i++)if(el>=first+i*r.gap)pts.push(Q(i));
+        if(pts.length===r.hits)pts.push(pts[0]);if(pts.length<2)return;
+        g.save();g.globalCompositeOperation='lighter';if(el>r.cast)g.globalAlpha*=1-(el-r.cast)/600;line(g,pts,P[0],7);line(g,pts,P[1],2);g.restore();
+      });
+      for(let i=0;i<r.hits;i++){
+        const hit=first+i*r.gap,[x,y]=Q(i);
+        add(d,'move',hit-140,r.cast+600-(hit-140),'top',(g,p)=>{   // it drops from the sky, then stands until the finale fades
+          const el=hit-140+p*(r.cast+600-(hit-140)),fall=easeIn(clamp(el/140)),yy=y-40-(1-fall)*260;
+          g.save();g.globalCompositeOperation='lighter';if(el>r.cast)g.globalAlpha*=1-(el-r.cast)/600;
+          if(fall<1){const gr=g.createLinearGradient(x,yy-120,x,yy);gr.addColorStop(0,P[0]+'00');gr.addColorStop(1,P[1]+'aa');line(g,[[x,yy-120],[x,yy]],gr,10);}
+          glow(g,x,yy,40,P,.6);shield(g,x,yy,0,86,P);g.restore();
+        });
+        spark(d,x,y,hit,P,10,{up:60,grav:300,shake:3});
+        add(d,'move',hit,500,'ground',(g,p)=>{g.save();g.globalAlpha*=1-p;g.translate(x,y);g.scale(1,.5);ring(g,0,0,10+p*46,P[1],3*(1-p)+.5);g.restore();});
+      }
+      add(d,'move',dive,r.cast-dive+60,'top',(g,p)=>{                 // the dive: a blazing tail, the shield first
+        const q=S.route(r,Math.min(r.cast-1,dive+p*(r.cast-dive+60))),y=q.y-28-q.lift;
+        g.save();g.globalCompositeOperation='lighter';const gr=g.createLinearGradient(q.x,y-180,q.x,y);gr.addColorStop(0,P[0]+'00');gr.addColorStop(1,P[1]+'ee');
+        poly(g,[[q.x-8,y-190],[q.x+8,y-190],[q.x+30,y],[q.x-30,y]],gr);glow(g,q.x,y+20,70,P,.95);shield(g,q.x,y+26,Math.PI,64,P);g.restore();
+      });
+    },
   };
   // the finishing blow on top of the class impact art: the star bursts / a pillar of light and a crater
   function finale(d,r,P){
@@ -456,6 +521,12 @@
       g.fillStyle=P[1]+'77';g.fill();ring(g,0,0,R,P[1],3);g.restore();});},
     vault(d,r,P){shock(d,r,P);},
     spiral(d,r,P){shock(d,r,P,1200);},
+    charge(d,r,P){shock(d,r,P);add(d,'impact',0,900,'top',(g,p)=>{g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=1-p;
+      glow(g,d.x,d.y-30,r.R*.5,P,.8);shield(g,d.x,d.y-40-ease(p)*30,0,90+40*ease(p),P);g.restore();});},
+    bastion(d,r,P){shock(d,r,P,1300);add(d,'impact',0,1200,'top',(g,p)=>{   // a dome of light closes over the fortress
+      const R=r.R*(.6+.4*ease(p));g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=1-p;g.translate(d.x,d.y);
+      g.beginPath();g.ellipse(0,0,R,R*.8,0,Math.PI,TAU);g.fillStyle=P[0]+'30';g.fill();g.strokeStyle=P[1];g.lineWidth=3;g.stroke();
+      for(let i=1;i<6;i++){const a=Math.PI+i*Math.PI/6;line(g,[[0,0],[Math.cos(a)*R,Math.sin(a)*R*.8]],P[0]+'88',1.5);}g.restore();});},
   };
   S.play = d => {
     const e=G.ents.get(d.id), me=d.id===G.myId?G.me:null;
@@ -522,6 +593,11 @@
           g.beginPath();g.moveTo(0,0);g.bezierCurveTo(R*.25,-R*.26,R*.6,-R*.15,R*.82*burst,0);g.bezierCurveTo(R*.6,R*.15,R*.25,R*.26,0,0);g.fillStyle=gr;g.fill();g.strokeStyle=P[1];g.lineWidth=1;g.stroke();
           if(high){g.fillStyle=P[2]+'cc';g.fillRect(R*.57,-11,17,22);g.strokeRect(R*.57,-11,17,22);line(g,[[R*.59,-7],[R*.59+7,0],[R*.59,7]],P[1],2);}g.restore();}
         const beam=g.createLinearGradient(0,d.y-300,0,d.y);beam.addColorStop(0,P[0]+'00');beam.addColorStop(1,P[1]+'aa');poly(g,[[d.x-18,d.y-300],[d.x+18,d.y-300],[d.x+45,d.y],[d.x-45,d.y]],beam);
+      }else if(d.cls==='warrior'){
+        // A ring of tower shields slams outward round a cracked crater, the high art with a second ring.
+        for(let k=0;k<(high?2:1);k++){const n=high?10:8,rr=R*(.35+k*.35+burst*.25);
+          for(let i=0;i<n;i++){const a=i*TAU/n+k*.3;shield(g,d.x+Math.cos(a)*rr,d.y+Math.sin(a)*rr*.55-26,0,46+high*16,P);}}
+        for(let i=0;i<12;i++){const a=i*TAU/12+.2;line(g,[[d.x,d.y],[d.x+Math.cos(a+.15)*R*.35*burst,d.y+Math.sin(a+.15)*R*.2*burst],[d.x+Math.cos(a)*R*.9*burst,d.y+Math.sin(a)*R*.5*burst]],P[i%2?2:0],3);}
       }else{
         // Giant imperial lances impale the ground, with branching fissures and a dragon coil.
         for(let i=0;i<(high?9:5);i++){const a=i*2.399,rr=i?R*.7*Math.sqrt(i/(high?9:5)):0;lance(g,d.x+Math.cos(a)*rr,d.y+Math.sin(a)*rr-(1-burst)*200,100+high*60,P,high?12:11,d.f);}
@@ -544,6 +620,7 @@
     if(cls==='dualblade'){blade(g,-5,13,-.6,34,P);blade(g,5,13,.6,34,P);}
     else if(cls==='archer')for(let i=-1;i<=1;i++)arrow(g,i*11,-15-Math.abs(i)*5,0,40,P);
     else if(cls==='taoist')seal(g,0,0,22,P,.2);
+    else if(cls==='warrior'){blade(g,9,16,.5,40,P);shield(g,-3,-1,0,high?46:40,P);if(high)for(let i=0;i<6;i++){const a=i*TAU/6;shield(g,Math.cos(a)*24,Math.sin(a)*24,a+Math.PI/2,12,P);}}
     else{blade(g,0,17,.45,44,P);line(g,[[-19,18],[-8,12],[0,22],[16,10]],P[0],2);}
     g.restore();
   };

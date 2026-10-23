@@ -390,6 +390,7 @@
         FX.burst(d.x, d.y - 20, 18, ['#ffffff', '#ffe08a', d.f === 'adharma' ? '#ff4a6a' : '#7ac8ff'], { speed: 180, up: 60, life: 500 });
         break;
       case 'heal': FX.heal(d.id, d.k); break;
+      case 'cover': FX.cover(d.id, d.to); break;
       case 'lvl': {
         FX.levelUp(d.id, d.f);
         const was = e ? ModelTiers.tierOf(e.lvl || 1) : 0, now = ModelTiers.tierOf(d.lvl);
@@ -1434,9 +1435,9 @@
   }
   G.skillFrame=playerFrame;
   function basePlayerFrame(e, now) {
-    if (e.cls === 'warrior') return WarriorLook.frame(e, now);
     const ritual = AscendedSkills.frame(e, now);
     if (ritual) return ritual;
+    if (e.cls === 'warrior') return WarriorLook.frame(e, now);
     if (e.cls === 'spearman') return SpearmanLook.frame(e, now);
     const OM = e.cls !== 'taoist' && C.CLASSES[e.cls] && C.CLASSES[e.cls].sheet && ownMeta(e.cls);
     if (OM) {

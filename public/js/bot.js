@@ -26,7 +26,7 @@
     'nirvana', 'mercy', 'aegis', 'might', 'heavens', 'meteor', 'skybolt', 'spiritsword',
     'hawkeye', 'gale', 'stormphoenix', 'skyrain', 'blast', 'deadeye', 'scatter', 'rollshot'];
   const HEALS = ['mercy', 'nirvana'];
-  PRIORITY.unshift('ironGuard','rallyGuard','lastBastion','guardianOath','battleCry','sunderStrike','shieldBash','shieldSweep','earthShatter','citadelStrike');
+  PRIORITY.unshift('ironGuard','rallyGuard','lastBastion','battleCry','sunderStrike','shieldBash','shieldSweep','earthShatter');
   PRIORITY.unshift(...Object.values(C.ALL_SKILLS).filter(s=>s.ritual).sort((a,b)=>b.lvl-a.lvl).map(s=>s.id));
   const DEF = { radius: 450, basic: true, skills: { lotus: true, rend: true, crescent: true, skybolt: true, mercy: true, aegis: true,
     spearCrush: true, spearBreak: true, spearHeart: true, spearBoss: true,

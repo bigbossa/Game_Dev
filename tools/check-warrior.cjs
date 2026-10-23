@@ -44,17 +44,17 @@ try {
   }
   for(const faction of ['dharma','adharma']) for(const pvp of [false,true])
     for(const sk of C.CLASSES.warrior.skills) for(let rank=0;rank<=sk.evo.length;rank++) {
-      const f=fixture(pvp,faction), hp=f.t.hp;
+      const f=fixture(pvp,faction), hp=f.t.hp, front=sk.frontline||{};
       cast(f,sk.id,rank); flush(f.w);
       assert.equal(f.p.hp,f.p.stats.maxHp,'tank has no self-heal or self-damage');
-      if(sk.frontline.damage) assert(f.t.hp<hp,sk.id+' hits');
+      if(front.damage||sk.ritual) assert(f.t.hp<hp,sk.id+' hits');
       else assert.equal(f.t.hp,hp,sk.id+' does not deal damage');
-      if(sk.frontline.ward) assert(f.w.buffVal(f.p,'frontGuard')>0,sk.id+' protects');
-      if(sk.frontline.taunt) {
+      if(front.ward) assert(f.w.buffVal(f.p,'frontGuard')>0,sk.id+' protects');
+      if(front.taunt) {
         if(pvp) assert.equal(f.t.controlEpoch,undefined,'taunt cannot force or CC players');
         else assert.equal(f.t.target,f.p.id,'taunt takes aggro');
       }
-      if(sk.frontline.damage) for(const stop of ['stun','root','death','warp','targetWarp','despawn','range']) {
+      if(front.damage) for(const stop of ['stun','root','death','warp','targetWarp','despawn','range']) {
         const z=fixture(pvp,faction), before=z.t.hp;
         cast(z,sk.id,rank);
         if(stop==='stun'||stop==='root') z.w.applyControl(z.p,{[stop]:1000},now);
@@ -67,7 +67,7 @@ try {
       }
     }
   // Invalid melee targets never spend resources or start cooldowns.
-  for(const sk of C.CLASSES.warrior.skills.filter(s=>s.frontline.damage&&!s.frontline.area)) {
+  for(const sk of C.CLASSES.warrior.skills.filter(s=>s.frontline&&s.frontline.damage&&!s.frontline.area)) {
     const f=fixture(),mp=f.p.mp;
     f.w.castSkill(f.p,{id:sk.id,tid:'missing',a:0});
     assert.equal(f.p.mp,mp);assert.equal(f.p.cds[sk.id],undefined);
@@ -96,7 +96,7 @@ try {
     assert.equal(f.w.buffVal(ally,'frontGuard'),.16);
     assert.equal(f.w.buffVal(far,'frontGuard'),0);assert.equal(f.w.buffVal(enemy,'frontGuard'),0);
     ally.mapId='elsewhere';ally.buffs={};f.p.cds={};f.p.gcd=0;
-    cast(f,'guardianOath');assert.equal(f.w.buffVal(ally,'frontGuard'),0);
+    cast(f,'rallyGuard',1);assert.equal(f.w.buffVal(ally,'frontGuard'),0);
   }
   // Boss taunt is short, does not interrupt a boss attack, and cannot chain immediately.
   {
@@ -198,6 +198,36 @@ try {
     now+=C.ALL_SKILLS.battleCry.cd;for(const m of pack){f.w.updateMonster(m,0,now);m.target=null;}
     f.p.cds={};f.p.gcd=0;cast(f,'battleCry');
     for(const m of pack)assert.equal(m.target,f.p.id,'taunt can be recast on the same pack after the cooldown');
+  }
+  // Keys 0 / - are ascended arts like every other class's.
+  assert.deepEqual(C.CLASSES.warrior.skills.filter(s=>s.ritual).map(s=>s.key),['0','-']);
+  // โล่รับแทน: a party member near the warrior takes 30% less, the warrior takes that part (its wards shrink it).
+  {
+    const f=fixture(),ally=f.player('archer','dharma'),solo=fixture();
+    f.p.party=ally.party='pt';f.w.parties.set('pt',{members:[f.p.id,ally.id]});ally.x=f.p.x+100;
+    const alone=solo.player('archer','dharma');
+    const full=solo.w.applyDamage(solo.t,alone,1),covered=f.w.applyDamage(f.t,ally,1),W=C.WARRIOR_COVER;
+    assert.equal(covered,full-Math.floor(full*W.share),'ally takes 30% less');
+    assert.equal(f.p.stats.maxHp-f.p.hp,Math.floor(full*W.share),'the warrior takes that 30%');
+    f.p.hp=f.p.stats.maxHp;f.w.addBuff(f.p,'ironGuard',10000,{frontGuard:.3},.3);ally.hp=ally.stats.maxHp;
+    f.w.applyDamage(f.t,ally,1);
+    assert.equal(f.p.stats.maxHp-f.p.hp,Math.round(Math.floor(full*W.share)*.7),"the warrior's own ward shrinks its part");
+    // too far, too hurt, dead or not in the party: no cover
+    f.p.buffs={};f.p.hp=f.p.stats.maxHp;ally.x=f.p.x+W.range+50;
+    assert.equal(f.w.applyDamage(f.t,ally,1),full,'out of range');ally.x=f.p.x+100;
+    f.p.hp=Math.floor(f.p.stats.maxHp*W.minHp);assert.equal(f.w.applyDamage(f.t,ally,1),full,'warrior too hurt');
+    f.p.hp=f.p.stats.maxHp;f.p.dead=true;assert.equal(f.w.applyDamage(f.t,ally,1),full,'dead warrior');f.p.dead=false;
+    f.w.parties.set('pt',{members:[ally.id]});assert.equal(f.w.applyDamage(f.t,ally,1),full,'left the party');
+    f.w.parties.set('pt',{members:[f.p.id,ally.id]});
+    // a blow on the warrior itself is never split
+    const self=f.w.applyDamage(f.t,f.p,1);f.p.hp=f.p.stats.maxHp;
+    assert.equal(self,solo.w.applyDamage(solo.t,solo.p,1),'no cover for the warrior itself');
+    // PvP: only half of the share
+    const g=fixture(true),mate=g.player('archer','dharma'),lone=fixture(true),lm=lone.player('archer','dharma');
+    g.p.party=mate.party='pt';g.w.parties.set('pt',{members:[g.p.id,mate.id]});mate.x=g.p.x+100;
+    g.w.markPk=lone.w.markPk=()=>{};g.w.canPk=lone.w.canPk=()=>true;
+    const pfull=lone.w.applyDamage(lone.t,lm,1),pcov=g.w.applyDamage(g.t,mate,1);
+    assert.equal(pcov,pfull-Math.floor(pfull*W.share*W.pvp),'PvP cover is half');
   }
   console.log(`PASS: ${cases} warrior casts; both factions, PvE/PvP, interruption, taunt lifecycle/rewards/immunity, party wards, no stacking, progression and save roundtrip.`);
 } finally { Date.now=originalNow;Math.random=originalRandom; }

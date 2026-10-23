@@ -3,7 +3,7 @@
   'use strict';
   const TAU = Math.PI * 2;
   const ids = ['guardSlash', 'shieldBash', 'ironGuard', 'shieldSweep', 'battleCry',
-    'sunderStrike', 'rallyGuard', 'earthShatter', 'lastBastion', 'guardianOath', 'citadelStrike'];
+    'sunderStrike', 'rallyGuard', 'earthShatter', 'lastBastion'];
 
   function draw(g, sk, faction, size = 112) {
     const id = typeof sk === 'string' ? sk : sk?.id;
@@ -194,37 +194,6 @@
         path([[-18, 32], [-18, 5], [18, 5], [18, 32]], p.edge, p.gold, 2);
         shield(0, 23, 0, .48);
         line([[-43, 36], [43, 36]], p.gold, 3); star(0, -43, 7);
-        break;
-
-      case 'guardianOath':
-        glow(p.gold, 12, () => circle(0, -2, 39, undefined, p.gold, 2));
-        circle(0, -2, 32, undefined, p.glow, 1.5);
-        for (let i = 0; i < 8; i++) at(0, -2, i * TAU / 8, 1, () => line([[0, -39], [0, -44]], p.light, 2));
-        path([[-17, -31], [17, -31], [17, 20], [0, 29], [-17, 20]], '#e7cc96', p.edge, 2);
-        line([[-21, -31], [21, -31]], p.gold, 6);
-        line([[-20, -32], [20, -32]], p.core, 1.5);
-        shield(0, -1, 0, .45);
-        for (const side of [-1, 1]) {
-          circle(side * 28, 24, 4, p.core);
-          path([[side * 28 - 7, 40], [side * 28 - 5, 30], [side * 28 + 5, 30], [side * 28 + 7, 40]], p.cloth, p.gold, 1.5);
-        }
-        glow(p.glow, 8, () => line([[-25, 23], [0, 33], [25, 23]], p.glow, 2));
-        star(0, -1, 7, p.core);
-        break;
-
-      case 'citadelStrike':
-        haze(0, 6, 47, p.glow, .7);
-        for (const side of [-1, 1]) {
-          path([[side * 10, -41], [side * 19, -32], [side * 25, -43], [side * 29, -30], [side * 36, -39], [side * 31, -21], [side * 14, -17]], p.gold, p.edge, 1.3);
-          line([[side * 30, -12], [side * 23, 4]], p.glow, 3);
-          line([[side * 42, -5], [side * 28, 20]], p.light, 1.5);
-        }
-        ellipse(0, -29, 24, 8, p.gold, 2);
-        tower(-27, 35, 10, 21); tower(27, 35, 10, 21);
-        glow(p.glow, 13, () => sword(0, -10, Math.PI, 1.08));
-        ellipse(0, 36, 44, 10, p.glow, 3);
-        star(0, 38, 16, p.core, 6);
-        line([[-17, 40], [-29, 47]], p.gold, 2); line([[17, 40], [29, 47]], p.gold, 2);
         break;
 
       default:

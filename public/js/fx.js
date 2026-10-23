@@ -869,6 +869,28 @@
     const col = kind === 'mp' ? ['#9fd8ff', '#4aa8ff', '#ffffff'] : ['#a8ffb0', '#3ee070', '#ffffff'];
     FX.burst(e.x, e.y - 30, 22, col, { speed: 60, up: 90, life: 900, size: 3, drag: 1 });
   };
+  // นักรบแนวหน้า โล่รับแทน: a gold thread from the covered ally to the warrior and a shield flash on the warrior
+  // (at most one per warrior every 350 ms, so a crowd of blows doesn't pile them up)
+  const coverAt = new Map();
+  FX.cover = function (id, to) {
+    const now = performance.now();
+    if (now - (coverAt.get(id) || 0) < 350) return;
+    coverAt.set(id, now);
+    add(420, 'top', (g, p) => {
+      const w = G.ents.get(id), a = G.ents.get(to);
+      if (!w) return;
+      g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 1 - p;
+      if (a) {
+        g.strokeStyle = '#ffd76a'; g.lineWidth = 3 * (1 - p) + 1;
+        g.beginPath(); g.moveTo(a.x, a.y - 34); g.quadraticCurveTo((a.x + w.x) / 2, Math.min(a.y, w.y) - 80, w.x, w.y - 40); g.stroke();
+      }
+      const r = 14 + p * 10;
+      g.fillStyle = 'rgba(255,215,106,0.35)'; g.strokeStyle = '#fff2c0'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(w.x - r, w.y - 58); g.lineTo(w.x + r, w.y - 58); g.lineTo(w.x + r, w.y - 58 + r * 0.9);
+      g.quadraticCurveTo(w.x + r * 0.6, w.y - 58 + r * 1.6, w.x, w.y - 58 + r * 1.9); g.quadraticCurveTo(w.x - r * 0.6, w.y - 58 + r * 1.6, w.x - r, w.y - 58 + r * 0.9);
+      g.closePath(); g.fill(); g.stroke(); g.restore();
+    }, { id, x: 0, y: 0 });
+  };
   FX.spawn = function (id, f) {
     const c = pal(f);
     add(900, 'top', (g, p, fx) => {
