@@ -111,7 +111,9 @@
     const def = G.mapDef, me = (G.stats && G.stats.lvl) || 1;
     const rows = groups(def).map((gr, i) => {
       const pen = C.expPenalty(me, gr.m.lvl), col = gr.m.boss ? '#ff6a4a' : lvlColor(gr.m.lvl);
-      const note = gr.m.boss ? 'บอส' : pen < 1 ? `EXP ${Math.round(pen * 100)}%` : gr.m.lvl - me >= 8 ? 'อันตราย' : `${gr.pts.length} จุด`;
+      const note = gr.m.boss ? 'บอส' : pen < 1 ? `EXP ${Math.round(pen * 100)}%`
+        : pen > 1 ? `EXP +${Math.round((pen - 1) * 100)}%${gr.m.lvl - me >= 8 ? ' · อันตราย' : ''}`
+        : `${gr.pts.length} จุด`;
       return `<button type="button" class="wm-row" data-g="${i}"><span class="wm-name">${gr.m.boss ? '☠ ' : ''}${gr.m.name}</span>` +
         `<b style="color:${col}">Lv.${gr.m.lvl}</b><small>${note}</small></button>`;
     });

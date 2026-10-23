@@ -134,7 +134,7 @@
       const q=clamp((el-thr)/Math.max(1,r.cast-thr));return at(E,90*(1-q*q),ang(E,Z),'land',{q});
     },
   };
-  S.route=(r,el)=>(ROUTES[r.move]||ROUTES.star)(r,el,[r.hx,r.hy],[r.zx,r.zy]);
+  S.route=(r,el)=>window.SkillArts?.ritualRoute(r,el)||(ROUTES[r.move]||ROUTES.star)(r,el,[r.hx,r.hy],[r.zx,r.zy]);
   const BLINK=140;                                             // landing spot -> home after the finishing blow
   function spot(r,el){
     if(el<r.cast)return S.route(r,el);
@@ -459,7 +459,7 @@
   };
   S.play = d => {
     const e=G.ents.get(d.id), me=d.id===G.myId?G.me:null;
-    if(d.t==='ritualCancel'){clearMove(d.id,true);if(e)e.ritual=null;if(me)me.ritual=null;return;}
+    if(d.t==='ritualCancel'){clearMove(d.id,true);window.SkillArts?.cancel(d.id,d.skill,true);if(e)e.ritual=null;if(me)me.ritual=null;return;}
     const sk=C.ALL_SKILLS[d.skill];
     if(!sk?.ritual)return;
     const spec=sk.ritual,released=d.t==='ritualRelease',t=performance.now(),P=colors(d.f,d.cls),high=sk.lvl===130;
@@ -476,10 +476,12 @@
       for(const c of casters){c.ritual=makeRoute(d,spec,home,t);c.atk=null;c.moving=false;}
       if(me){G.order=null;me.dash=null;}
       const r=(home&&home.ritual)||makeRoute(d,spec,null,t);
+      if(window.SkillArts?.handles(d.skill)){SkillArts.ritual(d,r,home);return;}
       (MOVES[spec.move]||starMove)(d,r,P,e);
       return;
     }
     const r=(home&&home.ritual)||makeRoute(d,spec,null,t-spec.cast);
+    if(window.SkillArts?.handles(d.skill)){SkillArts.ritual(d,r,home);return;}
     finale(d,r,P);
     const R=r.R;                                               // the class impact art below works in the damage radius
     shakeMine(d,high?15:10);

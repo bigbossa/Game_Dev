@@ -19,6 +19,7 @@
       `<div class="sk-ico" title="${sl ? 'ลากไปวางบนแถบสกิล' : ''}"></div><div class="sk-main">` +
       `<div class="sk-title"><b>${esc(info.name)}</b>${rank ? ` <span class="sk-stars">${'★'.repeat(rank)}</span>` : ''} <small>Lv.${sk.lvl}${sk.mp ? ` · ปราณ ${C.skillMp(sk, lvl)}` : ''} · คูลดาวน์ ${(sk.cd / 1000).toFixed(1)} วิ</small></div>` +
       `<div class="sk-desc">${esc(info.desc)}</div>` +
+      (window.SkillDesigns?.[sk.id]?`<div class="sk-desc"><small>กระบวนท่า: ${esc(SkillDesigns[sk.id].title)}</small></div>`:'') +
       `<div class="sk-lvl"><span class="sk-pips">${Array.from({ length: C.SKILL_MAX }, (_, i) => `<i class="${i < sl ? 'on' : i < cap ? 'can' : ''}"></i>`).join('')}</span>` +
       `<span>สเต็ก <b>${sl}</b>/${C.SKILL_MAX}${sl ? ` · พลัง ×${C.skillPower(sl, rank).toFixed(2)}` : ''}</span></div>` +
       `<div class="sk-acts"><button type="button" data-up="${sk.id}"${canUp ? '' : ' disabled'} title="${esc(upWhy)}">${sl ? '+1 สเต็ก' : 'เรียนสกิล'}</button>` +

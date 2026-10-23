@@ -399,8 +399,17 @@
   const EXP_LEVEL = { early: [10, 50, 3, 1], late: [80, 129, 1, 0.7] };
   const ramp = (l, [a, b, x, y]) => (l <= a ? x : l >= b ? y : x + ((y - x) * (l - a)) / (b - a));
   const levelExpMul = (lvl) => ramp(lvl, lvl < EXP_LEVEL.late[0] ? EXP_LEVEL.early : EXP_LEVEL.late);
-  // monsters far below the player give little EXP (also used for the level colours on the world map)
-  const expPenalty = (plvl, mlvl) => { const d = plvl - mlvl; return d > 10 ? 0.05 : d > 6 ? 0.2 : d > 3 ? 0.6 : 1; };
+  // monsters far below the player give little EXP; monsters ABOVE the player give more, per level above
+  // (EXP_ABOVE.per each, capped at EXP_ABOVE.cap). Base monster EXP only rises ~1-2% a level while a higher monster
+  // takes far longer to kill (LVL_GAP), so without this a +10 monster paid ~0.6× the EXP per second of an even one.
+  // With it: +3 ≈ +30% EXP/kill, +5 ≈ +50%, +10 ≈ ×2 — roughly +10-20% EXP per second for the extra risk.
+  // Regular kills only (shareExp); boss EXP is split by damage share separately. Also drives the world-map colours.
+  const EXP_ABOVE = { per: 0.1, cap: 1 };
+  const expPenalty = (plvl, mlvl) => {
+    const d = plvl - mlvl;
+    if (d < 0) return 1 + Math.min(EXP_ABOVE.cap, EXP_ABOVE.per * -d);
+    return d > 10 ? 0.05 : d > 6 ? 0.2 : d > 3 ? 0.6 : 1;
+  };
   // party: up to 8 players of either faction; the kill EXP is pooled (+25% per extra member in range) and split by level
   // (Yulgang style: every member gets less per kill, but the party kills much faster, so grouping levels faster)
   const PARTY_MAX = 8;

@@ -472,7 +472,8 @@
   S.impact=d=>{
     const e=ent(d.id);if(!e)return;
     const P=SkillFX.palette('spearman',d.f||e.faction),W=S.power(e.lvl||1),event={...d,t:d.skill};
-    add(event,W,0,240,'top',(g,p)=>star(g,d.x,d.y-22,(d.final?22:10)*(1-p),P,d.step));
+    if(window.SkillArts?.handles(d.skill))SkillArts.impact(d);
+    else add(event,W,0,240,'top',(g,p)=>star(g,d.x,d.y-22,(d.final?22:10)*(1-p),P,d.step));
     if(!d.area)return;
     const A=d.area;
     add(event,W,0,480,'ground',(g,p)=>{

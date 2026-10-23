@@ -1,5 +1,7 @@
 # Class skill art
 
+> Latest: [Four-class redesign](skill-redesign.md) replaces the active primary art for all 44 dualblade/spearman/archer/taoist skills, including new endgame routes. `SkillArts` owns this dispatch; legacy renderers below remain as fallbacks only.
+
 > 23 Oct 2026: all 55 skills now also use [the class choreography and skill-stage system](skill-performance.md).
 > `skill-performance.js` adds caster motion, training/evolution ornaments and cancellation handling;
 > existing skill/ritual renderers still own their projectiles and impact art. Warrior art now includes

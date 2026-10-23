@@ -660,7 +660,7 @@
       add(A,'stormphoenix',520,'top',(g,p)=>{glow(g,ex,ey,230*p,storm.core,.7*(1-p));
         for(let k=0;k<6+A.tier;k++){const b=k*TAU/(6+A.tier);bolt(g,ex,ey,ex+Math.cos(b)*200*p,ey+Math.sin(b)*110*p,k,storm,2);}},1030);}
   };
-  S.play=d=>{if(C.ALL_SKILLS[d.t]?.spear&&window.SpearmanFX)return SpearmanFX.play(d);const fn=R_[d.t];if(fn)fn(d);};
+  S.play=d=>{if(window.SkillArts?.handles(d.t))return SkillArts.play(d);if(C.ALL_SKILLS[d.t]?.spear&&window.SpearmanFX)return SpearmanFX.play(d);const fn=R_[d.t];if(fn)fn(d);};
   // Hits also retain the attacker's identity instead of every class making sparks.
   const legacyHit=FX.hit;
   FX.hit=(x,y,f,crit,id)=>{

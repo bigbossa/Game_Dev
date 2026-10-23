@@ -216,7 +216,7 @@
     const now = performance.now();
     G.control = { stunUntil: now + (d?.stun || 0), rootUntil: now + (d?.root || 0), slowUntil: now + (d?.slow || 0) };
     if (G.me && (d?.stun || d?.root)) {
-      if(d?.stun || G.me.cls==='spearman') SkillPerformance.cancel(G.me.id);
+      if(d?.stun || G.me.cls==='spearman') SkillPerformance.cancel(G.me.id,undefined,!!(G.me.ritual||C.ALL_SKILLS[G.me.skillMotion?.skill]?.spear));
       G.me.moving = false; G.me.dash = null; G.me.leap = null;
       if (Number.isFinite(d.x) && Number.isFinite(d.y)) Motion.correction(G.me, d.x, d.y);
     }

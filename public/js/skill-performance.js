@@ -34,22 +34,25 @@
     if(sk.id==='shadowstep')return d.r?[120,260,400]:[120];
     return[{skyfall:460,skybolt:300,heavens:300,meteor:300,skyrain:320,stormphoenix:160,blast:150,jade:60,deadeye:100}[sk.id]??Math.round(dur*.4)];
   }
-  S.cancel=(id,skill)=>{
+  S.cancel=(id,skill,all=true)=>{
+    SkillArts.cancel(id,skill,all);
     const e=window.G?.ents.get(id);if(e?.skillMotion&&(!skill||e.skillMotion.skill===skill)){
       e.skillMotion=null;e.atk=null;
     }
     FX.list=FX.list.filter(n=>!n.performanceArt||n.owner!==id||(skill&&n.skill!==skill));
   };
-  S.clear=()=>{for(const e of G.ents.values())e.skillMotion=null;FX.list=FX.list.filter(n=>!n.performanceArt);};
+  S.clear=()=>{SkillArts.clear();for(const e of G.ents.values())e.skillMotion=null;FX.list=FX.list.filter(n=>!n.performanceArt);};
   S.active=(e,now=performance.now())=>{
     const m=e?.skillMotion;
+    // A graded route outlasts the server cast: walking away after the last strike ends it.
+    if(m?.choreo&&(e.walkBlend||0)>.35&&now-m.t0>(m.beats.at(-1)||0)+120)return null;
     return m&&!e.dead&&!e.dying&&now>=m.t0&&now<m.t0+m.dur&&m.map===G.mapId?m:null;
   };
   S.play=d=>{
     if(d.t==='spearCancel'||d.t==='ritualCancel'){S.cancel(d.id,d.skill);return;}
     const id=d.t.startsWith('ritual')?d.skill:d.t,sk=C.ALL_SKILLS[id],cfg=configs[id],e=window.G?.ents.get(d.id);
     if(!sk||!cfg||!e||e.dead||e.dying)return;
-    S.cancel(d.id);
+    S.cancel(d.id,undefined,false);
     const A=S.profile(sk,d),released=d.t==='ritualRelease';
     let dur=d.dur||durations[id]||600;
     if(sk.ritual)dur=released?(d.recovery||650):(d.cast||sk.ritual.cast);
@@ -57,6 +60,11 @@
     dur=Math.max(dur,beats.at(-1)+160);
     const angle=Number.isFinite(d.a)?d.a:Number.isFinite(d.x)&&Number.isFinite(d.y)&&Math.hypot(d.x-e.x,d.y-e.y)>1?Math.atan2(d.y-e.y,d.x-e.x):(e.dir||0)*Math.PI/4;
     const m=e.skillMotion={...A,...cfg,skill:id,t0:performance.now(),dur,beats,a:angle,dir:C.dirFromAngle(angle),map:G.mapId,released};
+    const aim=G.ents.get(d.tid??d.ids?.[0]),tx=aim?aim.x:d.tx??d.x,ty=aim?aim.y:d.ty??d.y;
+    m.choreo=SkillChoreo.build(id,cfg.cls,A.grade,dur,{D:Number.isFinite(tx)&&Number.isFinite(ty)?Math.hypot(tx-e.x,ty-e.y)-30:undefined,beats});
+    if(m.choreo)m.dur=m.choreo.dur;
+    SkillChoreo.stage(d,e,m);
+    if(SkillArts.handles(id))return;
     const P=SkillFX.palette(cfg.cls,d.f||e.faction);
     for(const layer of ['ground','top']){
       if(FX.list.filter(n=>n.performanceArt).length>=96){const i=FX.list.findIndex(n=>n.performanceArt);FX.list.splice(i,1);}
@@ -78,7 +86,10 @@
     return {t,i,at,wind,strike,pulse,recover,p:clamp(t/m.dur)};
   };
   S.frame=(e,now,base)=>{
-    const m=S.active(e,now);if(!m||m.type==='spear'||m.type==='ritual')return base;
+    const m=S.active(e,now);if(!m)return base;
+    if(SkillArts.handles(m.skill))return SkillArts.frame(e,m,now,base);
+    if(m.type==='spear'||m.type==='ritual')return base;
+    if(m.choreo)return SkillChoreo.frame(e,m,now,base);
     const q=S.phase(m,now),before=q.t<q.at;
     let frame=before?(q.wind<.45?0:1):(q.strike<.6?1:2),dir=m.dir;
     if(e.cls==='archer')frame=before?(q.wind<.25?0:1):2;
@@ -88,7 +99,10 @@
     return {...base,atk:true,frame,dir};
   };
   S.pose=(e,now,base)=>{
-    const m=S.active(e,now);if(!m||m.type==='spear'||m.type==='ritual')return base;
+    const m=S.active(e,now);if(!m)return base;
+    if(SkillArts.handles(m.skill))return SkillArts.pose(e,m,now,base);
+    if(m.type==='spear'||m.type==='ritual')return base;
+    if(m.choreo)return SkillChoreo.pose(e,m,now,base);
     const q=S.phase(m,now),wave=Math.sin(Math.PI*q.p),f=m.force,pulse=q.pulse;
     let push=0,lift=0,roll=0,squash=0;
     switch(m.type){

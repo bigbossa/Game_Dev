@@ -7,7 +7,8 @@ const VIEW_X = 1400;
 const VIEW_Y = 1000;
 const RESPAWN_MS = 6000;
 // GM/test commands (spawn items, set level, add gold, delete characters).
-// GM unset = only accounts marked GM (npm run gm -- <บัญชี>) · GM=all = everyone (local testing) · GM=0 = off
+// GM unset = only accounts marked GM (npm run gm -- <บัญชี>) · GM=all = every player spawns with /gm, no code · GM=0 = off
+// Deleting characters (/user) always needs a GM account that unlocked with /gmcode.
 const GM_MODE = (() => {
   const v = String(process.env.GM || '').toLowerCase();
   if (['0', 'off', 'false'].includes(v)) return 'off';
@@ -87,7 +88,7 @@ class World {
     this.spawnAllMonsters();
     this.last = Date.now();
     if (GM_MODE !== 'off' && !GM_CODE) console.log('GM_CODE ไม่ได้ตั้งใน .env — คำสั่ง GM ปลดล็อกไม่ได้');
-    if (GM_MODE === 'all') console.log('GM/test commands are ON for EVERY player (GM=all) — local testing only');
+    if (GM_MODE === 'all') console.log('GM: ทุกคนพิมพ์ /gm เสกไอเทม/ชุด/ตี+/เลเวลได้ (GM=all) · ลบตัวละคร /user ยังต้องบัญชี GM + /gmcode');
     else if (GM_MODE === 'account') console.log('GM/test commands: GM accounts only (npm run gm -- <บัญชี>) — start with GM=0 to disable');
     setInterval(() => this.tick(), TICK_MS);
     setInterval(() => this.sendMinimap(), 1000);
@@ -248,6 +249,8 @@ class World {
   // canGm: the account may use GM commands · isGm: and it unlocked them this login (/gmcode)
   canGm(p) { return GM_MODE === 'all' || (GM_MODE === 'account' && !!p.gm); }
   isGm(p) { return this.canGm(p) && !!p.gmOn; }
+  // the /gm spawn panel (items, sets, +, level, gold, warp): everyone under GM=all, otherwise an unlocked GM
+  canSpawn(p) { return GM_MODE === 'all' || this.isGm(p); }
   // /gmcode <code> · /out <code>: anything wrong answers like an unknown command, so nobody learns GM exists
   gmUnlock(p, code, on) {
     const now = Date.now(), unknown = () => this.toast(p, 'ไม่รู้จักคำสั่งนี้');
@@ -260,7 +263,7 @@ class World {
     p.gmTries = 0;
     if (!on && !p.gmOn) return unknown();
     p.gmOn = on;
-    p.socket.emit('gmmode', on);
+    p.socket.emit('gmmode', this.canSpawn(p));
     this.toast(p, on ? '🔓 เปิดคำสั่งผู้ดูแลแล้ว (/gm = หน้าต่าง · /out <รหัส> = ปิด)' : '🔒 ปิดคำสั่งผู้ดูแลแล้ว');
   }
 
@@ -339,7 +342,7 @@ class World {
     this.players.set(p.id, p);
     this.bySocket.set(socket.id, p);
     this.save(p);
-    ack({ ok: true, id: p.id, note, me: this.meFull(p), map: p.mapId, score: this.score, inv: this.invState(p), st: this.statState(p), skl: this.skillState(p), gm: this.isGm(p) });
+    ack({ ok: true, id: p.id, note, me: this.meFull(p), map: p.mapId, score: this.score, inv: this.invState(p), st: this.statState(p), skl: this.skillState(p), gm: this.canSpawn(p) });
     this.systemChat(`${p.name} (ฝ่าย${C.FACTIONS[p.faction].name}) เข้าสู่ยุทธภพ`);
   }
 
@@ -1846,7 +1849,7 @@ class World {
   // d.to (item / set / stone / charm / gold): a character name to give it to instead of the GM
   // d: { cmd: 'item', id, n, g } | { cmd: 'set', id, g } | { cmd: 'lvl', lvl } | { cmd: 'exp', n } | { cmd: 'gold', n } | { cmd: 'heal' } | { cmd: 'clearbag' }
   onGm(p, d) {
-    if (!this.isGm(p)) return this.toast(p, 'ไม่รู้จักคำสั่งนี้');
+    if (!this.canSpawn(p)) return this.toast(p, 'ไม่รู้จักคำสั่งนี้');
     if (!d || typeof d !== 'object') return;
     const grade = this.resolveGrade(d.g);
     if (grade < 0) return this.gmReply(p, `ไม่พบระดับ "${d.g}" (ใช้ 0-5 หรือ ${C.GRADES.map((g) => g.name.toLowerCase()).join(' / ')})`);
@@ -2021,7 +2024,7 @@ class World {
       case 'goto': return this.onGm(p, { cmd: 'goto', tx: a, ty: b });
       case 'gmcode': return this.gmUnlock(p, a, true);
       case 'out': return this.gmUnlock(p, a, false);
-      default: return this.isGm(p) ? this.onGm(p, { cmd: 'help' }) : this.toast(p, 'ไม่รู้จักคำสั่งนี้');
+      default: return this.canSpawn(p) ? this.onGm(p, { cmd: 'help' }) : this.toast(p, 'ไม่รู้จักคำสั่งนี้');
     }
   }
 
