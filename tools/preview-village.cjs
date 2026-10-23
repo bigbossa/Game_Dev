@@ -7,4 +7,5 @@ const maps={};for(const [i,id]of C.MAP_ORDER.entries()){
 }
 app.get('/api/map{/:id}',(req,res)=>{const m=maps[req.params.id||'village'];if(!m)return res.sendStatus(404);res.json(m);});
 app.use('/shared',express.static(path.join(__dirname,'../shared')));app.use(express.static(path.join(__dirname,'../public')));
-server.listen(3903,'127.0.0.1',()=>console.log('Read-only village preview http://127.0.0.1:3903'));
+const port=Number(process.argv[2])||3903;
+server.listen(port,'127.0.0.1',()=>console.log(`Read-only village preview http://127.0.0.1:${port}`));

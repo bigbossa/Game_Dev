@@ -1,0 +1,60 @@
+{
+  "generator": "built-in image_gen",
+  "reference": "monster-lineup-concept.png",
+  "layout": {
+    "columns": [
+      "S",
+      "SE",
+      "E",
+      "NE",
+      "N",
+      "NW",
+      "W",
+      "SW"
+    ],
+    "rows": [
+      "walkA",
+      "idle",
+      "walkB",
+      "attack"
+    ]
+  },
+  "prompt": "Use case: stylized-concept. Asset: production transparent 2D painted chibi wuxia MMORPG sprite sheet. Match the refined painted rendering, dark clean silhouette and overhead three-quarter game camera of the supplied monster lineup reference. Reference is design/style only; create a NEW sprite sheet of ONE species. Exactly 8 equal columns and 4 equal rows, 32 full-body poses, generous empty gutters with every character fully contained inside its own equal-sized cell. Columns left to right: S (front toward viewer), SE (front-right), E (right profile), NE (back-right), N (back away from viewer), NW (back-left), W (left profile), SW (front-left). Rows top to bottom: walk stride A, idle neutral, walk stride B opposite feet, melee attack contact. Consistent anatomy, palette and body scale throughout all 32 cells. Orthographic camera elevated about 25 degrees. Transparent RGBA background, no ground plane, no ground shadow, no labels, text, grids, borders, extra props or scenery. Keep each pose isolated with generous transparent margins; avoid detached particles. Clearly distinguish the rear views from front views. ",
+  "species": [
+    {
+      "id": "spirit",
+      "subject": "Dew spirit, a tiny round translucent aqua water-drop creature. Large dark teal eyes, short liquid arms, a pointed watery crown, two jade leaf fins sprouting from its top and a small dew pearl held close by a curved leaf stem. NO legs. Preserve its watery filled body, not just an outline. Stride poses are gentle alternate left/right liquid fin paddles and squash, idle round, attack leaning forward and extending one liquid fist. Rear views show leaf backs and no face. No detached splashes.",
+      "name": "ภูตน้ำค้าง"
+    },
+    {
+      "id": "mushroom",
+      "subject": "Little poison mushroom imp. Broad red-orange mushroom cap with ivory spots and visible cream gills, squat ivory stalk body, small angry amber eyes under cap brim, leafy moss collar, stubby root hands and two woody root feet. Two small attached leaves on the cap. Walk poses alternate root feet; attack swings one root fist forward. Rear views show spotted cap back and leaf collar without eyes. Same cap shape and ivory spot pattern throughout.",
+      "name": "เห็ดพิษปีศาจน้อย"
+    },
+    {
+      "id": "boar",
+      "subject": "Serrated tusk wild boar, a stocky FOUR-LEGGED chestnut-brown boar with a dark spiky mane, short serrated ivory tusks, wide brown snout, amber angry eyes, small curled tail and four split dark hooves. NO armor, jewelry, saddle or white mane: this is a normal small wild boar. Walk alternates diagonal leg pairs; attack lowers head and thrusts short tusks forward. All poses remain quadrupedal.",
+      "name": "หมูป่าเขี้ยวเลื่อย"
+    },
+    {
+      "id": "greensnake",
+      "subject": "Grass jade serpent, a single coiled jade-green snake with pale yellow segmented underside, amber eyes, small angular head and subtle bamboo-leaf patterns on its scales. NOT a cobra, no hood, no limbs, no accessories, no detached bamboo leaves. Body loops support an upright curved neck. Slithering poses move the coil left and right; idle compact S curve, attack extends neck and opens small fanged mouth. Rear views show green dorsal scales and little or no belly.",
+      "name": "อสรพิษหญ้าเขียว"
+    },
+    {
+      "id": "wolf",
+      "subject": "Moonshadow wolf, a slender FOUR-LEGGED wolf with charcoal-indigo fur, silver-lavender chest ruff and eyebrows, pointed ears, long muzzle, violet eyes, a small pale crescent marking in its chest fur and a flowing full bushy tail. Fur and tail are solid, no detached magic wisps. Distinct lean canine proportions, no armor or accessories. Walk alternates diagonal paws; attack lunges neck forward with small visible fangs. Back views show dark back and tail, no chest crescent.",
+      "name": "หมาป่าเงาจันทร์"
+    },
+    {
+      "id": "bandit",
+      "subject": "Straw-hat bandit, an adult male wuxia outlaw in chibi proportions about three heads tall, woven conical straw hat, black topknot, brown and moss-green patched tunic and trousers, muted red waist sash, leather wrist wraps and sandals, small coin pouch. Carries ONE short curved dao saber with steel blade and brass guard in his RIGHT HAND consistently across views. No other weapons. Walk alternates legs with sword held low; idle guarded stance; attack extends saber in a short slash, keep blade fully in cell with no VFX. Rear views show back of hat and tunic.",
+      "name": "โจรหมวกฟาง"
+    },
+    {
+      "id": "mountaintiger",
+      "subject": "Black-striped mountain tiger, a powerful FOUR-LEGGED orange-gold tiger, clear black stripes, cream muzzle and chest, rounded ears, amber eyes and a long black-ringed tail attached to rump. Broader shoulders and heavier forepaws than a wolf, low stalking posture, solid feline anatomy. No armor, magic or accessories. Walk alternates diagonal paw pairs; attack raises one front paw to swipe with claws while remaining quadrupedal. Consistent stripe pattern across poses; back views show shoulder stripes and attached tail.",
+      "name": "เสือภูเขาลายดำ"
+    }
+  ]
+}

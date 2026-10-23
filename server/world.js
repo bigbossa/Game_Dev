@@ -316,6 +316,8 @@ class World {
     p.charms = C.cleanCharms(r.charms);                     // ยันต์กันแตก / ยันต์เพิ่มโอกาส
     p.autoSell = C.cleanAutoSell(r.autoSell);               // grades sold the moment they drop
     p.autoSort = !!r.autoSort;                              // keep the bag sorted (C.sortBag) whenever an item comes in
+    p.eqMode = C.AUTO_EQUIP_MODES[r.eqMode] ? r.eqMode : 'grade';   // focus of "สวมของดีสุด" (C.AUTO_EQUIP_MODES)
+    p.autoEquip = !!r.autoEquip;                            // wear better gear by that focus on every drop / level-up
     p.locks = C.cleanLocks(r.locks);                        // ล็อกไอเทม (C.lockId): can't be sold or thrown away
     // คลังเก็บของ: the character's own storage (items + gold), opened at a camp's blacksmith / teleport stone
     p.storage = Array.from({ length: C.STORAGE_SIZE }, (_, i) => (r.storage && C.ITEMS[r.storage[i]] ? r.storage[i] : null));
@@ -375,7 +377,7 @@ class World {
   sendStat(p) { p.socket.emit('stat', this.statState(p)); }
   skillState(p) { return { ...p.skl, free: C.skillPtsFree(p.skl, p.lvl) }; }
   sendSkills(p) { p.socket.emit('skills', this.skillState(p)); }
-  invState(p) { return { inv: p.inv, eq: p.eq, gold: p.gold, stones: p.stones, charms: p.charms, autoSell: p.autoSell, autoSort: p.autoSort, locks: p.locks }; }
+  invState(p) { return { inv: p.inv, eq: p.eq, gold: p.gold, stones: p.stones, charms: p.charms, autoSell: p.autoSell, autoSort: p.autoSort, eqMode: p.eqMode, autoEquip: p.autoEquip, locks: p.locks }; }
   // auto-sort keeps the bag in order after every change (items in or out, equip, sell, store...)
   sendInv(p) {
     if (p.autoSort) p.inv = C.sortBag(p.inv);
@@ -459,10 +461,16 @@ class World {
     if (d.cmd !== 'open' && d.cmd !== 'sort') { this.sendInv(p); this.save(p); }
   }
   // d.cmd 'sort' = sort the bag now · 'auto' with d.on = keep it sorted
+  //   'mode' with d.mode = focus of "สวมของดีสุด" · 'autoequip' with d.on = wear better gear on every drop / level-up
   onBag(p, d) {
     if (!d || typeof d !== 'object') return;
     if (d.cmd === 'auto') p.autoSort = !!d.on;
-    else if (d.cmd !== 'sort') return;
+    else if (d.cmd === 'mode') { if (!C.AUTO_EQUIP_MODES[d.mode]) return; p.eqMode = d.mode; }
+    else if (d.cmd === 'autoequip') {
+      p.autoEquip = !!d.on;
+      this.toast(p, p.autoEquip ? `สวมของดีกว่าอัตโนมัติ: เปิด (เน้น${C.AUTO_EQUIP_MODES[p.eqMode].th})` : 'สวมของดีกว่าอัตโนมัติ: ปิด');
+      if (p.autoEquip) this.autoWear(p);
+    } else if (d.cmd !== 'sort') return;
     if (d.cmd === 'sort') p.inv = C.sortBag(p.inv);
     this.sendInv(p);
   }
@@ -486,7 +494,7 @@ class World {
     this.store.put({
       name: p.name, faction: p.faction, cls: p.cls, lvl: p.lvl, exp: Math.floor(p.exp),
       kills: p.kills, deaths: p.deaths, pvp: p.pvp || 0, map: p.mapId, x: Math.round(p.x), y: Math.round(p.y),
-      inv: p.inv, eq: p.eq, gold: p.gold, stones: p.stones, charms: p.charms, autoSell: p.autoSell, autoSort: p.autoSort, locks: p.locks,
+      inv: p.inv, eq: p.eq, gold: p.gold, stones: p.stones, charms: p.charms, autoSell: p.autoSell, autoSort: p.autoSort, eqMode: p.eqMode, autoEquip: p.autoEquip, locks: p.locks,
       storage: p.storage, storeGold: p.storeGold,
       alloc: p.alloc, autoStat: p.autoStat, skl: p.skl, evil: p.evil || 0, evilAt: p.evilAt || 0,
     });
@@ -1221,7 +1229,25 @@ class World {
   // until nothing changes; a tie keeps whatever is already worn, so equal gear is never shuffled around.
   onAutoEquip(p, d) {
     if (p.dead) return;
-    const mode = d && C.AUTO_EQUIP_MODES[d.mode] ? d.mode : 'grade';
+    if (d && C.AUTO_EQUIP_MODES[d.mode]) p.eqMode = d.mode;
+    const label = C.AUTO_EQUIP_MODES[p.eqMode].th, changed = this.equipBest(p);
+    if (changed) {
+      this.sendInv(p);
+      this.toast(p, `สวมของดีที่สุด (เน้น${label}) ให้แล้ว ${changed} ชิ้น`);
+      this.save(p);
+    } else this.toast(p, `สวมของดีที่สุด (เน้น${label}) อยู่แล้วทุกช่อง`);
+  }
+  // the "สวมอัตโนมัติ" setting (p.autoEquip) after a drop or a level-up: quiet unless something was put on
+  // (the caller sends the bag); returns how many slots changed
+  autoWear(p) {
+    if (!p.autoEquip || p.dead) return 0;
+    const changed = this.equipBest(p);
+    if (changed) this.toast(p, `สวมของดีกว่าอัตโนมัติ (เน้น${C.AUTO_EQUIP_MODES[p.eqMode].th}) ${changed} ชิ้น`);
+    return changed;
+  }
+  // swaps in the best outfit for p.eqMode, refreshes the stats when anything changed; returns how many slots changed
+  equipBest(p) {
+    const mode = p.eqMode;
     const eq = { ...p.eq }, pick = {};                         // pick[slot] = bag index to wear there
     const score = () => C.autoEquipScore(p.cls, p.lvl, eq, p.alloc, mode), better = C.autoEquipBetter;
     let best = score();
@@ -1239,7 +1265,6 @@ class World {
       }
       if (!moved) break;
     }
-    const label = C.AUTO_EQUIP_MODES[mode].th;
     let changed = 0;
     for (const slot of C.SLOTS) {
       const i = pick[slot];
@@ -1250,12 +1275,8 @@ class World {
       this.emitEquip(p, slot);
       changed++;
     }
-    if (changed) {
-      this.refreshStats(p);
-      this.sendInv(p);
-      this.toast(p, `สวมของดีที่สุด (เน้น${label}) ให้แล้ว ${changed} ชิ้น`);
-      this.save(p);
-    } else this.toast(p, `สวมของดีที่สุด (เน้น${label}) อยู่แล้วทุกช่อง`);
+    if (changed) this.refreshStats(p);
+    return changed;
   }
   // take an armour piece off (the weapon slot always keeps at least the training blades)
   onUnequip(p, slot) {
@@ -1630,6 +1651,7 @@ class World {
     const it = got && C.ITEMS[got];
     if (it && it.grade >= 3)
       this.systemChat(`✨ ${p.name} ได้รับ${C.SLOT_NAMES[it.slot]}ระดับ ${C.GRADES[it.grade].name} "${it.name}"!`);
+    if (it && !it.kind) this.autoWear(p);
     this.sendInv(p);
   }
 
@@ -2518,6 +2540,10 @@ class World {
       }
     }
     if (p.lvl !== lvl0) {
+      if (this.autoWear(p)) {                                // gear that was too high-level may fit now
+        p.hp = p.stats.maxHp; p.mp = p.stats.maxMp;          // a level-up still ends at full
+        this.sendInv(p);
+      }
       if (p.skl.auto) this.autoLearn(p);
       const free = C.skillPtsFree(p.skl, p.lvl);
       if (free > 0) this.toast(p, `มีแต้มสกิล ${free} แต้ม — กด K เพื่ออัปสกิล`);

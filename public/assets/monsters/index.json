@@ -19,5 +19,145 @@
     ],
     "attackRow": 3,
     "managedBy": "build-kingboar"
+  },
+  "spirit": {
+    "file": "spirit-v2.png",
+    "version": "fc494443d3b5",
+    "fw": 207,
+    "fh": 202,
+    "cols": 8,
+    "rows": 4,
+    "ax": 103.5,
+    "ay": 194,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-village-monsters"
+  },
+  "mushroom": {
+    "file": "mushroom-v2.png",
+    "version": "3e2b7b1b8608",
+    "fw": 170,
+    "fh": 197,
+    "cols": 8,
+    "rows": 4,
+    "ax": 85,
+    "ay": 189,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-village-monsters"
+  },
+  "boar": {
+    "file": "boar-v2.png",
+    "version": "1c2bd54650b8",
+    "fw": 237,
+    "fh": 202,
+    "cols": 8,
+    "rows": 4,
+    "ax": 118.5,
+    "ay": 194,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-village-monsters"
+  },
+  "greensnake": {
+    "file": "greensnake-v2.png",
+    "version": "e3131fd9e12e",
+    "fw": 205,
+    "fh": 207,
+    "cols": 8,
+    "rows": 4,
+    "ax": 102.5,
+    "ay": 199,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-village-monsters"
+  },
+  "wolf": {
+    "file": "wolf-v2.png",
+    "version": "666c6a1b9e95",
+    "fw": 241,
+    "fh": 219,
+    "cols": 8,
+    "rows": 4,
+    "ax": 120.5,
+    "ay": 211,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-village-monsters"
+  },
+  "bandit": {
+    "file": "bandit-v2.png",
+    "version": "49a8d0997540",
+    "fw": 183,
+    "fh": 202,
+    "cols": 8,
+    "rows": 4,
+    "ax": 91.5,
+    "ay": 194,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-village-monsters"
+  },
+  "mountaintiger": {
+    "file": "mountaintiger-v2.png",
+    "version": "58518ba18a2c",
+    "fw": 225,
+    "fh": 223,
+    "cols": 8,
+    "rows": 4,
+    "ax": 112.5,
+    "ay": 215,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-village-monsters"
   }
 }

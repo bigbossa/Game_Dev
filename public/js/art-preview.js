@@ -1,4 +1,4 @@
-(function () {
+(async function () {
   const canvas = document.getElementById('scene'), g = canvas.getContext('2d');
   const select = document.getElementById('map'), cards = document.getElementById('creatures');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -66,7 +66,14 @@
   }
   select.addEventListener('change', build);
   document.getElementById('motion').addEventListener('click', () => { moving = !moving; buttonLabel(); draw(); });
+  const spriteIndex = await fetch('assets/monsters/index.json?v=village-monsters-v2').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  MonsterArt.setSprites(spriteIndex);
   select.value = 'village'; build(); buttonLabel();
+  // Refresh once after lazy sprite loading even when motion is paused or reduced.
+  Promise.all(Object.entries(spriteIndex).map(([id, meta]) => new Promise(resolve => {
+    const img = new Image(); img.onload = img.onerror = resolve;
+    img.src = `assets/monsters/${meta.file || id + '.png'}?v=${meta.version || meta.fw + 'x' + meta.fh}`;
+  }))).then(() => requestAnimationFrame(draw));
   function frame(now) {
     if (moving && !document.hidden) { time += Math.min((now - previous) / 1000, .05); draw(); }
     previous = now; requestAnimationFrame(frame);

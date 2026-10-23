@@ -1173,14 +1173,18 @@
     return [...items.map(([id]) => id), ...Array(Math.max(0, inv.length - items.length)).fill(null)];
   };
   // focus of "สวมของดีสุด" (server: onAutoEquip): the outfit is scored by `stat` of playerStats (caps included),
-  // ties — and the whole of "grade" — go by level → grade → + like the bag sort
+  // ties — and the whole of "grade" — go by level → grade → + like the bag sort.
+  // pve is the whole multiplier the server deals to monsters: the pve option × (enhancement + full set, pveMult)
   const AUTO_EQUIP_MODES = {
     grade: { th: 'เลเวล/เกรด', stat: null },
+    atk: { th: 'พลังโจมตี', stat: (s) => s.atk },
+    def: { th: 'ป้องกัน', stat: (s) => s.def },
+    hp: { th: 'พลังชีวิต', stat: (s) => s.maxHp },
     crit: { th: 'อัตราคริ', stat: (s) => s.crit },
     critDmg: { th: 'ดาเมจคริ', stat: (s) => s.fx.critDmg || 0 },
     exp: { th: 'บัพ EXP', stat: (s) => s.fx.exp || 0 },
     gold: { th: 'บัพทอง', stat: (s) => s.fx.gold || 0 },
-    pve: { th: 'ดาเมจมอนสเตอร์', stat: (s) => s.fx.pve || 0 },
+    pve: { th: 'ดาเมจมอนสเตอร์', stat: (s) => (1 + (s.fx.pve || 0)) * (s.pveMult || 1) },
   };
   const gearRank = (it) => it.lvl * 1e6 + (it.grade || 0) * 1e3 + (it.plus || 0);
   // [focus stat of the whole outfit, summed gearRank]; compare two with autoEquipBetter

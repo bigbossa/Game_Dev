@@ -49,7 +49,7 @@
     resize();
     SPR = await fetch('assets/sprites.json').then((r) => r.json());
     // AI-drawn monster sheets (optional, tools/build-monsters.js)
-    MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=kingboar-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
+    MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=village-monsters-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
     // Load the replacement model directly; old bodies/masks must never re-enter this renderer.
     const weapMeta = await DualbladeModel.load(loadImg, IMG, SPR);
     await WarriorLook.load(loadImg);

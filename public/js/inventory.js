@@ -570,6 +570,9 @@
     const auto = $('bagSettings').querySelector('[data-bag="autosort"]');
     auto.classList.toggle('on', !!INV.state.autoSort);
     auto.textContent = INV.state.autoSort ? '☑ จัดเรียงอัตโนมัติ' : '☐ จัดเรียงอัตโนมัติ';
+    const wear = $('bagSettings').querySelector('[data-bag="autoequip-on"]');
+    wear.classList.toggle('on', !!INV.state.autoEquip);
+    wear.textContent = `${INV.state.autoEquip ? '☑' : '☐'} สวมของดีกว่าอัตโนมัติ (เน้น${C.AUTO_EQUIP_MODES[eqMode()].th})`;
     $('bagTools').querySelector('[data-bag="settings"]').classList.toggle('on', !$('bagSettings').classList.contains('hidden'));
   }
   // high grades are named in the confirmation so nothing valuable goes by accident
@@ -606,6 +609,7 @@
     if (b.dataset.bag === 'sort') emit('bag', { cmd: 'sort' });
     else if (b.dataset.bag === 'autosort') emit('bag', { cmd: 'auto', on: !INV.state.autoSort });
     else if (b.dataset.bag === 'autoequip') emit('autoEquip', { mode: $('autoEquipMode').value });
+    else if (b.dataset.bag === 'autoequip-on') emit('bag', { cmd: 'autoequip', on: !INV.state.autoEquip });
     else if (b.dataset.bag === 'storage') STORE.toggle();
     else if (b.dataset.bag === 'settings') {
       const open = !$('bagSettings').classList.toggle('hidden');
@@ -633,12 +637,14 @@
     const col = $('invStatsBtn').closest('.equip-col'), open = col.classList.toggle('show-stats');
     $('invStatsBtn').setAttribute('aria-expanded', String(open));
   });
-  // focus of "สวมของดีสุด" (C.AUTO_EQUIP_MODES), remembered per browser
+  // focus of "สวมของดีสุด" (C.AUTO_EQUIP_MODES), kept on the character (server: p.eqMode) because the automatic
+  // wear on drops uses it too; a focus older versions remembered in this browser is handed over once
+  let oldMode = null;
   {
     const s = $('autoEquipMode');
     s.innerHTML = Object.entries(C.AUTO_EQUIP_MODES).map(([k, m]) => `<option value="${k}">เน้น${m.th}</option>`).join('');
-    try { const v = localStorage.getItem('autoEquipMode'); if (v && C.AUTO_EQUIP_MODES[v]) s.value = v; } catch (e) { /* storage optional */ }
-    s.addEventListener('change', () => { try { localStorage.setItem('autoEquipMode', s.value); } catch (e) { /* storage optional */ } INV.render(); });
+    try { const v = localStorage.getItem('autoEquipMode'); if (v && C.AUTO_EQUIP_MODES[v]) { s.value = v; oldMode = v; } } catch (e) { /* storage optional */ }
+    s.addEventListener('change', () => { oldMode = null; emit('bag', { cmd: 'mode', mode: s.value }); INV.render(); });
   }
 
   // ------------------------------------------------------------ auto-sell: grades sold the moment they drop
@@ -668,6 +674,11 @@
     for (const [i] of moved) sel.delete(i);
     for (const [, id] of moved) { const j = state.inv.findIndex((x, k) => x === id && !sel.has(k)); if (j >= 0) sel.set(j, id); }
     INV.state = state;
+    if (oldMode && state.eqMode) {
+      if (oldMode !== state.eqMode) emit('bag', { cmd: 'mode', mode: oldMode });
+      try { localStorage.removeItem('autoEquipMode'); } catch (e) { /* storage optional */ }
+      oldMode = null;
+    } else if (state.eqMode && C.AUTO_EQUIP_MODES[state.eqMode]) $('autoEquipMode').value = state.eqMode;
     INV.render();
   };
   INV.render = function () {
