@@ -1,7 +1,7 @@
-// Slot masks and weapon anchors for the V3 painting. Coordinates are in source cells.
+// Slot masks and weapon anchors for the V4 painting. Coordinates are in source cells.
 // Classify once at build time; rendering only reads a cached 320x280 frame.
 const fs=require('node:fs'),path=require('node:path'),L=require('./img-lib');
-const dir=path.join(__dirname,'../public/assets/warrior-v3'),M=JSON.parse(fs.readFileSync(path.join(dir,'model.json')));
+const dir=path.join(__dirname,'../public/assets/warrior-v4'),M=JSON.parse(fs.readFileSync(path.join(dir,'model.json')));
 const FW=M.frameWidth,FH=M.frameHeight;
 // Blade root (past the guard), blade tip. Hidden weapons have no foreground effects.
 const BLADES=[
@@ -93,4 +93,4 @@ for(const f of ['dharma','adharma'])for(const pose of ['walk','attack']){
   L.writePng(path.join(dir,`${f}-${pose}-gear.png`),im.width,im.height,out);
 }
 fs.writeFileSync(path.join(dir,'model.json'),JSON.stringify(M));
-console.log('PASS: warrior V3 per-slot gear masks and pose-anchored weapons.');
+console.log('PASS: warrior V4 per-slot gear masks and pose-anchored weapons.');

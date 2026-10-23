@@ -1158,6 +1158,16 @@
     items.sort(([a, x], [b, y]) => rank(x) - rank(y) || y.lvl - x.lvl || (y.grade || 0) - (x.grade || 0) || (y.plus || 0) - (x.plus || 0) || (a < b ? -1 : a > b ? 1 : 0));
     return [...items.map(([id]) => id), ...Array(Math.max(0, inv.length - items.length)).fill(null)];
   };
+  // focus of "สวมของดีสุด" (server: onAutoEquip): the outfit is scored by `stat` of playerStats (caps included),
+  // ties — and the whole of "grade" — go by level → grade → + like the bag sort
+  const AUTO_EQUIP_MODES = {
+    grade: { th: 'เลเวล/เกรด', stat: null },
+    crit: { th: 'อัตราคริ', stat: (s) => s.crit },
+    critDmg: { th: 'ดาเมจคริ', stat: (s) => s.fx.critDmg || 0 },
+    exp: { th: 'บัพ EXP', stat: (s) => s.fx.exp || 0 },
+    gold: { th: 'บัพทอง', stat: (s) => s.fx.gold || 0 },
+    pve: { th: 'ดาเมจมอนสเตอร์', stat: (s) => s.fx.pve || 0 },
+  };
   const cleanAutoSell = (a) => (Array.isArray(a) ? [...new Set(a.filter((g) => Number.isInteger(g) && g >= 0 && g < GRADES.length))].sort((x, y) => x - y) : []);
   ENHANCE.canEnhance = (it) => !!it && (it.slot === 'weapon' || ['body', 'legs', 'arms', 'shoulder'].includes(it.slot));
   const plusId = (key, plus) => { const k = parseId(key); return makeKey(k.id, k.grade, k.seed, plus, k.aSeed, k.pSeed); };
@@ -1558,7 +1568,7 @@
     skillRank, skillMult, skillInfo, stageOf, SKILL_STAGES, stagesOf, STANCES, GCD_MS, CLASS_IDS, ALL_SKILLS, setViewClass, spearSequence, spearAreaContains,
     BAG_SIZE, STORAGE_SIZE, RARITY, GRADES, GRADE_LIGHT, gradeLight, EPIC, AFFIXES, OPTIONS, PASSIVES, DROP_LVL_RANGE, TOP_ITEM_LVL, canDropHigh, rollGrade, gradeChances, gradeBands, HIGH_BANDS, BOSS_GRADES, BOSS_RESPAWN,
     makeKey, gradeId, gearFx, gearGrade, gearGrades, gearPlus, WEAPONS, WEAPON_BY_TIER, ARMORS, ARMOR_SETS, ALL_ITEMS, ITEMS, SLOTS, SLOT_NAMES, ARMOR_SLOTS,
-    MAX_PLUS, REAPER_CD_MS, passiveChance, gearProcs, ENHANCE, MAT_TIERS, matTier, matKey, matDef, matHave, PVE_PLUS_MAX, SLOT_PVE, SET_BONUS, gearPve, ENH_STONE, ENH_CHARMS, cleanCharms, cleanAutoSell, sortBag, parseId, plusId, shopGearPrice, SHOP_BUY_GRADE_MAX, newSeed,
+    MAX_PLUS, REAPER_CD_MS, passiveChance, gearProcs, ENHANCE, MAT_TIERS, matTier, matKey, matDef, matHave, PVE_PLUS_MAX, SLOT_PVE, SET_BONUS, gearPve, ENH_STONE, ENH_CHARMS, cleanCharms, cleanAutoSell, sortBag, AUTO_EQUIP_MODES, parseId, plusId, shopGearPrice, SHOP_BUY_GRADE_MAX, newSeed,
     DROPS, SMITH, APOTHECARY, ENHANCER, sellPrice, playerStats, armorTiers, armorLookTier,
     MONSTERS, MONSTER_TYPES, ZONES, DIR_COL,
     SKILL_MAX, SKILL_STEP, SKILL_LVL_GAP, EVO_NEED, EVO_COST, BAR_KEYS, SKILL_PATHS, skillPtsTotal, skillCap, basicOf, skillPtsFree,

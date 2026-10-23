@@ -17,9 +17,8 @@
     for (const side of [-1,1]) for (const yy of [-25,-10,5]) { g.fillStyle=p.gold; g.beginPath(); g.arc(side*17,yy,1.6,0,Math.PI*2); g.fill(); }
     g.restore();
   };
-  // V3: authored helmet, independent equipment slots and the shared level thresholds.
+  // V4: open-faced wuxia topknot, independent equipment slots and shared level thresholds.
   const images={},masks={};let model;
-  const HELM={dharma:{edge:'#1d2a38',plume:['#ffffff','#c9dcf0'],plume7:['#fff6d0','#e8c060']},adharma:{edge:'#0c080e',plume:['#e02236','#6a0a16'],plume7:['#ff8a3a','#b0101c']}};
   const VIEW=['front','fq','side','bq','back','bq','side','fq'],FACE=[0,1,1,1,0,-1,-1,-1];
   const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
   W.tierOf=e=>ModelTiers.tierOf(e.lvl||1);
@@ -27,15 +26,15 @@
   W.body=(e,F)=>WarriorGear.frame(e,F);
   W.ready = false;
   W.load = async loadImg => {
-    const r=await fetch('assets/warrior-v3/model.json?v=gear-2');if(!r.ok)throw Error('Warrior atlas metadata missing');model=await r.json();
+    const r=await fetch('assets/warrior-v4/model.json?v=wuxia-1');if(!r.ok)throw Error('Warrior atlas metadata missing');model=await r.json();
     await Promise.all(['dharma','adharma'].flatMap(f=>['walk','attack'].map(async pose=>{
-      images[f+'-'+pose]=await loadImg('assets/warrior-v3/'+f+'-'+pose+'.png?v=gear-2');
-      masks[f+'-'+pose]=await loadImg('assets/warrior-v3/'+f+'-'+pose+'-gear.png?v=gear-2');
+      images[f+'-'+pose]=await loadImg('assets/warrior-v4/'+f+'-'+pose+'.png?v=wuxia-1');
+      masks[f+'-'+pose]=await loadImg('assets/warrior-v4/'+f+'-'+pose+'-gear.png?v=wuxia-1');
       // frame geometry for the shared level looks (wings, halo, horns, Lv.130 aura)
       ModelTiers.analyse(ModelTiers.key(f,pose==='attack','warrior'),images[f+'-'+pose],
         {frameWidth:model.frameWidth,frameHeight:model.frameHeight,framesPerDir:pose==='attack'?model.attackFrames:model.walkFrames});
     })));
-    await Promise.all(['dharma','adharma'].map(async f=>{await loadImg('assets/warrior-v3/'+f+'-portrait.png');}));
+    await Promise.all(['dharma','adharma'].map(async f=>{await loadImg('assets/warrior-v4/'+f+'-portrait.png');}));
     WarriorGear.init(model,images,masks);
     W.ready=true;
     // Front idle portraits use the exact same painted model as the world renderer.
@@ -46,24 +45,22 @@
     }
   };
 
-  // head box of a frame (frame px): x0..x1 hair width, dome = bowl top, brim (kept above the eyes), bottom of the hair
+  // Authored hair bounds keep the extra level locks at the nape, away from the eyes.
   function headOf(faction,pose,row,col){
     const h=model.landmarks[faction][pose][row*8+col]?.head;if(!h)return null;
-    const view=VIEW[col],back=view==='back'||view==='bq',hw=(h.x1-h.x0)/2;
-    // brim from the head's size; the face top only lowers it (a raised hand can read as skin at the hair line)
-    let brim=h.dome+hw*.62;if(!back&&h.face!=null&&h.face>h.dome+hw*.45)brim=Math.min(brim,h.face-3);
-    return {...h,cx:(h.x0+h.x1)/2,hw,brim:Math.round(brim),top:Math.round(Math.min(h.dome-8,brim-hw*.9)),view,face:FACE[col]};
+    return {...h,cx:(h.x0+h.x1)/2,hw:(h.x1-h.x0)/2,view:VIEW[col],face:FACE[col]};
   }
   const shadeRgb = (col,k,add=0) => 'rgb('+hex(col).map(v=>Math.min(255,v*k+add)|0).join(',')+')';
 
-  // long hair (Lv.30+): a thick tied tail (three locks) from under the back of the helmet. pass 'back' = behind the body
+  // Long tied hair (Lv.30+) follows the same nape and silhouette as the spear class.
+  // Front/side locks go behind the character; rear locks lie over the back of the robe.
   function drawTail(g,H,col,pass,tier){
-    const {cx,hw,brim,bottom,view,face}=H,front=view==='front'||view==='fq';
+    const {cx,hw,bottom,view,face}=H,front=view==='front'||view==='fq'||view==='side';
     if(front!==(pass==='back'))return;
-    const roots=view==='front'?[[cx-hw*.8,-1],[cx+hw*.8,1]]:view==='back'?[[cx,0]]:[[cx-face*hw*(view==='side'?.6:.42),-face]];
+    const roots=view==='front'?[[cx-hw*.72,-1],[cx+hw*.72,1]]:view==='back'?[[cx,0]]:[[cx-face*hw*(view==='side'?.66:.52),-face]];
     const lit=shadeRgb(col,1.25,35),dark=shadeRgb(col,.5),edge='#141b24';
     for(const [rx,side] of roots){
-      const y0=brim+(view==='front'?8:3),L=((bottom-brim)+72)*(view==='front'?.78:1)*(tier<4?.6:tier<6?.85:1.05),w=hw*(view==='front'?.3:.42),sw=side*(view==='back'?0:9);
+      const y0=bottom-hw*.42,L=hw*(view==='front'?1.35:1.8)*(tier<4?.68:tier<6?.88:1.05),w=hw*(view==='front'?.16:.23),sw=side*(view==='back'?0:6);
       const lock=(ox,len,ww,bend)=>{
         const x=rx+ox,tip=[x+sw*2.4+bend,y0+len];
         const gr=g.createLinearGradient(0,y0,0,y0+len);gr.addColorStop(0,lit);gr.addColorStop(.4,col);gr.addColorStop(1,dark);
@@ -83,22 +80,6 @@
     }
   }
 
-  // The helmet is painted into every pose. Add only the level-50 horsehair crest.
-  function drawHelmet(g,H,faction,tier,t){
-    const P=HELM[faction],{cx:bx,hw,view,face}=H,top=H.top+10;
-    if(tier>=3){
-      const [c0,c1]=tier>=7?P.plume7:P.plume,dir=view==='front'||view==='back'?1:-face;
-      const L=hw*(1.05+Math.min(tier-3,4)*.14),sway=Math.sin((t||0)*2.4)*2.5;
-      for(let i=0;i<11;i++){
-        const k=i/10,spread=(k-.5),len=L*(.75+.25*Math.sin(k*Math.PI));
-        const ex=bx+dir*(len*.85+spread*6)+sway,ey=top-4+len*(.35+spread*.3);
-        const pg=g.createLinearGradient(bx,top-8,ex,ey);pg.addColorStop(0,c0);pg.addColorStop(1,c1);
-        g.strokeStyle=P.edge;g.lineWidth=5.2;g.lineCap='round';
-        const curve=()=>{g.beginPath();g.moveTo(bx,top-9);g.bezierCurveTo(bx+dir*len*.25,top-9-len*(.42-spread*.2),bx+dir*len*.7,top-8-len*(.3-spread*.25),ex,ey);};
-        curve();g.stroke();curve();g.strokeStyle=pg;g.lineWidth=3.6;g.stroke();
-      }
-    }
-  }
   W.frame = (e,now=performance.now()) => {
     const a=e.atk,active=!!a&&now-a.t0<a.dur,progress=active?(now-a.t0)/a.dur:0;
     return {atk:active,dir:active?a.dir:e.dir,frame:active?(progress<.28?0:progress<.84?1:2):CharacterMotion.walkFrame(e,1)};
@@ -126,7 +107,7 @@
     if(H&&tier>=2)inFrame(()=>drawTail(g,H,hair,'back',tier));
     g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
     g.drawImage(body,x-ax*scale,y-ay*scale,fw*scale,fh*scale);g.restore();
-    if(H)inFrame(()=>{if(tier>=2)drawTail(g,H,hair,'front',tier);drawHelmet(g,H,faction,tier,t);});
+    if(H&&tier>=2)inFrame(()=>drawTail(g,H,hair,'front',tier));
     if(effects){
       const plus=WeaponLook.plusLook(e.wp),line=WarriorGear.weaponLine(e,F);
       if(plus&&line.length){
@@ -141,7 +122,7 @@
     }
   };
   const portraits = {};
-  W.portrait = faction => { const f=faction==='adharma'?'adharma':'dharma'; return portraits[f]||'assets/warrior-v3/'+f+'-portrait.png'; };
+  W.portrait = faction => { const f=faction==='adharma'?'adharma':'dharma'; return portraits[f]||'assets/warrior-v4/'+f+'-portrait.png'; };
   W.icon = (g,sk,faction) => WarriorIcons.draw(g,sk,faction,112);
   W.play = d => {
     const p=W.palette(d.f),sk=C.ALL_SKILLS[d.t],front=sk.frontline,t0=performance.now(),wind=front.windup||0;

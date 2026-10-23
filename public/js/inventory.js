@@ -541,9 +541,16 @@
     if (!b) return;
     if (b.dataset.bag === 'sort') emit('bag', { cmd: 'sort' });
     else if (b.dataset.bag === 'autosort') emit('bag', { cmd: 'auto', on: !INV.state.autoSort });
-    else if (b.dataset.bag === 'autoequip') emit('autoEquip', {});
+    else if (b.dataset.bag === 'autoequip') emit('autoEquip', { mode: $('autoEquipMode').value });
     else if (b.dataset.bag === 'storage') STORE.toggle();
   });
+  // focus of "สวมของดีสุด" (C.AUTO_EQUIP_MODES), remembered per browser
+  {
+    const s = $('autoEquipMode');
+    s.innerHTML = Object.entries(C.AUTO_EQUIP_MODES).map(([k, m]) => `<option value="${k}">เน้น${m.th}</option>`).join('');
+    try { const v = localStorage.getItem('autoEquipMode'); if (v && C.AUTO_EQUIP_MODES[v]) s.value = v; } catch (e) { /* storage optional */ }
+    s.addEventListener('change', () => { try { localStorage.setItem('autoEquipMode', s.value); } catch (e) { /* storage optional */ } });
+  }
 
   // ------------------------------------------------------------ auto-sell: grades sold the moment they drop
   function renderAutoSell() {

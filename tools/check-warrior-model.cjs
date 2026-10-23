@@ -1,6 +1,6 @@
 // Isolated browser review of real model/equipment rendering; no account or player data.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),WebSocket=require('ws');
-const origin=process.argv[2]||'http://127.0.0.1:3902',port=process.argv[3]||'9335',out=path.join(__dirname,'../artifacts/warrior-v3');
+const origin=process.argv[2]||'http://127.0.0.1:3902',port=process.argv[3]||'9335',out=path.join(__dirname,'../artifacts/warrior-v4');
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
   const page=await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent(origin+'/warrior-review.html')}`,{method:'PUT'}).then(r=>r.json());
@@ -52,7 +52,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       for(const faction of ['dharma','adharma']){
         const F={atk:false,dir:2,frame:1},e={cls:'warrior',faction,lvl:1,wt:0,ar:[0,0,0,0],gg:[0,0,0,0,0],gp:[0,0,0,0,0],wp:0};
         const base=pixels(WarriorLook.body(e,F)),c=Object.assign(document.createElement('canvas'),{width:320,height:280}),g=c.getContext('2d');
-        g.drawImage(await load('assets/warrior-v3/'+faction+'-walk-gear.png'),0,280,320,280,0,0,320,280);const mask=pixels(c);
+        g.drawImage(await load('assets/warrior-v4/'+faction+'-walk-gear.png'),0,280,320,280,0,0,320,280);const mask=pixels(c);
         for(let slot=0;slot<4;slot++){
           const ar=[0,0,0,0];ar[slot]=7;const next=pixels(WarriorLook.body({...e,ar},F));let n=0;
           for(let k=0;k<base.length;k+=4)if(base[k]!==next[k]||base[k+1]!==next[k+1]||base[k+2]!==next[k+2]||base[k+3]!==next[k+3]){if(Math.round(mask[k]/30)!==slot+1)throw Error('Slot recolors other equipment '+slot);n++;}

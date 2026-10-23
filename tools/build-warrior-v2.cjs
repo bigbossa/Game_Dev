@@ -8,7 +8,8 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const L=require('./img-lib');
 const paintedHelmet=process.argv.includes('--v3');
-const root=path.join(__dirname,'..'),src=path.join(root,'public/assets',paintedHelmet?'warrior-v3':'warrior-v1'),out=path.join(root,'public/assets',paintedHelmet?'warrior-v3':'warrior-v2');
+const nativeHair=process.argv.includes('--v4');
+const root=path.join(__dirname,'..'),src=path.join(root,'public/assets',nativeHair?'warrior-v4':paintedHelmet?'warrior-v3':'warrior-v1'),out=path.join(root,'public/assets',nativeHair?'warrior-v4':paintedHelmet?'warrior-v3':'warrior-v2');
 fs.mkdirSync(out,{recursive:true});
 const meta=JSON.parse(fs.readFileSync(path.join(src,'model.json'),'utf8'));
 const FW=meta.frameWidth,FH=meta.frameHeight;
@@ -43,7 +44,7 @@ for(const faction of ['dharma','adharma']){
       // head width from the upper half of the main hair mass only (a raised sleeve can touch its lower edge)
       let x0=FW,x1=-1;
       for(let y=dome;y<dome+(bottom-dome)*0.5;y++)for(let x=0;x<FW;x++)if(comp[y*FW+x]===main){x0=Math.min(x0,x);x1=Math.max(x1,x);}
-      if(!paintedHelmet)for(let y=0;y<dome+2;y++)for(let x=Math.max(0,x0-4);x<=Math.min(FW-1,x1+4);x++){const i=at(x,y);if(D[i+3])mask[i+2]=255;}
+      if(!paintedHelmet&&!nativeHair)for(let y=0;y<dome+2;y++)for(let x=Math.max(0,x0-4);x<=Math.min(FW-1,x1+4);x++){const i=at(x,y);if(D[i+3])mask[i+2]=255;}
       for(let y=0;y<FH;y++)for(let x=0;x<FW;x++){const k=y*FW+x,i=at(x,y);
         if(comp[k]<0&&D[i+3]>=110&&steelOf(D[i],D[i+1],D[i+2]))mask[i+1]=128;
         if(mask[i]|mask[i+1]|mask[i+2])mask[i+3]=255;}
@@ -63,6 +64,6 @@ for(const faction of ['dharma','adharma']){
     L.writePng(path.join(out,`${faction}-${pose}-mask.png`),W,H,mask);
   }
 }
-meta.version=paintedHelmet?3:2;meta.source=paintedHelmet?'warrior-v3':'warrior-v1';
+meta.version=nativeHair?4:paintedHelmet?3:2;meta.source=nativeHair?'warrior-v4':paintedHelmet?'warrior-v3':'warrior-v1';
 fs.writeFileSync(path.join(out,'model.json'),JSON.stringify(meta));
 console.log(`PASS: warrior V${meta.version} masks + head landmarks, 2 factions × (walk + attack).`);

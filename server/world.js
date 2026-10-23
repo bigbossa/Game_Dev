@@ -1181,35 +1181,51 @@ class World {
     this.emitEquip(p, it.slot);
     this.toast(p, `สวมใส่ ${it.name}`);
   }
-  // สวมของดีที่สุดอัตโนมัติ: for every slot, pick the strongest item the player can currently wear — currently
-  // equipped or in the bag — ranked the same way the bag's own auto-sort already treats quality (level, then
-  // grade, then + level; shared/common.js sortBag). A tie keeps whatever is already worn, so this never shuffles
-  // equal gear around for no reason.
-  onAutoEquip(p) {
+  // สวมของดีที่สุดอัตโนมัติ: pick, among what is worn and what is in the bag (and wearable at this level), the
+  // outfit that scores best for the chosen focus (C.AUTO_EQUIP_MODES): first the focus stat of the whole outfit
+  // (playerStats, so the crit cap and the option caps count — a 6th exp piece past the cap gains nothing), then
+  // the bag-sort quality (level, then grade, then + level) summed over the slots. Slots are improved one at a time
+  // until nothing changes; a tie keeps whatever is already worn, so equal gear is never shuffled around.
+  onAutoEquip(p, d) {
     if (p.dead) return;
+    const mode = d && C.AUTO_EQUIP_MODES[d.mode] ? d.mode : 'grade', stat = C.AUTO_EQUIP_MODES[mode].stat;
     const rank = (it) => it.lvl * 1e6 + (it.grade || 0) * 1e3 + (it.plus || 0);
+    const eq = { ...p.eq }, pick = {};                         // pick[slot] = bag index to wear there
+    const score = () => [stat ? stat(C.playerStats(p.cls, p.lvl, eq, p.alloc)) : 0,
+      C.SLOTS.reduce((t, s) => t + (eq[s] ? rank(C.ITEMS[eq[s]]) : 0), 0)];
+    const better = (a, b) => a[0] > b[0] + 1e-9 || (a[0] > b[0] - 1e-9 && a[1] > b[1]);
+    let best = score();
+    for (let pass = 0; pass < 4; pass++) {
+      let moved = false;
+      for (const slot of C.SLOTS) {
+        let cur = eq[slot];
+        for (let i = 0; i < p.inv.length; i++) {
+          const it = C.ITEMS[p.inv[i]];
+          if (!it || it.kind || it.slot !== slot || it.lvl > p.lvl || pick[slot] === i) continue;
+          eq[slot] = it.id;
+          const sc = score();
+          if (better(sc, best)) { best = sc; pick[slot] = i; cur = it.id; moved = true; } else eq[slot] = cur;
+        }
+      }
+      if (!moved) break;
+    }
+    const label = C.AUTO_EQUIP_MODES[mode].th;
     let changed = 0;
     for (const slot of C.SLOTS) {
-      let best = p.eq[slot] ? C.ITEMS[p.eq[slot]] : null, bestRank = best ? rank(best) : -1, bestIdx = -1;
-      for (let i = 0; i < p.inv.length; i++) {
-        const it = C.ITEMS[p.inv[i]];
-        if (!it || it.kind || it.slot !== slot || it.lvl > p.lvl) continue;
-        const r = rank(it);
-        if (r > bestRank) { best = it; bestRank = r; bestIdx = i; }
-      }
-      if (bestIdx < 0) continue;                               // bag has nothing better than what's worn
+      const i = pick[slot];
+      if (i === undefined) continue;                           // bag has nothing better than what's worn
       const old = p.eq[slot];
-      p.eq[slot] = best.id;
-      p.inv[bestIdx] = old || null;
+      p.eq[slot] = p.inv[i];
+      p.inv[i] = old || null;
       this.emitEquip(p, slot);
       changed++;
     }
     if (changed) {
       this.refreshStats(p);
       this.sendInv(p);
-      this.toast(p, `สวมของดีที่สุดให้แล้ว ${changed} ชิ้น`);
+      this.toast(p, `สวมของดีที่สุด (เน้น${label}) ให้แล้ว ${changed} ชิ้น`);
       this.save(p);
-    } else this.toast(p, 'สวมของดีที่สุดอยู่แล้วทุกช่อง');
+    } else this.toast(p, `สวมของดีที่สุด (เน้น${label}) อยู่แล้วทุกช่อง`);
   }
   // take an armour piece off (the weapon slot always keeps at least the training blades)
   onUnequip(p, slot) {

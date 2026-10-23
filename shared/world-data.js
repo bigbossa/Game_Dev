@@ -5,9 +5,9 @@
 (function (root, factory) {
   const node = typeof module === 'object' && module.exports;
   const C = node ? require('./common') : root.C;
-  factory(C, node ? require('./village-map') : root.VillageMap);
+  factory(C, node ? require('./village-map') : root.VillageMap, node ? require('./hunting-layouts') : root.HuntingLayouts);
   if (node) module.exports = C;
-})(typeof self !== 'undefined' ? self : this, function (C, Village) {
+})(typeof self !== 'undefined' ? self : this, function (C, Village, HuntingLayouts) {
   const { TILE, T } = C;
 
   // ---------------- terrain themes (colours used by the client renderer) ----------------
@@ -258,99 +258,7 @@
   };
   const polyD = (px, py, pts) => { let d = 1e9; for (let i = 1; i < pts.length; i++) d = Math.min(d, segD(px, py, ...pts[i - 1], ...pts[i])); return d; };
 
-  const TEMPLATES = {
-    // หมู่บ้านกลางทุ่ง: the village in the middle, a river to the west, grounds spreading out in a ring
-    village: {
-      w: 128, h: 96, camp: [55, 38, 'EW'], next: [124, 48], lair: [62, 10, 6.5], trees: 1, ponds: 0.74,
-      slots: [[46, 30], [46, 66], [26, 28], [26, 68], [12, 14], [12, 82], [86, 26], [86, 70], [102, 16], [102, 80], [114, 32], [114, 64], [77, 14], [68, 25]],
-      roads: [[3, [54, 48], [36, 48], [18, 48]], [2, [18, 48], [18, 30], [12, 14]], [2, [18, 48], [18, 66], [12, 82]],
-        [2, [46, 48], [46, 30]], [2, [46, 48], [46, 66]], [2, [26, 48], [26, 28]], [2, [26, 48], [26, 68]],
-        [3, [74, 48], [124, 48]], [2, [90, 48], [90, 26], [102, 16], [114, 32]], [2, [90, 48], [90, 70], [102, 80], [114, 64]],
-        [2, [90, 26], [76, 16], [62, 10]]],
-      paint(P) { P.river((y) => 36 + Math.sin(y * 0.09) * 3 + Math.sin(y * 0.21 + 1) * 1.3, 2.2); },
-    },
-    // หุบผาคดเคี้ยว: a winding canyon between cliff walls, monster basins in its bends
-    pass: {
-      w: 150, h: 72, camp: [2, 26, 'E'], next: [147, 30], lair: [128, 21, 7], trees: 0.45,
-      line: [[21, 36], [34, 36], [46, 24], [62, 18], [78, 26], [90, 42], [104, 52], [120, 44], [134, 30], [147, 30]],
-      slots: [[32, 27], [40, 43], [50, 14], [57, 29], [70, 13], [75, 34], [92, 32], [85, 48], [104, 61], [112, 40], [128, 37], [101, 47]],
-      roads: [[3, [21, 36], [34, 36], [46, 24], [62, 18], [78, 26], [90, 42], [104, 52], [120, 44], [134, 30], [147, 30]], [2, [128, 34], [128, 21]]],
-      paint(P, D) {
-        P.fill(T.CLIFF);
-        P.each((x, y) => { if (polyD(x + 0.5, y + 0.5, D.line) <= 7.5 + P.fbm(x / 7, y / 7) * 4) P.set(x, y, T.GRASS); });
-        P.rect(0, 22, 24, 50, T.GRASS);
-      },
-    },
-    // ป่าวงกต: dense forest, clearings joined by branching trails, the camp in the south
-    forest: {
-      w: 112, h: 112, camp: [46, 89, 'N'], next: [108, 26], lair: [56, 12, 7], forest: 0.62,
-      slots: [[38, 78], [72, 78], [24, 60], [88, 60], [18, 40], [94, 40], [34, 22], [78, 22], [44, 46], [66, 46], [56, 28], [33, 35]],
-      roads: [[3, [55, 88], [55, 64]], [2, [55, 78], [38, 78]], [2, [55, 78], [72, 78]], [2, [55, 64], [24, 60], [18, 40], [34, 22]],
-        [2, [55, 64], [88, 60], [94, 40], [78, 22]], [2, [55, 64], [44, 46], [56, 28], [56, 12]], [2, [55, 64], [66, 46], [56, 28]],
-        [2, [34, 22], [56, 12], [78, 22]], [2, [78, 22], [96, 24], [108, 26]]],
-      paint(P) { P.disc(88, 92, 6, T.WATER); P.disc(18, 94, 5, T.WATER); P.disc(30, 6, 4, T.WATER); },
-    },
-    // จวนร้าง: a walled compound (north hall + two south courtyards), a graveyard outside
-    manor: {
-      w: 120, h: 96, camp: [4, 70, 'E'], next: [115, 6], lair: [65, 24, 6], trees: 0.8,
-      slots: [[38, 82], [58, 86], [96, 84], [112, 62], [47, 54], [83, 54], [14, 40], [110, 36], [40, 22], [90, 22], [65, 9], [53, 15]],
-      roads: [[3, [23, 80], [65, 80], [65, 67], [65, 30]], [2, [65, 80], [96, 84], [112, 62], [110, 36], [112, 26]],
-        [2, [100, 26], [112, 26], [115, 6]], [2, [30, 52], [14, 52], [14, 40]], [2, [65, 54], [47, 54]], [2, [65, 54], [83, 54]],
-        [2, [65, 34], [40, 22]], [2, [65, 34], [90, 22]]],
-      walls: { x0: 30, y0: 12, x1: 100, y1: 66, mid: 40, divider: 65,
-        gaps: [['S', 63, 67], ['E', 24, 28], ['W', 50, 54], ['H', 45, 48], ['H', 63, 67], ['H', 82, 85], ['V', 51, 55]] },
-      graveyard: [78, 72, 116, 92],
-      paint(P, D) {
-        const w = D.walls;
-        P.rect(w.x0, w.y0, w.x1, w.y1, T.FIELD);
-      },
-    },
-    // ขั้นบันไดภูเขา: three terraces split by cliffs, a grand stair to the temple on the summit
-    temple: {
-      w: 128, h: 96, camp: [55, 74, 'N'], next: [122, 14], lair: [64, 18, 6], trees: 1, hall: [64, 8],
-      slots: [[30, 82], [98, 82], [24, 58], [104, 58], [46, 58], [82, 58], [26, 38], [102, 38], [46, 38], [82, 38], [52, 9], [76, 9]],
-      roads: [[4, [64, 73], [64, 14]], [2, [30, 72], [98, 72]], [2, [30, 72], [30, 82]], [2, [98, 72], [98, 82]],
-        [2, [30, 72], [30, 38]], [2, [98, 72], [98, 38]], [2, [24, 58], [104, 58]], [2, [26, 38], [102, 38]], [2, [64, 14], [122, 14]]],
-      paint(P) {
-        for (const [y, stairs] of [[68, [[62, 66], [28, 31], [96, 99]]], [48, [[62, 66], [28, 31], [96, 99]]], [28, [[62, 66]]]])
-          for (let x = 4; x < 124; x++) if (!stairs.some(([a, b]) => x >= a && x <= b)) { P.set(x, y, T.CLIFF); P.set(x, y + 1, T.CLIFF); }
-        P.rect(50, 6, 78, 26, T.PLAZA);
-        P.disc(10, 88, 6, T.WATER); P.disc(118, 88, 6, T.WATER);
-      },
-    },
-    // ทะเลสาบน้ำแข็ง: a frozen lake you can walk on, islands, holes of open water, the palace island in the middle
-    ice: {
-      w: 128, h: 100, camp: [2, 40, 'E'], next: [124, 50], lair: [66, 50, 6.5], trees: 0.9,
-      slots: [[26, 14], [26, 86], [40, 34], [40, 66], [60, 22], [60, 80], [88, 30], [88, 72], [110, 18], [110, 84], [62, 35], [51, 46]],
-      roads: [[3, [21, 50], [124, 50]], [2, [26, 14], [26, 86]], [2, [110, 18], [110, 84]]],
-      paint(P, D) {
-        P.each((x, y) => { if (((x + 0.5 - 66) / 48) ** 2 + ((y + 0.5 - 50) / 36) ** 2 <= 1 + P.fbm(x / 6, y / 6) * 0.25 - 0.1) P.set(x, y, T.ICE); });
-        for (const [cx, cy] of [[60, 22], [60, 80]]) P.disc(cx, cy, 6.5, T.GRASS);
-        P.disc(66, 50, 9.5, T.GRASS);
-        for (let i = 0; i < 16; i++) {                       // holes in the ice, away from grounds and the road
-          const x = 24 + P.rand() * 84, y = 18 + P.rand() * 64;
-          if (Math.abs(y - 50) < 5 || D.slots.some(([sx, sy]) => Math.hypot(sx - x, sy - y) < 10) || Math.hypot(x - 66, y - 50) < 14) continue;
-          P.disc(x, y, 1.5 + P.rand() * 2, T.WATER, (t) => t === T.ICE);
-        }
-      },
-    },
-    // ปล่องภูเขาไฟ: the boss in the crater, lava rivers flowing out to the four corners
-    fire: {
-      w: 128, h: 96, camp: [4, 72, 'E'], lair: [70, 38, 6.5], trees: 0.5,
-      slots: [[38, 84], [58, 88], [30, 66], [88, 80], [16, 34], [110, 64], [30, 22], [108, 32], [54, 14], [88, 12], [70, 56], [83, 54]],
-      roads: [[3, [23, 82], [70, 82], [70, 44]], [2, [70, 82], [88, 80], [110, 64], [108, 32], [88, 12]],
-        [2, [38, 84], [30, 66], [16, 34], [30, 22], [54, 14]], [2, [54, 14], [88, 12]]],
-      paint(P) {
-        for (const pts of [[[62, 30], [44, 20], [30, 8], [22, 0]], [[80, 29], [96, 18], [110, 6], [118, 0]], [[58, 44], [40, 50], [22, 56], [0, 60]], [[83, 44], [100, 50], [116, 48], [128, 54]]])
-          P.lava(pts, 1.6);
-        P.each((x, y) => {
-          const d = Math.hypot(x + 0.5 - 70, y + 0.5 - 38), a = Math.atan2(y + 0.5 - 38, x + 0.5 - 70);
-          if (d < 11) P.set(x, y, T.FIELD);
-          else if (d < 14.5 && Math.abs(a - Math.PI / 2) > 0.33) P.set(x, y, T.CLIFF);
-        });
-      },
-    },
-  };
+  const TEMPLATES = HuntingLayouts(C);
 
   TEMPLATES.village = Village.template;
   C.VILLAGE = Village;
@@ -648,11 +556,17 @@
       const a = (i / 10) * Math.PI * 2 + 0.3;
       const tx = Math.round(lair.tx + Math.cos(a) * (lair.r + 0.8)), ty = Math.round(lair.ty + Math.sin(a) * (lair.r + 0.8));
       const t = get(tx, ty);
-      if (t === T.PATH || t === T.BRIDGE || t === T.WATER || t === T.CLIFF) continue;
+      if (onRoad(tx, ty, 1) || t === T.PATH || t === T.BRIDGE || t === T.WATER || t === T.CLIFF) continue;
       addObj(def.theme === 'ice' ? 'crystal' : 'pillar', def.theme === 'ice' ? i % 3 : i % 3, tx, ty, true);
     }
 
     // 7. map-specific buildings
+    for (const mark of tp.landmarks || []) {
+      // Reserve the complete footprint before scatter. The entrance is south of the building.
+      P.rect(mark.x-mark.rx-1,mark.y-mark.depth-1,mark.x+mark.rx+1,mark.y+2,T.PLAZA);
+      block(mark.x-mark.rx,mark.y-mark.depth,mark.x+mark.rx,mark.y);
+      objects.push(['landmark',mark.kind,px(mark.x),(mark.y+1)*TILE-6]);
+    }
     if (tp.walls) {                        // manor compound: outer walls, a divider in the south half, gates
       const w = tp.walls, gap = (side, v) => w.gaps.some(([s, a, b]) => s === side && v >= a && v <= b);
       const wall = (x, y, tower) => { if (get(x, y) === T.PATH) return; addObj(tower ? 'tower' : 'wall', 1, x, y, true, 0, 6); };
@@ -719,7 +633,7 @@
       }
     }
     for (let k = 0; k < W * H; k++) if (tiles[k] === T.WATER || tiles[k] === T.CLIFF) solid[k] = 1;
-    return { w: W, h: H, seed, tiles, solid, objects };
+    return { w: W, h: H, seed, version: 3, tiles, solid, objects };
   }
 
   // ---------------- queries ----------------
@@ -736,6 +650,7 @@
     const tx = x / TILE, ty = y / TILE;
     if (inRect(def.camp, tx, ty)) return def.campName;
     if (Math.hypot(tx - def.lair.tx - 0.5, ty - def.lair.ty - 0.5) <= def.lair.r + 1) return def.zones[def.zones.length - 1].name;
+    for (const mark of def.tpl.landmarks || []) if (Math.hypot(tx-mark.x,ty-mark.y)<mark.rx+5) return mark.name;
     for (const z of def.zones) if (!z.fixed && inRect(z, tx, ty)) return z.name;
     return def.name;
   }

@@ -6,11 +6,11 @@ const crypto = require('node:crypto');
 const { readPng } = require('./img-lib');
 
 const root = path.join(__dirname, '..');
-const assetDir = path.join(root, 'public/assets/warrior-v3');
+const assetDir = path.join(root, 'public/assets/warrior-v4');
 const meta = JSON.parse(fs.readFileSync(path.join(assetDir, 'model.json'), 'utf8'));
 const { frameWidth: width, frameHeight: height, anchorX, anchorY } = meta;
-assert.equal(meta.version, 3);
-assert.equal(meta.paintedHelmet, true);
+assert.equal(meta.version, 4);
+assert.equal(meta.paintedHelmet, false, 'the wuxia model keeps its hair and face exposed');
 assert.equal(width, 320);
 assert.equal(height, 280);
 assert.equal(anchorX, 160);
@@ -66,11 +66,11 @@ function largestBody(pixels) {
 }
 
 const digest = pixels => crypto.createHash('sha256').update(pixels).digest('hex');
-const summary = { frames: 0, portraits: 0, sources: 0, minAtlasMargin: Infinity, maxFeetOffset: 0, maxCentreOffset: 0 };
+const summary = { frames: 0, masks: 0, portraits: 0, sources: 0, minAtlasMargin: Infinity, maxFeetOffset: 0, maxCentreOffset: 0 };
 const factionDigests = [];
 for (const faction of ['dharma', 'adharma']) {
-  const source = readPng(path.join(root, 'class-art/warrior-v3', faction + '-source.png'));
-  assert.equal(source.width, 1402); assert.equal(source.height, 1122);
+  const source = readPng(path.join(root, 'class-art/warrior-v4', faction + '-source.png'));
+  assert(source.width >= width && source.height >= height, faction + ': undersized authored source');
   const sourceBounds = bounds(source.data, source.width, source.height);
   assert(sourceBounds.transparent > source.width * source.height * .1, faction + ': source must preserve transparency');
   summary.sources++;
@@ -82,6 +82,15 @@ for (const faction of ['dharma', 'adharma']) {
     assert.equal(png.height, height * count, label + ': frame rows');
     const marks = meta.landmarks[faction][pose];
     assert.equal(marks.length, count * 8, label + ': one landmark per frame');
+    const mask = readPng(path.join(assetDir, label + '-gear.png'));
+    assert.equal(mask.width, png.width, label + ': equipment mask width');
+    assert.equal(mask.height, png.height, label + ': equipment mask height');
+    for (let i = 0; i < mask.data.length; i += 4) {
+      const region = mask.data[i] / 30;
+      assert(Number.isInteger(region) && region >= 0 && region <= 7, label + ': invalid equipment region');
+      if (region) assert.equal(mask.data[i + 3], png.data[i + 3], label + ': mask must follow authored transparency');
+    }
+    summary.masks++;
     const frames = Array.from({ length: count }, (_, row) => Array.from({ length: 8 }, (_, col) => frame(png, row, col)));
     factionDigests.push(digest(png.data));
     for (let row = 0; row < count; row++) for (let col = 0; col < 8; col++) {
@@ -111,6 +120,10 @@ for (const faction of ['dharma', 'adharma']) {
       summary.maxFeetOffset = Math.max(summary.maxFeetOffset, feetOffset);
       summary.maxCentreOffset = Math.max(summary.maxCentreOffset, centreOffset);
       const mark = marks[row * 8 + col];
+      const hairMask = frame(mask, row, col);
+      let hairPixels = 0;
+      for (let i = 0; i < hairMask.length; i += 4) if (hairMask[i] === 150 && hairMask[i + 3] > 128) hairPixels++;
+      assert(hairPixels > 50, tag + ': exposed hair must support level appearance');
       for (const key of ['headTop', 'feetY', 'sourceCentre', 'sourceFeet']) assert(Number.isInteger(mark[key]), tag + ': invalid ' + key);
       assert.equal(mark.feetY, anchorY, tag + ': landmark feet');
       assert(Math.abs(mark.headTop - headY) <= 6, tag + ': landmark head does not match pixels');

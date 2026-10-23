@@ -4,7 +4,10 @@
   "description": "2D MMORPG - ธรรมะ vs อธรรม",
   "main": "server/index.js",
   "scripts": {
-    "warrior": "node tools/build-warrior.cjs && node tools/build-warrior-v2.cjs --v3 && node tools/build-warrior-gear.cjs",
+    "check:maps": "node tools/check-hunting-maps.cjs",
+    "check:maps-browser": "node tools/check-hunting-browser.cjs",
+    "preview:maps": "node tools/preview-hunting.cjs",
+    "warrior": "node tools/build-warrior.cjs && node tools/build-warrior-v2.cjs --v4 && node tools/build-warrior-gear.cjs",
     "check:warrior": "node tools/check-warrior.cjs && node tools/check-warrior-art.cjs",
     "check:warrior-browser": "node tools/check-warrior-browser.cjs",
     "check:warrior-model": "node tools/check-warrior-model.cjs",

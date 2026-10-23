@@ -1850,8 +1850,8 @@
 
     // y-sorted drawables
     const list = [];
-    const cx0 = Math.max(0, Math.floor((view.x - 260) / PCH)), cx1 = Math.min(PCW - 1, Math.floor((view.x + view.w + 260) / PCH));
-    const cy0 = Math.max(0, Math.floor((view.y - 60) / PCH)), cy1 = Math.min(Math.ceil(G.map.h / Art.CHUNK) - 1, Math.floor((view.y + view.h + 420) / PCH));
+    const cx0 = Math.max(0, Math.floor((view.x - 280) / PCH)), cx1 = Math.min(PCW - 1, Math.floor((view.x + view.w + 280) / PCH));
+    const cy0 = Math.max(0, Math.floor((view.y - 60) / PCH)), cy1 = Math.min(Math.ceil(G.map.h / Art.CHUNK) - 1, Math.floor((view.y + view.h + 470) / PCH));
     const lights = [];
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++)
       for (const p of propChunks[cy * PCW + cx]) {

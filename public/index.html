@@ -217,7 +217,8 @@
           <div class="bag-tools">
             <span class="bag-count-wrap">🎒 <b id="bagCount">0/60</b></span>
             <button type="button" data-bag="sort" class="bag-btn ghost" title="เรียง: อาวุธ → เสื้อ → กางเกง → ปลอกแขน → หัวไหล่ · เลเวล ระดับ และ + สูงก่อน">⇅ จัดเรียง</button>
-            <button type="button" data-bag="autoequip" class="bag-btn ghost" title="สวมไอเทมที่ดีที่สุดในกระเป๋าให้ทุกช่อง (เทียบเลเวล → เกรด → ค่าตีบวก)">⚡ สวมของดีสุด</button>
+            <button type="button" data-bag="autoequip" class="bag-btn ghost" title="สวมไอเทมที่ดีที่สุดในกระเป๋าให้ทุกช่อง ตามค่าที่เลือกเน้น (เสมอกันเทียบเลเวล → เกรด → ค่าตีบวก)">⚡ สวมของดีสุด</button>
+            <select id="autoEquipMode" class="bag-sel" title="ค่าที่เน้นตอนสวมของดีสุด"></select>
             <button type="button" data-bag="autosort" class="bag-btn ghost toggle" title="จัดเรียงให้เองทุกครั้งที่ได้ไอเทมใหม่">☐ จัดอัตโนมัติ</button>
             <button type="button" data-bag="storage" class="bag-btn ghost" title="เปิดได้ที่ช่างตีดาบหรือศิลาเคลื่อนย้ายในค่ายพัก">📦 คลัง</button>
           </div>
@@ -396,9 +397,11 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/shared/common.js"></script>
   <script src="/shared/village-map.js"></script>
+  <script src="/shared/hunting-layouts.js"></script>
   <script src="/shared/world-data.js"></script>
   <script src="js/pathfind.js"></script>
   <script src="js/world-art.js"></script>
+  <script src="js/hunting-art.js"></script>
   <script src="js/village-art.js"></script>
   <script src="js/monsters.js"></script>
   <script src="js/monster-feral.js"></script>

@@ -552,6 +552,7 @@
   // returns {img, ax, ay, light?}
   Art.propSprite = function (o) {
     if(o[0]==='village')return window.VillageArt?.prop(o)||null;
+    if(o[0]==='landmark')return window.HuntingArt?.prop(o)||null;
     const [t, v, x, y] = o;
     switch (t) {
       case 'tree': { const img = SPR.tree[v][(hash(x, y) * 3) | 0]; return { img, ax: 60, ay: 150 }; }
@@ -585,12 +586,12 @@
   // Visual palettes only: map generation, collision and progression remain in shared/world-data.js.
   const PALETTES = {
     village: { grass: ['#819467', '#6e8964'], path: '#d2bd92', sand: '#bdb894', plaza: '#d5c6a4', water: ['#548f89', '#3c7776'], flowers: ['#eee0bb', '#d994a8', '#b7ceb0'] },
-    canyon: { grass: ['#8b805b', '#817351'], path: '#ac9273', sand: '#bca27c', plaza: '#b09b7d', water: ['#587f83', '#365761'], cliff: ['#998369', '#5f5148'] },
-    forest: { grass: ['#4b6552', '#3e594d'], path: '#847864', sand: '#a1967d', plaza: '#979485', water: ['#416c6d', '#2c4f58'] },
+    canyon: { grass: ['#a3966c', '#8d855c'], path: '#d3b890', sand: '#ceba8b', plaza: '#cbb491', field: '#b29a73', water: ['#4b9c9b', '#30676e'], cliff: ['#af9272', '#715446'] },
+    forest: { grass: ['#426950', '#315347'], path: '#8d9271', sand: '#82896b', plaza: '#789080', field: '#657965', water: ['#438b78', '#244d58'], flowers:['#c8b0ee','#9ccfc2','#e8dfb0'] },
     haunted: { grass: ['#606770', '#505b64'], path: '#7b7779', sand: '#8d8287', plaza: '#8a8991', water: ['#4b6576', '#354556'] },
-    temple: { grass: ['#7a875b', '#677c56'], path: '#a5997c', plaza: '#c5baa4', water: ['#527e7c', '#396261'] },
-    ice: { grass: ['#e5eff5', '#d9e7f0'], path: '#bdcedf', plaza: '#d1dfe9', water: ['#a0d8e6', '#7eb7d3'] },
-    fire: { grass: ['#514644', '#403c40'], path: '#77615a', plaza: '#89766b', water: ['#d76a24', '#952d17'], cliff: ['#635251', '#393136'] },
+    temple: { grass: ['#87976c', '#708c65'], path: '#d4c7a4', plaza: '#e2d7bb', field:'#c4b894', water: ['#70ada1', '#467c7e'] },
+    ice: { grass: ['#e5eff5', '#d9e7f0'], path: '#bdcedf', plaza: '#d1dfe9', field:'#b4cbdc', water: ['#458eb6', '#284e82'] },
+    fire: { grass: ['#514644', '#403c40'], path: '#88716a', plaza: '#89766b', field:'#695153', water: ['#ef8a2e', '#b43a22'], cliff: ['#635251', '#393136'] },
   };
   Art.CHUNK = 12;
   // colours of the current map (C.THEMES); the PvP map keeps the original west/east look
@@ -620,6 +621,7 @@
       if (tx >= map.w || ty >= map.h) continue;
       paintEdges(g, tileAt, tx, ty, i * TILE, j * TILE);
     }
+    if(window.HuntingArt)HuntingArt.ground(g,map,tx0*TILE,ty0*TILE,S);
     return c;
   };
   function grassColor(tx, ty) {

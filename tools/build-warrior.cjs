@@ -2,11 +2,11 @@
 // Preserve source alpha and art; only crop, remove isolated matte dust, scale and mirror.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const L=require('./img-lib'),{mirror,trim}=require('./sheet-cut');
-const root=path.join(__dirname,'..'),out=path.join(root,'public/assets/warrior-v3');
+const root=path.join(__dirname,'..'),out=path.join(root,'public/assets/warrior-v4');
 fs.mkdirSync(out,{recursive:true});
 const FW=320,FH=280,AX=160,AY=252,SCALE=.72;
 const cols=[0,305,590,875,1145,1402],rows=[0,309,609,897,1122],dirs=[0,1,2,3,4,3,2,1];
-const meta={version:3,source:'warrior-v3',paintedHelmet:true,frameWidth:FW,frameHeight:FH,anchorX:AX,anchorY:AY,walkFrames:4,attackFrames:3,heldWeapon:true,landmarks:{}};
+const meta={version:4,source:'warrior-v4',paintedHelmet:false,frameWidth:FW,frameHeight:FH,anchorX:AX,anchorY:AY,walkFrames:4,attackFrames:3,heldWeapon:true,landmarks:{}};
 function cut(src,c,r){
   const x0=cols[c],y0=rows[r],w=cols[c+1]-x0,h=rows[r+1]-y0,d=new Uint8ClampedArray(w*h*4);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4,j=((y+y0)*src.width+x+x0)*4;d.set(src.data.subarray(j,j+4),i);if(d[i+3]<50)d[i+3]=0;}
@@ -36,7 +36,7 @@ function cut(src,c,r){
     sourceCell:[c,r],sourceScale:SCALE,sourceOffset:[Math.round(AX-centre*SCALE)+Math.round(AX-(left+right)/2),Math.round(AY-foot*SCALE)+dy]};
 }
 for(const faction of ['dharma','adharma']){
-  const src=L.readPng(path.join(root,'class-art/warrior-v3',faction+'-source.png'));assert.equal(src.width,1402);assert.equal(src.height,1122);
+  const src=L.readPng(path.join(root,'class-art/warrior-v4',faction+'-source.png'));assert.equal(src.width,1402);assert.equal(src.height,1122);
   const cells=Array.from({length:4},(_,r)=>Array.from({length:5},(_,c)=>cut(src,c,r)));
   const expand=row=>dirs.map((c,i)=>({...row[c],img:i>4?mirror(row[c].img):row[c].img}));
   const walk=[expand(cells[1]),expand(cells[0]),expand(cells[2]),expand(cells[0])];
