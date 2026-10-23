@@ -257,9 +257,10 @@
       { id: 'shieldSweep', name: 'ดาบกวาดแนวหน้า', key: '4', lvl: 4, mp: 22, cd: 6500,
         frontline: { damage: 1.7, range: 155, windup: 280, area: true },
         desc: 'กวาดดาบด้านหน้า 170% รัศมี 155', evo: [{ lvl: 80, name: 'ดาบกวาดปราการ', desc: 'พลังเพิ่ม 30% ทำให้ช้า 1 วินาที' }] },
-      { id: 'battleCry', name: 'คำรามท้าศึก', key: '5', lvl: 7, mp: 28, cd: 16000,
-        frontline: { taunt: true, range: 220 },
-        desc: 'ยั่วยุมอนสเตอร์ในระยะ 220 ให้เปลี่ยนเป้ามาหาตน 2.5 วินาที บอส 1.5 วินาที ไม่มีผลบังคับผู้เล่น', evo: [{ lvl: 90, name: 'คำรามขุนพล', desc: 'ระยะเพิ่มเป็น 260' }, { lvl: 130, name: 'คำรามมหาขุนพล', desc: 'ระยะเพิ่มเป็น 280 ไม่เพิ่มระยะเวลายั่วยุ' }] },
+      { id: 'battleCry', name: 'คำรามท้าศึก', key: '5', lvl: 7, mp: 28, cd: 6000,
+        // ranges by evolution rank; immune = how long a taunted monster ignores further taunts after it ends
+        frontline: { taunt: true, range: 300, ranges: [300, 340, 380], immune: 1000 },
+        desc: 'ยั่วยุมอนสเตอร์ทุกตัวรอบตัวในระยะ 300 ให้หันมาตีตน 2.5 วินาที บอส 1.5 วินาที แล้วตีต่อ ไม่มีผลบังคับผู้เล่น', evo: [{ lvl: 90, name: 'คำรามขุนพล', desc: 'ระยะเพิ่มเป็น 340' }, { lvl: 130, name: 'คำรามมหาขุนพล', desc: 'ระยะเพิ่มเป็น 380 ไม่เพิ่มระยะเวลายั่วยุ' }] },
       { id: 'sunderStrike', name: 'ดาบผ่าเกราะ', key: '6', lvl: 10, mp: 22, cd: 8500,
         frontline: { damage: 2, range: 140, windup: 300, armorBreak: 0.2 },
         desc: 'ฟันเป้าเดียว 200% ลดเกราะเป้า 20% นาน 5 วินาที ไม่ซ้อนเกราะแตก', evo: [{ lvl: 100, name: 'ดาบผ่าเกราะขุนพล', desc: 'พลังเพิ่ม 30% ลดเกราะ 25%' }] },

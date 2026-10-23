@@ -186,5 +186,18 @@ try {
     f.w.castSkill(second,{id:'battleCry',a:0});assert.equal(f.t.target,second.id);
     assert.equal(f.t.threat.size,0);
   }
+  // Every monster around turns on the warrior (no cap), and the shorter cooldown can re-taunt the same pack.
+  {
+    const f=fixture(),pack=[f.t];
+    for(let i=0;i<7;i++){const a=i*Math.PI*2/7,m={...f.t,id:'pack'+i,threat:new Map(),target:null,dots:[],
+      x:2000+Math.cos(a)*280,y:2000+Math.sin(a)*280};Object.assign(m,{hx:m.x,hy:m.y,wx:m.x,wy:m.y});f.w.maps.arena.monsters.push(m);pack.push(m);}
+    const far={...f.t,id:'far',threat:new Map(),target:null,x:2400,y:2000};Object.assign(far,{hx:far.x,hy:far.y});f.w.maps.arena.monsters.push(far);
+    cast(f,'battleCry');
+    for(const m of pack)assert.equal(m.target,f.p.id,'every monster within range is taunted');
+    assert.equal(far.target,null,'monsters outside the range are left alone');
+    now+=C.ALL_SKILLS.battleCry.cd;for(const m of pack){f.w.updateMonster(m,0,now);m.target=null;}
+    f.p.cds={};f.p.gcd=0;cast(f,'battleCry');
+    for(const m of pack)assert.equal(m.target,f.p.id,'taunt can be recast on the same pack after the cooldown');
+  }
   console.log(`PASS: ${cases} warrior casts; both factions, PvE/PvP, interruption, taunt lifecycle/rewards/immunity, party wards, no stacking, progression and save roundtrip.`);
 } finally { Date.now=originalNow;Math.random=originalRandom; }

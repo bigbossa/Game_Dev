@@ -548,14 +548,16 @@ class World {
         for (const q of front.party ? this.partyNear(p, front.range) : [p])
           this.addBuff(q, sk.id, duration, { frontGuard: amount }, amount);
       } else if (front.taunt) {
-        for (const m of this.enemiesOf(p, p.x, p.y, [220, 260, 280][rank])) {
-          if (isPlayer(m) || now < (m.tauntImmuneUntil || 0) || dist(p,m) > [220,260,280][rank] + radiusOf(m) ||
+        // every monster around the warrior turns on them (no target cap)
+        const range = front.ranges[rank] || front.range;
+        for (const m of this.enemiesOf(p, p.x, p.y, range)) {
+          if (isPlayer(m) || now < (m.tauntImmuneUntil || 0) || dist(p,m) > range + radiusOf(m) ||
               C.safeAt(this.defOf(p), p.x, p.y) || Math.hypot(m.x - m.hx, m.y - m.hy) > (m.def.boss ? 640 : 560)) continue;
           const duration = m.def.boss ? 1500 : 2500;
           // Threat is also the boss damage-credit ledger. Taunts must never add fake damage/XP.
           m.taunt = { target: p.id, previous: m.target, until: now + duration };
           m.target = p.id; m.returning = false; m.nextRetarget = now + duration;
-          m.tauntImmuneUntil = now + duration + 6000;
+          m.tauntImmuneUntil = now + duration + front.immune;
         }
       } else {
         p.lockUntil = now + front.windup;
