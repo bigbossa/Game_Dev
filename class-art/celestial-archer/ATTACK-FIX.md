@@ -1,0 +1,3 @@
+# Medium profile attack correction
+
+Edit ONLY bottom row, THIRD character from left (right-profile archer) in this exact 1402x1122 transparent 5x4 atlas. Her bow-holding arm has disappeared. Restore the near-side bow-holding arm extended horizontally SCREEN RIGHT, elbow straight, closed fist at approximately pixel (836,997), and the other hand drawing an invisible bowstring at her cheek. Match bottom row second character's archery arm pose turned into right profile. Face looks screen right. Keep head size, entire body, hair, costume, placement and all other nineteen characters unchanged. No painted bow, no text, preserve transparency. Return same 1402x1122 atlas.

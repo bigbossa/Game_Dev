@@ -1,0 +1,17 @@
+# secrets (database password, Supabase keys) — copy .env.example instead
+.env
+.env.*
+!.env.example
+
+node_modules/
+
+# browser profiles from the art/browser checks: cookies and saved logins
+artifacts/
+.equipment-glints-review/
+*-profile/
+
+# player saves (already in the database)
+data/
+
+*.exe
+*.log

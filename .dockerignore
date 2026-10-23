@@ -1,0 +1,15 @@
+node_modules
+.env
+*.exe
+*.png
+!public/**/*.png
+artifacts
+class-art
+monster-art
+map-art
+models
+model*
+docs
+tools
+data
+.equipment-glints-review

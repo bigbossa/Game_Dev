@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "props": {
+    "pavilion": {
+      "file": "pavilion.png",
+      "width": 415,
+      "height": 408,
+      "ax": 208,
+      "ay": 401,
+      "occludes": true
+    },
+    "apothecary": {
+      "file": "apothecary.png",
+      "width": 358,
+      "height": 343,
+      "ax": 179,
+      "ay": 336,
+      "occludes": true
+    },
+    "smith": {
+      "file": "smith.png",
+      "width": 351,
+      "height": 358,
+      "ax": 176,
+      "ay": 351,
+      "occludes": true
+    },
+    "house": {
+      "file": "house.png",
+      "width": 328,
+      "height": 302,
+      "ax": 164,
+      "ay": 295,
+      "occludes": true
+    },
+    "gate": {
+      "file": "gate.png",
+      "width": 252,
+      "height": 216,
+      "ax": 126,
+      "ay": 209,
+      "occludes": true
+    },
+    "stone": {
+      "file": "stone.png",
+      "width": 94,
+      "height": 136,
+      "ax": 47,
+      "ay": 129,
+      "occludes": false
+    },
+    "tree": {
+      "file": "tree.png",
+      "width": 218,
+      "height": 223,
+      "ax": 109,
+      "ay": 216,
+      "occludes": true
+    },
+    "peach": {
+      "file": "peach.png",
+      "width": 233,
+      "height": 248,
+      "ax": 117,
+      "ay": 241,
+      "occludes": true
+    },
+    "bamboo": {
+      "file": "bamboo.png",
+      "width": 198,
+      "height": 230,
+      "ax": 99,
+      "ay": 223,
+      "occludes": true
+    },
+    "rocks": {
+      "file": "rocks.png",
+      "width": 140,
+      "height": 119,
+      "ax": 70,
+      "ay": 112,
+      "occludes": false
+    },
+    "lantern": {
+      "file": "lantern.png",
+      "width": 62,
+      "height": 122,
+      "ax": 31,
+      "ay": 115,
+      "occludes": false
+    },
+    "shrub": {
+      "file": "shrub.png",
+      "width": 108,
+      "height": 89,
+      "ax": 54,
+      "ay": 82,
+      "occludes": false
+    }
+  },
+  "ground": {
+    "courtyard": {
+      "file": "courtyard.png",
+      "width": 1024,
+      "height": 797
+    },
+    "bridge": {
+      "file": "bridge.png",
+      "width": 1024,
+      "height": 326
+    },
+    "grass": {
+      "file": "grass.png",
+      "width": 768,
+      "height": 768
+    }
+  }
+}

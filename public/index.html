@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="apple-mobile-web-app-title" content="ธรรมะอธรรม">
+  <title>ธรรมะ ⚔ อธรรม Online</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23111'/%3E%3Cpath d='M32 2a30 30 0 0 1 0 60z' fill='%23c3262c'/%3E%3Cpath d='M32 2a30 30 0 0 0 0 60z' fill='%236cc4ff'/%3E%3Cpath d='M18 46L46 18M18 18l28 28' stroke='%23fff' stroke-width='5'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- ===================== LOGIN ===================== -->
+  <div id="login" class="screen">
+    <div class="login-bg"></div>
+    <div class="login-panel">
+      <h1 class="title"><span class="t-d">ธรรมะ</span><span class="t-x">⚔</span><span class="t-a">อธรรม</span></h1>
+      <p class="subtitle">ศึกสองขั้วแห่งยุทธภพ · 2D MMORPG</p>
+
+      <!-- step 1: log in / sign up -->
+      <form id="authStep" class="auth-step" autocomplete="on" onsubmit="return false">
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab selected" data-mode="login">เข้าสู่ระบบ</button>
+          <button type="button" class="auth-tab" data-mode="register">สมัครบัญชี</button>
+        </div>
+        <input id="userInput" class="auth-input" maxlength="20" placeholder="ชื่อบัญชี" autocomplete="username">
+        <div class="pw-wrap"><input id="passInput" class="auth-input" type="password" maxlength="72" placeholder="รหัสผ่าน" autocomplete="current-password"><button type="button" class="pw-eye" data-for="passInput" aria-label="แสดงรหัสผ่าน">👁</button></div>
+        <div class="pw-wrap hidden" id="pass2Wrap"><input id="pass2Input" class="auth-input" type="password" maxlength="72" placeholder="ยืนยันรหัสผ่าน" autocomplete="new-password"><button type="button" class="pw-eye" data-for="pass2Input" aria-label="แสดงรหัสผ่าน">👁</button></div>
+        <button id="authBtn" class="gold-btn" type="submit">เข้าสู่ระบบ</button>
+        <p class="hint" id="authHint">ตัวละครเดิมก่อนมีระบบบัญชี: สมัครบัญชีด้วยชื่อเดียวกับตัวละครเพื่อรับตัวนั้น หรือผูกเพิ่มได้ในหน้าเลือกตัวละคร</p>
+      </form>
+
+      <!-- step 2: pick a character -->
+      <div id="charStep" class="hidden">
+        <div class="acct-bar">
+          <span>บัญชี: <b id="acctName"></b></span>
+          <span class="acct-actions">
+            <button type="button" id="pwToggle" class="link-btn">เปลี่ยนรหัสผ่าน</button>
+            <button type="button" id="logoutBtn" class="link-btn">ออกจากระบบ</button>
+          </span>
+        </div>
+        <div id="pwBox" class="pw-box hidden">
+          <div class="pw-wrap"><input id="pwOld" class="auth-input" type="password" maxlength="72" placeholder="รหัสผ่านเดิม" autocomplete="current-password"><button type="button" class="pw-eye" data-for="pwOld" aria-label="แสดงรหัสผ่าน">👁</button></div>
+          <div class="pw-wrap"><input id="pwNew" class="auth-input" type="password" maxlength="72" placeholder="รหัสผ่านใหม่ (6 ตัวขึ้นไป)" autocomplete="new-password"><button type="button" class="pw-eye" data-for="pwNew" aria-label="แสดงรหัสผ่าน">👁</button></div>
+          <button type="button" id="pwBtn" class="small-btn">บันทึก</button>
+        </div>
+        <div class="step-label">เลือกตัวละคร <small id="charCount"></small></div>
+        <div id="charList" class="char-list"></div>
+        <div id="delBox" class="del-box hidden">
+          <div class="del-q">ลบ <b id="delName"></b> ถาวร? ไอเทม ทอง และคลังของตัวนี้จะหายทั้งหมด กู้คืนไม่ได้</div>
+          <div class="pw-box">
+            <div class="pw-wrap"><input id="delPass" class="auth-input" type="password" maxlength="72" placeholder="ใส่รหัสผ่านบัญชีเพื่อยืนยัน" autocomplete="current-password"><button type="button" class="pw-eye" data-for="delPass" aria-label="แสดงรหัสผ่าน">👁</button></div>
+            <button type="button" id="delOk" class="small-btn danger">ลบถาวร</button>
+            <button type="button" id="delCancel" class="small-btn">ยกเลิก</button>
+          </div>
+        </div>
+        <button id="newCharBtn" class="small-btn wide" type="button">+ สร้างตัวละครใหม่</button>
+        <div class="claim-row">
+          <input id="claimInput" class="auth-input" maxlength="16" placeholder="ชื่อตัวละครเดิมที่ยังไม่มีบัญชี" autocomplete="off">
+          <button id="claimBtn" class="small-btn" type="button">ผูกเข้าบัญชี</button>
+        </div>
+      </div>
+
+      <!-- step 3: make a new character -->
+      <div id="createStep" class="hidden">
+      <button type="button" id="backBtn" class="link-btn">← กลับไปเลือกตัวละคร</button>
+      <div class="step-label">เลือกฝ่าย</div>
+      <div class="factions">
+        <button class="fcard dharma selected" data-f="dharma" type="button">
+          <img src="assets/dharma-portrait.png" alt="">
+          <div class="fname">ธรรมะ</div>
+          <div class="fdesc">ผู้พิทักษ์แสงสว่าง · ชุดขาวฟ้า<br>ฐานในสนามรบ PvP: วิหารธรรมะ</div>
+        </button>
+        <button class="fcard adharma" data-f="adharma" type="button">
+          <img src="assets/adharma-portrait.png" alt="">
+          <div class="fname">อธรรม</div>
+          <div class="fdesc">ผู้ครองรัตติกาล · ชุดดำแดง<br>ฐานในสนามรบ PvP: ป้อมปราการอธรรม</div>
+        </button>
+      </div>
+
+      <div class="step-label">เลือกอาชีพ</div>
+      <div class="classes">
+        <button class="cls selected" type="button" data-c="dualblade">⚔️ ดาบคู่</button>
+        <button class="cls" type="button" data-c="archer">🏹 นักธนู</button>
+        <button class="cls" type="button" data-c="taoist">🔮 นักพรต</button>
+        <button class="cls" type="button" data-c="spearman">🔱 ทวน</button>
+        <button class="cls" type="button" data-c="warrior">🛡️ นักรบแนวหน้า</button>
+      </div>
+      <p class="cls-desc" id="clsDesc"></p>
+
+      <div class="name-row">
+        <input id="nameInput" maxlength="16" placeholder="ชื่อตัวละคร" autocomplete="off">
+        <button id="playBtn" type="button">สร้างและเข้าเกม</button>
+      </div>
+      <p class="hint">ฝ่ายและอาชีพเปลี่ยนภายหลังไม่ได้ · แผนที่ล่ามอนสเตอร์ Lv.1–130 ใช้ร่วมกันทั้งสองฝ่าย · ฝ่ายมีผลเฉพาะในสนามรบ PvP</p>
+      </div>
+      <div id="loginMsg"></div>
+    </div>
+  </div>
+
+  <!-- ===================== HUD ===================== -->
+  <div id="hud" class="hidden">
+    <div id="playerFrame">
+      <button type="button" class="hud-fold" data-fold="pf"></button>
+      <button type="button" id="switchCharBtn" class="pf-switch" title="เปลี่ยนตัวละคร">⇄</button>
+      <div class="pf-portrait"><img id="pfImg" alt=""><div id="pfLvl">1</div></div>
+      <div class="pf-info">
+        <div id="pfName"></div>
+        <div class="bar hp"><div class="fill"></div><span></span></div>
+        <div class="bar mp"><div class="fill"></div><span></span></div>
+        <div class="bar xp"><div class="fill"></div><span></span></div>
+        <div class="pf-gold">💰 <span class="gold-val">0</span> ทอง</div>
+        <div id="buffBar" class="buff-bar"></div>
+      </div>
+    </div>
+
+    <div id="partyFrame" class="hidden"></div>
+    <div id="partyInvite" class="hidden" role="dialog" aria-modal="false" aria-labelledby="piTitle">
+      <div class="pi-head"><span class="pi-badge">👥</span><span id="piTitle">คำเชิญเข้าปาร์ตี้</span><span id="piQueue" class="pi-queue"></span></div>
+      <div class="pi-body">
+        <div class="pi-portrait"><img id="piImg" alt=""><span id="piLvl"></span></div>
+        <div class="pi-who">
+          <div id="piName" class="pi-name"></div>
+          <div id="piMeta" class="pi-meta"></div>
+          <div id="piSize" class="pi-size"></div>
+        </div>
+      </div>
+      <p class="pi-ask">ต้องการเข้าร่วมปาร์ตี้นี้หรือไม่?</p>
+      <div class="pi-timer"><i id="piBar"></i><span id="piSec"></span></div>
+      <div class="pi-btns">
+        <button id="ptAccept" type="button" class="pi-yes">ตกลง <kbd>Y</kbd></button>
+        <button id="ptDecline" type="button" class="pi-no">ปฏิเสธ <kbd>N</kbd></button>
+      </div>
+    </div>
+    <div id="playerMenu" class="hidden"></div>
+
+    <div id="scoreBoard" class="hidden">
+      <div class="sb-side d"><span class="sb-name">ธรรมะ</span><b id="scD">0</b><small id="onD">0 ออนไลน์</small></div>
+      <div class="sb-vs">⚔</div>
+      <div class="sb-side a"><b id="scA">0</b><span class="sb-name">อธรรม</span><small id="onA">0 ออนไลน์</small></div>
+    </div>
+
+    <div id="mmWrap">
+      <button type="button" class="hud-fold" data-fold="map"></button>
+      <div id="mapLabel"></div>
+      <canvas id="minimap" width="200" height="150" title="คลิก = เปิดแผนที่ใหญ่ (M)"></canvas>
+      <div id="areaLabel"></div>
+    </div>
+
+    <div id="targetFrame" class="hidden">
+      <div id="tfName"></div>
+      <div class="bar thp"><div class="fill"></div><span></span></div>
+    </div>
+
+    <div id="feed"></div>
+    <div id="zoneBanner"></div>
+    <div id="toasts"></div>
+
+    <div id="skillbar"></div>
+
+    <div id="chat">
+      <button id="chatToggle" type="button" title="ซ่อน / แสดงแชท (L)"><span class="ct-label">💬 แชท</span><b id="chatUnread"></b><span class="ct-arrow"></span></button>
+      <div id="chatLog"></div>
+      <input id="chatInput" maxlength="140" placeholder="Enter เพื่อแชท · /f = แชทฝ่าย · /p = แชทปาร์ตี้">
+    </div>
+
+    <button id="bagBtn" type="button" title="กระเป๋า (I)">🎒</button>
+    <button id="bookBtn" type="button" title="คัมภีร์วิชา (K)">📜</button>
+    <button id="botBtn" type="button" title="กล่องบอทล่าอัตโนมัติ (O)">🤖</button>
+    <button id="statBtn" type="button" title="แต้มสถานะ (C)">💪</button>
+    <button id="whoBtn" type="button" title="ผู้เล่นออนไลน์ (P)">👥</button>
+    <button id="pkBtn" type="button" title="สถานะ PvP (U)">⚔</button>
+    <button id="rankBtn" type="button" title="อันดับผู้เล่น (R)">🏆</button>
+    <div id="botStatus" class="hidden"></div>
+    <div id="followStatus" class="hidden"></div>
+    <button id="chatBtn" type="button" title="แชท">💬</button>
+    <button id="helpBtn" type="button" title="วิธีเล่น (H)">?</button>
+    <button id="fsBtn" type="button" title="เต็มจอ">⛶</button>
+    <div id="joy"><div id="joyKnob"></div></div>
+    <div id="interactHint" class="hidden">กด <b>F</b> เพื่อเปิดร้านช่างตีดาบ</div>
+
+    <div id="invPanel" class="panel hidden">
+      <div class="panel-head"><span>ตัวละคร &amp; กระเป๋า</span><button class="close" type="button">✕</button></div>
+      <div class="inv-body">
+        <div class="equip-col">
+          <canvas id="invPreview" width="170" height="180"></canvas>
+          <div id="eqGrid">
+            <div class="eq-slot" data-slot="weapon"></div>
+            <div class="eq-slot" data-slot="body"></div>
+            <div class="eq-slot" data-slot="legs"></div>
+            <div class="eq-slot" data-slot="arms"></div>
+            <div class="eq-slot" data-slot="shoulder"></div>
+          </div>
+          <div id="eqName"></div>
+          <div id="statList"></div>
+          <div class="gold-line">💰 <b class="gold-val">0</b> ทอง <span class="stone-line"><img class="stone-ico" alt=""> หินตีบวก <b class="stone-val">0</b></span> <span class="charm-line" title="ยันต์กันแตก · ยันต์เพิ่มโอกาส"><img class="charm-ico" data-k="guard" alt=""><b class="guard-val">0</b> <img class="charm-ico" data-k="luck" alt=""><b class="luck-val">0</b></span></div>
+        </div>
+        <div class="bag-col">
+          <div id="bagBar" class="bag-bar">
+            <span id="bagSelInfo" class="bag-sel-info">ติ๊ก ☐ ที่มุมไอเทมเพื่อเลือกหลายชิ้น</span>
+            <button type="button" data-bag="all" class="bag-btn ghost">เลือกทั้งหมด</button>
+            <button type="button" data-bag="none" class="bag-btn ghost">ยกเลิก</button>
+            <button type="button" data-bag="sell" class="bag-btn sell">ขาย</button>
+            <button type="button" data-bag="drop" class="bag-btn warn">ทิ้ง</button>
+            <button type="button" data-bag="store" class="bag-btn hidden">ฝาก</button>
+          </div>
+          <div class="bag-tools">
+            <span class="bag-count-wrap">🎒 <b id="bagCount">0/60</b></span>
+            <button type="button" data-bag="sort" class="bag-btn ghost" title="เรียง: อาวุธ → เสื้อ → กางเกง → ปลอกแขน → หัวไหล่ · เลเวล ระดับ และ + สูงก่อน">⇅ จัดเรียง</button>
+            <button type="button" data-bag="autoequip" class="bag-btn ghost" title="สวมไอเทมที่ดีที่สุดในกระเป๋าให้ทุกช่อง (เทียบเลเวล → เกรด → ค่าตีบวก)">⚡ สวมของดีสุด</button>
+            <button type="button" data-bag="autosort" class="bag-btn ghost toggle" title="จัดเรียงให้เองทุกครั้งที่ได้ไอเทมใหม่">☐ จัดอัตโนมัติ</button>
+            <button type="button" data-bag="storage" class="bag-btn ghost" title="เปิดได้ที่ช่างตีดาบหรือศิลาเคลื่อนย้ายในค่ายพัก">📦 คลัง</button>
+          </div>
+          <div id="autoSell" class="auto-sell"></div>
+          <div id="bagGrid"></div>
+          <div class="inv-hint">ดับเบิลคลิก/คลิกขวา = สวมใส่ · Shift+คลิกขวา = ทิ้ง · ที่ร้าน: คลิกขวา = ขาย · ติ๊กมุมไอเทม = เลือกหลายชิ้นแล้วขาย/ทิ้งพร้อมกัน · ดับเบิลคลิกช่องชุดที่สวม = ถอด</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="gmPanel" class="panel hidden">
+      <div class="panel-head"><span>⚙ GM ทดสอบ</span><button class="close" type="button">✕</button></div>
+      <div class="gm-body">
+        <div class="gm-label">ผู้รับ (ชื่อตัวละคร · ว่าง = ตัวเอง) · ใช้กับเสกไอเทม ชุดเกราะ หินตีบวก ทอง · ตัวละครออฟไลน์ได้ (เก็บลงเซฟ)</div>
+        <div class="gm-row"><input id="gmTo" list="gmToList" placeholder="ตัวเอง" autocomplete="off" maxlength="32"><datalist id="gmToList"></datalist><button type="button" data-gm="toself">ตัวเอง</button></div>
+        <div class="gm-label">ระดับไอเทมที่เสก (ใช้กับเสกไอเทม/ชุดเกราะ)</div>
+        <div class="gm-row"><select id="gmGrade"></select></div>
+        <div class="gm-label">เสกไอเทม</div>
+        <div class="gm-row"><select id="gmItem"></select><input id="gmQty" type="number" min="1" max="24" value="1" title="จำนวน"><button type="button" data-gm="item">เสก</button></div>
+        <div class="gm-row"><button type="button" data-gm="allitems">เสกอาวุธครบทุกระดับ</button><button type="button" class="warn" data-gm="clearbag">ล้างกระเป๋า</button></div>
+        <div class="gm-label">เสกชุดเกราะครบชุด (เสื้อ + กางเกง + ปลอกแขน + หัวไหล่)</div>
+        <div class="gm-row"><select id="gmSet"></select><button type="button" data-gm="set">เสกชุด</button></div>
+        <div class="gm-label">ตีบวกของที่สวมอยู่ (อาวุธ / ชุด)</div>
+        <div class="gm-row"><select id="gmPlusSlot">
+          <option value="weapon">อาวุธ</option><option value="body">เสื้อ</option><option value="legs">กางเกง</option>
+          <option value="arms">ปลอกแขน</option><option value="shoulder">หัวไหล่</option>
+          <option value="armor">ชุดทั้ง 4 ชิ้น</option><option value="all">ทั้งหมด (อาวุธ + ชุด)</option>
+        </select></div>
+        <div class="gm-row quick" id="gmPlus"></div>
+        <div class="gm-label">หินตีบวก</div>
+        <div class="gm-row quick"><button type="button" data-gm="stone" data-v="100">+100</button><button type="button" data-gm="stone" data-v="1000">+1,000</button><button type="button" data-gm="stone" data-v="-1000">−1,000</button></div>
+        <div class="gm-label">เลเวล</div>
+        <div class="gm-row"><input id="gmLvl" type="number" min="1" max="130" value="1"><button type="button" data-gm="lvl">ตั้งเลเวล</button></div>
+        <div class="gm-row quick"><button type="button" data-gm="lvl" data-v="10">10</button><button type="button" data-gm="lvl" data-v="30">30</button><button type="button" data-gm="lvl" data-v="50">50</button><button type="button" data-gm="lvl" data-v="70">70</button><button type="button" data-gm="lvl" data-v="100">100</button><button type="button" data-gm="lvl" data-v="130">130</button></div>
+        <div class="gm-label">วาร์ปแผนที่</div>
+        <div class="gm-row"><select id="gmMap"></select><button type="button" data-gm="map">วาร์ป</button></div>
+        <div class="gm-label">เงิน (ทอง)</div>
+        <div class="gm-row"><input id="gmGold" type="number" value="10000"><button type="button" data-gm="gold">เพิ่มทอง</button></div>
+        <div class="gm-row quick"><button type="button" data-gm="gold" data-v="1000">+1K</button><button type="button" data-gm="gold" data-v="100000">+100K</button><button type="button" data-gm="gold" data-v="1000000">+1M</button></div>
+        <div class="gm-row"><button type="button" data-gm="heal">ฟื้นพลัง + รีเซ็ตคูลดาวน์</button></div>
+        <div id="gmLog"></div>
+        <p class="gm-hint">เปิดหน้าต่างนี้: พิมพ์ /gm ในแชท (ไม่แสดงในแชท) · /user = รายชื่อตัวละครทั้งหมด / ลบตัวละคร · คำสั่งในแชท: /item w10 · /item sh7 · /item 50 3 · /item w10 1 mythic · /item w10 1 mythic @ชื่อ (เสกให้ตัวละครอื่น) · /item all · /set 7 epic · /plus 10 · /plus 10 armor · /stone 500 · /lv 130 · /exp +10 (เพิ่ม EXP 10 หน่วยให้ตัวเอง) · /map fire · /gold 50000 · /heal · /clearbag</p>
+      </div>
+    </div>
+
+    <div id="userPanel" class="panel hidden">
+      <div class="panel-head"><span>👥 ตัวละครที่บันทึกไว้ (GM)</span><button class="close" type="button">✕</button></div>
+      <div class="user-body">
+        <div class="gm-row"><input id="userSearch" placeholder="ค้นหาชื่อ..."><button type="button" data-refresh="1">โหลดใหม่</button></div>
+        <div class="user-bar"><label><input type="checkbox" id="userAll"> เลือกทั้งหมด</label><span id="userCount"></span>
+          <button type="button" id="userDelSel" disabled>ลบที่เลือก (0)</button></div>
+        <div id="userList"></div>
+      </div>
+    </div>
+
+    <div id="shopPanel" class="panel hidden">
+      <div class="panel-head"><span>⚒ ร้านช่างตีดาบ</span><button class="close" type="button">✕</button></div>
+      <div class="shop-gold">ทองของคุณ: 💰 <b class="gold-val">0</b> <span class="stone-line"><img class="stone-ico" alt=""> หินตีบวก <b class="stone-val">0</b></span> <span class="charm-line" title="ยันต์กันแตก · ยันต์เพิ่มโอกาส"><img class="charm-ico" data-k="guard" alt=""><b class="guard-val">0</b> <img class="charm-ico" data-k="luck" alt=""><b class="luck-val">0</b></span></div>
+      <div id="shopTabs">
+        <button type="button" data-tab="weapon" class="on">⚔ อาวุธ</button>
+        <button type="button" data-tab="body">เสื้อ</button>
+        <button type="button" data-tab="legs">กางเกง</button>
+        <button type="button" data-tab="arms">ปลอกแขน</button>
+        <button type="button" data-tab="shoulder">หัวไหล่</button>
+        <button type="button" data-tab="mats" class="enh-tab">✦ วัสดุตีบวก</button>
+        <button type="button" data-tab="enhance" class="enh-tab">⚒ ตีบวก</button>
+      </div>
+      <div id="shopList"></div>
+      <div id="enhList" class="hidden"></div>
+    </div>
+    <div id="potionPanel" class="panel hidden">
+      <div class="panel-head"><span>⚒ ร้านขายยา</span><button class="close" type="button">✕</button></div>
+      <div class="shop-gold">ทองของคุณ: 💰 <b class="gold-val">0</b></div>
+      <div id="potionList"></div>
+    </div>
+    <div id="bookPanel" class="panel hidden">
+      <div class="panel-head"><span>📜 คัมภีร์วิชาดาบคู่ (ทุก 10 เลเวล)</span><button class="close" type="button">✕</button></div>
+      <div id="bookList"></div>
+    </div>
+    <div id="statPanel" class="panel hidden">
+      <div class="panel-head"><span>💪 แต้มสถานะ</span><button class="close" type="button">✕</button></div>
+      <div id="statPts"></div>
+    </div>
+    <div id="botPanel" class="panel hidden">
+      <div class="panel-head"><span>🤖 กล่องบอทล่าอัตโนมัติ</span><button class="close" type="button">✕</button></div>
+      <div class="bot-body">
+        <button id="botToggle" type="button">▶ เริ่มบอท (ล่าที่นี่)</button>
+        <div class="bot-label">รัศมีล่า รอบจุดที่เริ่ม <b id="botRadiusV">450</b></div>
+        <input id="botRadius" type="range" min="150" max="1200" step="50" value="450">
+        <div class="bot-label">การโจมตี</div>
+        <label class="bot-chk"><input id="botBasic" type="checkbox" checked> <span class="k">1</span> โจมตีปกติ (เดินเข้าไปฟันทีละตัว)</label>
+        <div id="botSkills"></div>
+        <div class="bot-label">เติมอัตโนมัติ</div>
+        <div class="bot-pot"><label class="bot-chk"><input id="botHpOn" type="checkbox" checked> ❤ ยาเลือด เมื่อต่ำกว่า</label><input id="botHp" type="range" min="10" max="90" step="5" value="50"><b id="botHpV">50%</b></div>
+        <div class="bot-pot"><label class="bot-chk"><input id="botMpOn" type="checkbox" checked> 💧 ยามานา เมื่อต่ำกว่า</label><input id="botMp" type="range" min="10" max="90" step="5" value="30"><b id="botMpV">30%</b></div>
+        <p class="bot-hint">บอทล่าเฉพาะมอนสเตอร์ในวงสีเขียว ไม่มีมอนสเตอร์จะเดินกลับจุดเริ่ม · กด WASD / คลิกพื้น = ควบคุมเองชั่วคราว · หยุดเองเมื่อตายหรือเปลี่ยนแผนที่ · ปุ่มลัด <b>O</b></p>
+      </div>
+    </div>
+    <div id="mapPanel" class="panel hidden">
+      <div class="panel-head"><span id="wmTitle">🗺 แผนที่</span><span class="wm-head-btns"><button id="wmGuideBtn" type="button" class="wm-guide-btn" title="มอนสเตอร์แต่ละตัวดรอปไอเทม Lv. เท่าไหร่">✦ คู่มือดรอป</button><button class="close" type="button">✕</button></span></div>
+      <div id="wmGuide" class="hidden"></div>
+      <canvas id="wmCanvas"></canvas>
+      <div class="wm-legend"><span style="color:#7cff8a">● เหมาะกับเลเวล</span><span style="color:#ffb84a">● สูงกว่า</span><span style="color:#ff5a4a">● อันตราย</span><span style="color:#9a968c">● ต่ำไป EXP ลด</span><span style="color:#5ab8ff">● ปาร์ตี้</span></div>
+      <div id="wmList"></div>
+      <p class="wm-hint">คลิกชื่อมอนสเตอร์ / รายการ / จุดใดก็ได้บนแผนที่ = เดินไปที่นั่นอัตโนมัติ · ปุ่มลัด <b>M</b></p>
+    </div>
+    <div id="whoPanel" class="panel hidden">
+      <div class="panel-head"><span id="whoTitle">👥 ผู้เล่นออนไลน์</span><button class="close" type="button">✕</button></div>
+      <div id="whoBody"></div>
+    </div>
+    <div id="rankPanel" class="panel hidden">
+      <div class="panel-head"><span>🏆 อันดับผู้เล่น</span><button class="close" type="button">✕</button></div>
+      <div id="rankTabs" class="rank-tabs"></div>
+      <div id="rankBody"></div>
+    </div>
+    <div id="warpPanel" class="panel hidden">
+      <div class="panel-head"><span>✦ ศิลาเคลื่อนย้าย</span><button class="close" type="button">✕</button></div>
+      <div class="warp-top"><span>💰 <b id="warpGold">0</b> ทอง · ค่าวาร์ปเพิ่มตามระยะทาง · เดินผ่านประตูแผนที่ฟรี</span><button type="button" class="bag-btn ghost" data-store="1">📦 คลังเก็บของ</button></div>
+      <div id="warpList"></div>
+    </div>
+    <div id="storagePanel" class="panel hidden">
+      <div class="panel-head"><span>📦 คลังเก็บของ</span><button class="close" type="button">✕</button></div>
+      <div class="store-body">
+        <div class="bag-tools"><span class="bag-count-wrap">ช่อง <b id="storeCount">0/120</b> · ทองในคลัง <b id="storeGold" class="gold">0</b></span><button type="button" data-st="sort" class="bag-btn ghost">⇅ จัดเรียง</button></div>
+        <div class="store-gold-row"><input id="storeGoldIn" type="number" min="1" placeholder="จำนวนทอง"><button type="button" data-st="dep" class="bag-btn">ฝากทอง</button><button type="button" data-st="wd" class="bag-btn ghost">ถอนทอง</button><button type="button" data-st="depAll" class="bag-btn ghost">ฝากทองทั้งหมด</button></div>
+        <div id="storageGrid"></div>
+        <div class="inv-hint">ดับเบิลคลิก/คลิกขวาไอเทมในกระเป๋า = ฝาก · ในคลัง = นำออก · ติ๊กหลายชิ้นในกระเป๋าแล้วกด "ฝาก N ชิ้น" · คลังของตัวละครนี้เท่านั้น</div>
+      </div>
+    </div>
+    <div id="help" class="hidden">
+      <h3>วิธีเล่น</h3>
+      <ul>
+        <li><b>คลิกพื้น</b> — เดินไปจุดนั้น (กดค้าง = เดินตามเมาส์)</li>
+        <li><b>คลิกศัตรู</b> — เลือกเป็นเป้าโจมตี (วงแดงใต้เท้า) · <b>Tab</b> เลือกตัวถัดไปที่ใกล้ที่สุด · <b>Esc</b> ยกเลิกเป้า</li>
+        <li><b>1</b> / <b>Space</b> — โจมตีธรรมดา: เดินเข้าไปฟันเป้าที่เลือกจนกว่าจะตาย (ไม่มีเป้า = เลือกตัวที่ใกล้ที่สุดให้) โดนทีละ 1 ตัว</li>
+        <li><b>2–9</b> — สกิล (เล็งเป้าที่เลือกไว้ ไม่มีเป้า = ทางเมาส์) · ทุกสกิลมีคูลดาวน์ของตัวเอง + คูลดาวน์ร่วม 0.7 วิ</li>
+        <li><b>ลูกกลิ้งเมาส์</b> / <b>+ −</b> — ซูมเข้า/ออก (จำค่าไว้ครั้งหน้า)</li>
+        <li><b>คลิกร้านช่างตีดาบ</b> — เดินไปเปิดร้าน</li>
+        <li><b>O</b> / 🤖 — กล่องบอท: ล่าอัตโนมัติในรัศมีที่ตั้ง เลือกโจมตีปกติ/สกิล และเติมยาเลือด/มานาตาม %</li>
+        <li><b>U</b> / ⚔ — เปิด/ปิดสถานะ PvP (Lv.20+): โจมตีผู้เล่นฝ่ายตรงข้ามในแผนที่ล่ามอนสเตอร์ได้ (นอกเขตปลอดภัย ไม่ใช่สมาชิกปาร์ตี้) · คนที่ถูกโจมตีสวนกลับได้ 30 วิแม้ไม่เปิด · ฆ่าผู้เล่นนอกสนามรบ แต้มชั่วร้าย -10 ชื่อเป็นสีแดงพร้อมแต้มหลังชื่อ ฟื้นคืน 10 ทุก 1 ชั่วโมง (ป้องกันตัวหรือฆ่าคนชื่อแดงไม่เสียแต้ม) · ปิดไม่ได้ระหว่างสู้ 10 วิ</li>
+        <li><b>C</b> / 💪 — แต้มสถานะ: ได้ 3 แต้มทุกเลเวล เลือกอัปพลังโจมตี · ป้องกัน · พลังชีวิต · ปราณ · ตีเร็ว · คริติคอล ได้เอง · ความเร็วโจมตีและคริติคอลมาจากแต้มเป็นหลัก · มีกราฟเรดาร์และแนวทางอัปของแต่ละอาชีพ กดแจกตามแนวทางหรือตั้งอัปอัตโนมัติได้</li>
+        <li><b>K</b> — คัมภีร์วิชา: ได้ 1 แต้มสกิลทุกเลเวล ใช้เรียนสกิล อัปสเต็ก (สูงสุด 12) และอัพขั้นวิชาเมื่อถึงเลเวล · แบ่งสายตามเลเวล (ขั้นต้น/กลาง/สูง/ปรมาจารย์) · ลากสกิลไปวางบนปุ่ม 1–9, 0, - ตามที่ต้องการ (หรือเปิดอัปอัตโนมัติ)</li>
+        <li><b>นักพรต</b> — กด 1 ปายันต์ใส่เป้าจากระยะไกล · 2 ฟ้าผ่า · 3 ฟื้นพลังตัวเอง+ปาร์ตี้ · 4 เกราะยันต์ลดดาเมจ · 5 ค่ายกลแปดทิศ · 6 กระบี่บิน · 7 โซ่ยันต์ตรึง · 8 เทพพิทักษ์ · 9 หยินหยาง</li>
+        <li><b>นักธนู</b> — กด 1 ยิงศรใส่เป้าจากระยะไกล · 2 ศรกระจาย · 3 ตีลังกาถอยหลังยิงศรกระแทก · 4 ศรทะลวงเลือดไหล · 5 ฝนศร · 6 ศรสังหารระยะไกล · 7 อินทรีโฉบ · 8 ตาข่ายตรึง · 9 ศรหงส์เพลิง</li>
+        <li><b>มือถือ</b> — จอยซ้ายล่างเดิน · แตะศัตรู = เลือกเป้า · ปุ่มใหญ่ขวาล่างโจมตีเป้า (ไม่มีเป้า = ตัวใกล้สุด) · ปุ่มกลมรอบๆ = สกิล · แตะพื้น/มอนสเตอร์ได้ · 💬 แชท</li>
+        <li><b>W A S D</b> — เดินด้วยคีย์บอร์ดก็ได้</li>
+        <li><b>Q</b> ยาฟื้นพลัง · <b>E</b> ยาฟื้นปราณ</li>
+        <li><b>I</b> — กระเป๋า/อุปกรณ์ · <b>F</b> — ร้านช่างตีดาบ / ศิลาเคลื่อนย้าย (ในค่าย)</li>
+        <li><b>M</b> / คลิกมินิแมป — แผนที่ใหญ่: ดูมอนสเตอร์และเลเวลแต่ละถิ่น คลิกเพื่อเดินไปอัตโนมัติ</li>
+        <li><b>ปาร์ตี้</b> — คลิกผู้เล่น (ฝ่ายไหนก็ได้) → ชวนเข้าปาร์ตี้ (สูงสุด 8 คน) หรือพิมพ์ /party ชื่อ · /p ข้อความ = แชทปาร์ตี้ · /leave = ออก · สมาชิกที่อยู่ใกล้กันแบ่ง EXP มอนสเตอร์ (+10% ต่อสมาชิกเพิ่ม แบ่งตามเลเวล)</li>
+        <li><b>R</b> / 🏆 — อันดับผู้เล่น: เลเวล · สังหาร PvP · เทียบสองฝ่าย (อัปเดตทุก 1 นาที)</li>
+        <li><b>Enter</b> — แชท · <b>H</b> — เปิด/ปิดหน้านี้</li>
+      </ul>
+      <p><b>แผนที่ล่ามอนสเตอร์</b> (ใช้ร่วมกันทั้งสองฝ่าย ไม่มี PvP): หมู่บ้านเซียนน้อย Lv.1–20 → ด่านผาหลิว 20–40 → ป่ามารสามเศียร 40–60 → จวนแม่ทัพร้าง 60–80 → ประตูเทพยุทธ์ 80–100 → วังน้ำแข็งทะเลเหนือ 100–115 → หุบเขาเพลิงทักษิณ 115–130 · มอนสเตอร์เลเวลสูงขึ้นเรื่อยๆ ไปทางตะวันออก บอสอยู่มุมตะวันออกเฉียงเหนือ เดินเข้าประตูท้ายแผนที่เพื่อไปแผนที่ถัดไป</p>
+      <p>ค่ายพักทุกแผนที่เป็นเขตปลอดภัย มีร้านช่างตีดาบและ <b>ศิลาเคลื่อนย้าย</b> (วาร์ปไปแผนที่ใดก็ได้ที่เลเวลถึง)</p>
+      <p><b>สนามรบธรรมะ-อธรรม</b> (Lv.10+): สังหารศัตรูต่างฝ่ายนอกฐานเพื่อทำคะแนน · ปราบ <b>ราชันมารโลหิต</b> กลางแผนที่ได้ +10 คะแนน · ฐานฝ่ายตัวเองฟื้นพลังเร็ว ฐานศัตรูเผาผลาญผู้บุกรุก</p>
+      <p>มอนสเตอร์ดรอปทอง อาวุธ และชุดเกราะ อาวุธมี 12 ระดับ (Lv.10–100, 120, 130) รูปทรงเปลี่ยนตามอาชีพและฝ่าย · Lv.120 จักรพรรดิเก้าสวรรค์ · Lv.130 ปฐมเทพสามภพ</p>
+      <p><b>สกิลหมู่ Lv.120 / 130 ทุกอาชีพ</b> — เรียนในคัมภีร์ K · ช่องลัดเริ่มต้น <b>0 / -</b> · ร่าย 2.8 / 4 วินาที ระหว่างร่ายหยุดเดิน มีแถบเวลาและพื้นที่เตือน เมื่อร่ายจบจึงสร้างความเสียหาย · ถูกสตัน ตรึง ตาย หรือย้ายแผนที่จะยกเลิกการร่าย โดยปราณและคูลดาวน์ถูกใช้ตั้งแต่เริ่ม</p>
+      <p>ลักษณะตัวละครเปลี่ยนตามเลเวล: Lv.15 นักดาบหนุ่ม · Lv.30 ยอดนักดาบ · Lv.50 ขุนดาบพยัคฆ์ · Lv.60 จอมยุทธ์ (ปีกขนนก) · Lv.80 ขุนพลมังกร (ปีกมหาปักษา) · Lv.100 เทพยุทธ์ (ปีกเทพสวรรค์ รัศมี ผมเรืองแสง) · Lv.130 เทพเซียน / เทพมาร</p>
+      <p>เสื้อ · กางเกง · ปลอกแขน · หัวไหล่ มี 9 ชุด (Lv.5–100, 120, 130) เปลี่ยนสีและลวดลายบนตัวละครจริง · เสื้อเพิ่มพลังชีวิต/ป้องกัน · กางเกงเพิ่มความเร็ว · ปลอกแขนเพิ่มพลังโจมตี/คริติคอล · หัวไหล่เพิ่มปราณ/ป้องกัน</p>
+    </div>
+
+    <div id="deathScreen" class="hidden">
+      <div class="ds-title">คุณถูกสังหาร</div>
+      <div id="dsBy"></div>
+      <button id="respawnBtn" type="button" disabled>เกิดใหม่</button>
+    </div>
+  </div>
+
+  <div id="loading" class="screen"><div class="spinner"></div><div>กำลังโหลดยุทธภพ...</div></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/shared/common.js"></script>
+  <script src="/shared/village-map.js"></script>
+  <script src="/shared/world-data.js"></script>
+  <script src="js/pathfind.js"></script>
+  <script src="js/world-art.js"></script>
+  <script src="js/village-art.js"></script>
+  <script src="js/monsters.js"></script>
+  <script src="js/monster-feral.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/skill-fx.js"></script>
+  <script src="js/spearman-fx.js"></script>
+  <script src="js/ascended-skills.js"></script>
+  <script src="js/item-art.js"></script>
+  <script src="js/model-tiers.js"></script>
+  <script src="js/dualblade-look.js"></script>
+  <script src="js/dualblade-model.js"></script>
+  <script src="js/dualblade-armor.js"></script>
+  <script src="js/wings.js"></script>
+  <script src="js/taoist-pose.js"></script>
+  <script src="js/taoist-gear.js"></script>
+  <script src="js/archer-gear.js"></script>
+  <script src="js/archer-model.js"></script>
+  <script src="js/archer-pose.js"></script>
+  <script src="js/archer-royal.js"></script>
+  <script src="js/spear-weapon.js"></script>
+  <script src="js/spearman-gear.js"></script>
+  <script src="js/spearman-look.js"></script>
+  <script src="js/warrior-icons.js"></script>
+  <script src="js/warrior-weapons.js"></script>
+  <script src="js/warrior-look.js"></script>
+  <script src="js/ascended-gear.js"></script>
+  <script src="js/armor-look.js"></script>
+  <script src="js/weapon-look.js"></script>
+  <script src="js/equipment-glints.js"></script>
+  <script src="js/equipment-aura.js"></script>
+  <script src="js/hud.js"></script>
+  <script src="js/inventory.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/gm.js"></script>
+  <script src="js/warp.js"></script>
+  <script src="js/worldmap.js"></script>
+  <script src="js/party.js"></script>
+  <script src="js/skillbook.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/bot.js"></script>
+  <script src="js/follow.js"></script>
+  <script src="js/character-motion.js"></script>
+  <script src="js/sprite-detail.js"></script>
+  <script src="js/class-aura.js"></script>
+  <script src="js/who.js"></script>
+  <script src="js/rank.js"></script>
+  <script src="js/panels.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+# docker compose up -d --build   →  http://localhost:3900
+# รหัสผ่านฐานข้อมูล: ตั้ง POSTGRES_PASSWORD ใน shell หรือไฟล์ .env (ไม่ตั้ง = "yhg")
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-yhg}
+      POSTGRES_DB: yhg
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d yhg"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  game:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-yhg}@db:5432/yhg
+      # ตั้งใน .env แล้วเกมจะใช้ฐานข้อมูล Supabase แทน db ข้างบน
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      SUPABASE_JWKS_URL: ${SUPABASE_JWKS_URL:-}
+      PORT: 3900
+      GM: ${GM:-}
+      GM_CODE: ${GM_CODE:-}
+      MAX_CHARS: ${MAX_CHARS:-6}
+    ports:
+      - "${PORT:-3900}:3900"
+    volumes:
+      - ./data:/app/data   # players.json เดิม นำเข้าครั้งแรก
+
+volumes:
+  pgdata:

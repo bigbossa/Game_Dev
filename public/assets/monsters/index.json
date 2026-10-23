@@ -1,0 +1,23 @@
+{
+  "kingboar": {
+    "file": "kingboar-v2.png",
+    "version": "f68d1dcaa71a",
+    "fw": 323,
+    "fh": 252,
+    "cols": 8,
+    "rows": 4,
+    "ax": 161.5,
+    "ay": 244,
+    "contentHeight": 224,
+    "height": 132,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-kingboar"
+  }
+}

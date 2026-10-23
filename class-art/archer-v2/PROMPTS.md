@@ -1,0 +1,15 @@
+# Archer V2 painted source art
+
+Generated with the built-in image_gen tool. The short model was generated first; medium and long were edits of that source. Transparent PNGs remain here; reproducible atlas packing uses `node tools/build-archer-v2.cjs`.
+
+## short-source.png
+
+Use case: stylized-concept. Production transparent sprite atlas for a cute premium chibi fantasy elf archer woman for a Thai RPG. Create exactly 5 columns by 4 rows, 20 full-body sprites, evenly spaced cells, generous transparent gutters, no text/no grid/no shadows/no effects/no wings. Columns in every row: front, front-right three-quarter, right profile, back-right three-quarter, back. Row1 neutral standing feet planted; row2 walking left foot forward; row3 walking right foot forward; row4 archery draw pose, left hand extended to her right and right hand near cheek drawing an INVISIBLE bow. Empty hands in ALL cells, NO weapons, NO arrows: game draws bow separately. Same character proportions and head size every cell, head ~40% total body height. Young adult elf queen aesthetic, pointed ears, large emerald eyes, short silver-blue layered bob with a small half-up knot and leaf clasp. Fully dressed in fitted forest-green leaf-shaped tunic, dark teal leggings, leather bracers, tall boots, short split leaf coat, fine gold vine embroidery. Vivid dark emerald cloth, antique gold trims, pearly silver-blue hair deliberately distinct from green cloth for game material recoloring. Consistent identity, legible crisp ink outlines, polished softly shaded anime game rendering, charming and dimensional, high detail but clean silhouette. Feet aligned baseline within each row, all bodies same scale. Transparent background, no checkerboard.
+
+## medium-source.png
+
+Edit this transparent elf archer game atlas. Change ONLY hairstyle in every sprite to a shoulder-length high ponytail with flowing silver-blue locks reaching the middle of her back, with small leaf clasps. Preserve exact 5 columns by 4 rows, every face, head scale, body, outfit, pose, hand position and feet position. The ponytail moves naturally with the walk and draw poses. Hair stays silver-blue including shadows so code can recolor it. No weapon, no text, no background. Keep transparent alpha. Full figures isolated inside their original cells, ample gutters.
+
+## long-source.png
+
+Edit this exact transparent 5-column 4-row elf archer sprite atlas. Change ONLY hair to a very long elegant silver-blue royal elf high ponytail, flowing thick locks reaching calves, finely divided strands and small gold leaf clasp. All hair including shadows remains cool silver-blue to distinguish from green clothes. Keep exact same faces and facial sizes, full body positions, hands, clothes, feet, 20 poses and cell arrangement. Preserve generous transparent gutters; hair flows behind torso never covers face or extended bow hand. No wings, weapon, text, background, aura. Keep original alpha transparency. Short original bob becomes a flowing long ponytail in ALL views including front and rear.

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #0e1118; --panel: #171c27; --line: rgba(232,194,106,0.3); --gold: #e8c26a; --text: #f1ede4; --muted: #9a9488; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: Kanit, system-ui, sans-serif; }
+    header { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 22px; color: var(--gold); }
+    header p { margin: 0; color: var(--muted); font-size: 14px; }
+    .bar { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+    button { font-family: inherit; font-size: 14px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: #222a3a; color: var(--text); cursor: pointer; }
+    button.on, button.primary { background: linear-gradient(180deg, #ffe39a, #d9a640); color: #1a1206; font-weight: 600; border: none; }
+    main { padding: 16px 20px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+    .card h2 { margin: 0 0 2px; font-size: 18px; }
+    .card .lv { color: var(--gold); font-weight: 800; margin-right: 6px; }
+    .card small { color: var(--muted); }
+    .card canvas.turn { width: 100%; aspect-ratio: 1; border-radius: 10px; background: radial-gradient(circle at 50% 70%, #2c3a2c, #121812); display: block; margin: 8px 0; }
+    .card .dl { display: flex; gap: 6px; flex-wrap: wrap; }
+    .card .dl button { font-size: 12px; padding: 5px 10px; }
+    #sheet { padding: 0 20px 24px; }
+    #sheet h3 { color: var(--gold); margin: 8px 0; }
+    #sheet canvas { max-width: 100%; background: #1d2433; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Model Studio · ทรงผมและชุดตามเลเวล</h1>
+      <p>ลักษณะตัวละครเปลี่ยนเมื่อถึง Lv.15 / 30 / 50 / 60 / 80 / 100 / 130 · เกมใช้โค้ดเดียวกันนี้ (public/js/model-tiers.js)</p>
+    </div>
+    <div class="bar">
+      <button data-f="dharma" class="on">ธรรมะ</button>
+      <button data-f="adharma">อธรรม</button>
+      <button id="dlAll" class="primary">ดาวน์โหลดไฟล์ทั้งหมด</button>
+    </div>
+  </header>
+  <main id="cards"></main>
+  <section id="sheet"></section>
+  <script src="/shared/common.js"></script>
+  <script src="js/model-tiers.js"></script>
+  <script>
+  (async function () {
+    const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+    const SPR = await fetch('assets/sprites.json').then((r) => r.json());
+    const IMG = {};
+    const names = ['dharma', 'adharma', 'dharma-attack', 'adharma-attack'];
+    await Promise.all(names.map(async (n) => { IMG[n] = await loadImg(`assets/${n}.png`); }));
+    try { await Promise.all(['dharma', 'adharma', 'dharma-attack'].map(async (n) => { IMG[n + '-bare'] = await loadImg(`assets/${n}-bare.png`); })); } catch (e) { /* optional */ }
+    ModelTiers.analyse('walk', IMG['dharma-bare'] || IMG.dharma, SPR);
+    if (SPR.adharmaWalk) ModelTiers.analyse('walk-adharma', IMG['adharma-bare'] || IMG.adharma, SPR);
+    ModelTiers.analyse('attack', IMG['dharma-attack-bare'] || IMG['dharma-attack'], SPR.attack);
+
+    const cache = {};
+    const sheetFor = (faction, tier, atk) => {
+      const k = `${faction}|${tier}|${atk}`;
+      if (!cache[k]) cache[k] = tier ? ModelTiers.compose(IMG[atk ? `${faction}-attack` : faction], faction, ModelTiers.key(faction, atk), tier) : IMG[atk ? `${faction}-attack` : faction];
+      return cache[k];
+    };
+    const fileName = (faction, tier, atk) => `${atk ? 'model-2' : 'model'}-lv${ModelTiers.LEVELS[tier]}-${faction}.png`;
+    const download = (canvas, name) => {
+      const c = canvas instanceof HTMLCanvasElement ? canvas : Object.assign(document.createElement('canvas'), { width: canvas.width, height: canvas.height });
+      if (!(canvas instanceof HTMLCanvasElement)) c.getContext('2d').drawImage(canvas, 0, 0);
+      const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = name; a.click();
+    };
+    window.Studio = { sheetFor, fileName, SPR };
+
+    let faction = 'dharma';
+    const cards = document.getElementById('cards'), sheetBox = document.getElementById('sheet');
+    function build() {
+      cards.innerHTML = '';
+      ModelTiers.LEVELS.forEach((lv, tier) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h2><span class="lv">Lv.${lv}${tier ? '+' : ''}</span>${ModelTiers.NAMES[tier]}</h2>
+          <small>${ModelTiers.describe(tier)}</small>
+          <canvas class="turn" width="360" height="360"></canvas>
+          <div class="dl"><button data-a="0">${fileName(faction, tier, 0)}</button><button data-a="1">${fileName(faction, tier, 1)}</button><button data-a="s">ดูทั้งชีต</button></div>`;
+        card.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+          if (b.dataset.a === 's') return showSheet(tier);
+          const atk = b.dataset.a === '1';
+          download(sheetFor(faction, tier, atk), fileName(faction, tier, atk));
+        }));
+        card.turn = { cv: card.querySelector('canvas'), tier };
+        cards.appendChild(card);
+      });
+      showSheet(ModelTiers.LEVELS.length - 1);
+    }
+    function showSheet(tier) {
+      sheetBox.innerHTML = `<h3>Lv.${ModelTiers.LEVELS[tier]} · ${ModelTiers.NAMES[tier]} — ท่าเดิน / ท่าโจมตี</h3>`;
+      for (const atk of [0, 1]) { const s = sheetFor(faction, tier, atk); const c = document.createElement('canvas'); c.width = s.width; c.height = s.height; c.getContext('2d').drawImage(s, 0, 0); sheetBox.appendChild(c); }
+    }
+    // turntable: walk through 8 directions, every 4th beat an attack frame
+    function frame(now) {
+      const t = now / 1000;
+      for (const card of cards.children) {
+        const { cv, tier } = card.turn, g = cv.getContext('2d');
+        g.clearRect(0, 0, cv.width, cv.height);
+        const beat = Math.floor(t / 0.9), dir = beat % 8, atk = beat % 4 === 3 && SPR.attack;
+        const meta = atk ? SPR.attack : SPR;
+        const fr = atk ? Math.min(2, Math.floor((t % 0.9) / 0.3)) : [0, 1, 2, 1][Math.floor(t * 8) % 4];
+        const s = sheetFor(faction, tier, !!atk), sc = 1.55;
+        g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(180, 330, 70, 16, 0, 0, Math.PI * 2); g.fill();
+        g.drawImage(s, dir * meta.frameWidth, fr * meta.frameHeight, meta.frameWidth, meta.frameHeight,
+          180 - meta.anchorX * sc, 330 - meta.anchorY * sc, meta.frameWidth * sc, meta.frameHeight * sc);
+      }
+      requestAnimationFrame(frame);
+    }
+    document.querySelectorAll('header [data-f]').forEach((b) => b.addEventListener('click', () => {
+      faction = b.dataset.f;
+      document.querySelectorAll('header [data-f]').forEach((x) => x.classList.toggle('on', x === b));
+      build();
+    }));
+    document.getElementById('dlAll').addEventListener('click', async () => {
+      for (const f of ['dharma', 'adharma']) for (let tier = 1; tier < ModelTiers.LEVELS.length; tier++) for (const atk of [0, 1]) {
+        download(sheetFor(f, tier, atk), fileName(f, tier, atk));
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    });
+    build();
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>

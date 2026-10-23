@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- home-screen icon: full-bleed square (iOS / Android mask the corners), art kept inside the centre 80% safe zone -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#2a2233"/>
+      <stop offset="1" stop-color="#060609"/>
+    </radialGradient>
+    <linearGradient id="dharma" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4fbff"/>
+      <stop offset="1" stop-color="#4fa9e8"/>
+    </linearGradient>
+    <linearGradient id="adharma" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e0343a"/>
+      <stop offset="1" stop-color="#2a0709"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.5" stop-color="#dfe9f3"/>
+      <stop offset="0.51" stop-color="#9fb2c6"/>
+      <stop offset="1" stop-color="#7d90a6"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0b0"/>
+      <stop offset="1" stop-color="#d49a2a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0.7" stop-color="#ffd76a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffd76a" stop-opacity="0"/>
+    </radialGradient>
+    <g id="sword" stroke="#0b0b10" stroke-width="6" stroke-linejoin="round">
+      <path d="M0 -178 L15 -146 L15 66 L-15 66 L-15 -146 Z" fill="url(#blade)"/>
+      <path d="M0 -150 L0 56" stroke="#6f8399" stroke-width="3"/>
+      <rect x="-50" y="64" width="100" height="18" rx="8" fill="url(#gold)"/>
+      <rect x="-10" y="82" width="20" height="58" rx="5" fill="#5a1d14"/>
+      <circle cx="0" cy="152" r="14" fill="url(#gold)"/>
+    </g>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="232" fill="url(#glow)"/>
+  <!-- ธรรมะ (left, white-blue) · อธรรม (right, black-red) -->
+  <path d="M256 60 A196 196 0 0 0 256 452 Z" fill="url(#dharma)"/>
+  <path d="M256 60 A196 196 0 0 1 256 452 Z" fill="url(#adharma)"/>
+  <circle cx="256" cy="256" r="196" fill="none" stroke="url(#gold)" stroke-width="12"/>
+  <circle cx="256" cy="256" r="204" fill="none" stroke="#0b0b10" stroke-width="4"/>
+  <!-- crossed swords -->
+  <use href="#sword" transform="translate(256 262) rotate(-45)"/>
+  <use href="#sword" transform="translate(256 262) rotate(45)"/>
+</svg>
