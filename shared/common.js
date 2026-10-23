@@ -473,7 +473,10 @@
   // A player on the PvP map or with field PvP on gets `pvp` of it. Several นักพรต do not stack on one player.
   const TAOIST_MERCY_AURA = { everyMs: 5000, min: 0.02, max: 0.06, evo: 0.01, pvp: 0.5, range: 480 };
   // นักรบแนวหน้า farming alone (no party member within PARTY_RANGE): hits monsters harder. Monsters only, never PvP.
-  const WARRIOR_SOLO = { dealt: 1.2 };
+  const WARRIOR_SOLO = { dealt: 1.4 };
+  // นักรบแนวหน้า: frontline skills 2–9 (not the basic attack ดาบพิทักษ์) hit monsters this much harder, solo or in a
+  // party; stacks with WARRIOR_SOLO. Monsters only, never PvP.
+  const WARRIOR_PVE_SKILL = 1.2;
   // นักรบแนวหน้า passive โล่หนาม from ตั้งโล่เหล็ก (skill 3, once learned): a blow taken sends `base` of its damage back
   // to the attacker, `guard` while ตั้งโล่เหล็ก is up; `pvp` of that against players; at most `capAtk` × the warrior's
   // ATK per blow. DoTs and reflected damage are never reflected; the reflection skips dodge, crits and damage bonuses.
@@ -1609,7 +1612,7 @@
     SKILL_MAX, SKILL_STEP, SKILL_LVL_GAP, EVO_NEED, EVO_COST, BAR_KEYS, SKILL_PATHS, skillPtsTotal, skillCap, basicOf, skillPtsFree,
     evoBlock, autoSkills, cleanSkills, skillRankOf, skillPower, skillInfoAt, SKILL_VER, BUFF_SKILLS, MOVE_SKILLS, meteorPoints, blastPoints,
     STAT_PTS, STAT_POINTS, PT_KEYS, statPtsTotal, statPtsFree, cleanAlloc, basicCd, BASIC_CD_MUL, STAT_GUIDE_KEY, STAT_GUIDES, statGuide, guideTarget, guidePoints, statLimits, CRIT_CAP, skillMp, MP_COST_PCT, MP_COST_CAP, SKILL_CD_MUL,
-    enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_THORNS, WARRIOR_COVER, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
+    enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_PVE_SKILL, WARRIOR_THORNS, WARRIOR_COVER, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
     generateMap, solidAt, canStand, baseAt, areaName, spawnPoint, mulberry32, makeNoise,
   };
 });

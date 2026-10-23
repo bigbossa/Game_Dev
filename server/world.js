@@ -683,7 +683,7 @@ class World {
         p.lockUntil = now + front.windup;
         this.later(front.windup, () => {
           if (!valid()) return cancel();
-          const opts = {};
+          const opts = basic ? {} : { pveSkill: C.WARRIOR_PVE_SKILL };  // applyDamage uses it on monsters only
           if (front.stun) opts.stun = rank ? 700 : front.stun;
           if (front.slow) opts.slow = front.slow;
           if (sk.id === 'shieldSweep' && rank) opts.slow = 1000;
@@ -2406,7 +2406,8 @@ class World {
     else if (sP) dmg *= (1 + (src.stats.fx.pve || 0)) * (src.stats.pveMult || 1)    // + weapon level / enhancement vs monsters
       * C.levelGapMul(src.lvl, tgt.def.lvl || 0).dealt                                   // monsters above the player shrug blows off
       * (this.taoistSolo(src) ? C.TAOIST_SOLO.dealt : 1)
-      * (this.warriorSolo(src) ? C.WARRIOR_SOLO.dealt : 1);
+      * (this.warriorSolo(src) ? C.WARRIOR_SOLO.dealt : 1)
+      * (opts.pveSkill || 1);                                                            // นักรบแนวหน้า skills 2–9
     else if (tP) dmg *= C.levelGapMul(tgt.lvl, src.def.lvl || 0).taken                   // ... and hit harder
       * (this.taoistSolo(tgt) ? C.TAOIST_SOLO.taken : 1);
     if (tP) {
