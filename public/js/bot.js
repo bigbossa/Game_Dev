@@ -16,7 +16,7 @@
   // reach of each skill (world px from the target's edge) and the order they are tried in (big ones first)
   // (heals / buffs are cast on the bot itself and its party: buffs when a fight starts, heals when someone is hurt)
   const RANGE = { lotus: 110, shadowstep: 260, rend: 140, tempest: 120, crescent: 160, skyfall: 260, thousand: 120, twindragon: 200,
-    oathSlash: 100, arcblade: 250, oathAegis: 9999, bladeOrbit: 130, ascendantForm: 9999, finalVerdict: 240,
+    oathSlash: 100, arcblade: 250, oathResonance: 9999, astralBlades: 9999, oathAegis: 9999, bladeOrbit: 130, ascendantForm: 9999, finalVerdict: 240,
     ...Object.fromEntries(C.CLASSES.warrior.skills.filter(s=>s.key!=='1'&&s.frontline).map(s=>[s.id,s.frontline.ward?9999:(s.frontline.range||100)-15])),
     ...Object.fromEntries(C.CLASSES.spearman.skills.filter(s=>s.spear).map(s => [s.id, s.spear.range - 15])),
     ...Object.fromEntries(Object.values(C.ALL_SKILLS).filter(s=>s.ritual).map(s=>[s.id,s.ritual.range||s.ritual.radius-30])),
@@ -27,11 +27,11 @@
     'nirvana', 'mercy', 'aegis', 'might', 'heavens', 'meteor', 'skybolt', 'spiritsword',
     'hawkeye', 'gale', 'stormphoenix', 'skyrain', 'blast', 'deadeye', 'scatter', 'rollshot'];
   const HEALS = ['mercy', 'nirvana'];
-  PRIORITY.unshift('oathAegis', 'ascendantForm', 'finalVerdict', 'bladeOrbit', 'arcblade', 'oathSlash');
+  PRIORITY.unshift('oathAegis', 'ascendantForm', 'oathResonance', 'astralBlades', 'finalVerdict', 'bladeOrbit', 'arcblade', 'oathSlash');
   PRIORITY.unshift('ironGuard','rallyGuard','lastBastion','guardianOath','battleCry','sunderStrike','shieldBash','shieldSweep','earthShatter','citadelStrike');
   PRIORITY.unshift(...Object.values(C.ALL_SKILLS).filter(s=>s.ritual).sort((a,b)=>b.lvl-a.lvl).map(s=>s.id));
   const DEF = { radius: 450, basic: true, skills: { lotus: true, rend: true, crescent: true, skybolt: true, mercy: true, aegis: true,
-    oathSlash: true, arcblade: true, oathAegis: true, bladeOrbit: true, ascendantForm: true, finalVerdict: true,
+    oathSlash: true, arcblade: true, oathResonance: true, astralBlades: true, oathAegis: true, bladeOrbit: true, ascendantForm: true, finalVerdict: true,
     spearCrush: true, spearBreak: true, spearHeart: true, spearBoss: true,
     shieldBash: true, shieldSweep: true, ironGuard: true, battleCry: true,
     spiritsword: true, scatter: true, hawkeye: true, gale: true, deadeye: true }, hpOn: true, hp: 50, mpOn: true, mp: 30 };
@@ -178,6 +178,8 @@
     const hurt = st.hp < st.mhp * 0.7 || (window.PARTY && PARTY.list.some((m) => !m.dead && m.map === G.mapId && m.hp < m.mhp * 0.6));
     for (const id of picked) {
       if (HEALS.includes(id) && !hurt) continue;
+      if (skillDef[id].arbiter && C.BUFF_SKILLS.includes(id) &&
+          (d > 320 || (st.bf || []).some(b => b[0] === id && b[1] > 0))) continue;
       if (d <= RANGE[id] && ready(id)) { G.useSlot(id); break; }
     }
     if (cfg.basic) {

@@ -26,6 +26,6 @@ This is a reusable brief for the selected design, not a transcript of the archiv
 
 `npm run arbiter` crops authored cells, removes isolated matte dust, scales and mirrors them into the existing 320×280 frame format. It does not repaint the artwork. Output: eight directions, four walk frames and three attack frames per faction, sole anchor `(160,252)`, direction order through `C.DIR_COL`.
 
-`public/js/arbiter-look.js` draws these atlases at the game's normal player scale and uses shared `ModelTiers` geometry, `Wings` and `EquipmentAura`. Halo at Lv.30, wings at Lv.70, larger wings at Lv.110, sun/eclipse aura during the ten-second transformation. Learned Astral Blades orbit beside the body without covering the face.
+`public/js/arbiter-look.js` draws these atlases at the game's normal player scale and uses shared `ModelTiers` geometry, `Wings` and `EquipmentAura`. Halo at Lv.30, wings at Lv.70, larger wings at Lv.110, sun/eclipse aura during transformation. With skill V2, Astral Blades unlocks at Lv.7 and orbits only while its cast buff is active; transformation unlocks at Lv.50 and its duration can evolve.
 
 Browser review outputs in `artifacts/arbiter/`: `create.png`, `style-comparison.png`, `progression.png` and `directions.png`. These are generated evidence, not runtime images.

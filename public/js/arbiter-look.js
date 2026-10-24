@@ -121,7 +121,7 @@
           g.strokeStyle=p.edge;g.beginPath();g.arc(0,0,d.radius-7,-Math.PI/2,-Math.PI/2+TAU*progress);g.stroke();
           g.fillStyle=p.light;g.font='bold 16px sans-serif';g.textAlign='center';g.fillText('มหาพิพากษา',0,-10);
         } else if(d.phase==='astral')blade(g,0,-20+progress*30,Math.PI*.2,.8,p);
-        else if(d.phase==='form'||d.phase==='ward'){
+        else if(['form','ward','resonance','blades'].includes(d.phase)){
           const e=window.G?.ents.get(d.id);if(e){g.translate(e.x-d.x,e.y-d.y);}
           g.beginPath();g.ellipse(0,-55,45,70,0,0,TAU);g.stroke();
         } else if(d.phase==='release'){

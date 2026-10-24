@@ -32,8 +32,11 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       G.skl=C.cleanSkills('arbiter',null,130);G.skl.free=C.skillPtsFree(G.skl,130);HUD.init(e);HUD.cds={};
       window.arbiterFx=G.socket.listeners('fx')[0];BOOK.toggle(true);
     })()`);
-    assert(await run("[...document.querySelectorAll('select[data-bar]')].filter(x=>['oathResonance','astralBlades'].includes(x.dataset.bar)).every(x=>x.disabled)"));
-    assert(await run("document.querySelector('.sk-card[data-id=\"oathResonance\"] .sk-pips').children.length===1"));
+    assert(await run("[...document.querySelectorAll('select[data-bar]')].length===9 && [...document.querySelectorAll('select[data-bar]')].every(x=>!x.disabled)"));
+    assert(await run("document.querySelector('.sk-card[data-id=\"oathResonance\"] .sk-pips').children.length===12"));
+    assert(await run("document.querySelectorAll('.sk-card .sk-evos').length===8 && document.querySelectorAll('.sk-card[data-id=\"oathBasic\"] .sk-evos').length===0"));
+    assert(await run("C.CLASSES.arbiter.skills.slice(1).every(s=>G.skl.bar.includes(s.id))"));
+    fs.writeFileSync(path.join(out,'skills-v2.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
     assert(await run("!!ItemArt.iconSrc('w0','dharma') && !!ItemArt.iconSrc('w0','adharma')"));
     await run('BOOK.toggle(false)');
     for(const f of ['dharma','adharma'])for(const lvl of [1,29,30,50,69,70,109,110,130]){
@@ -78,6 +81,6 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
     })()`);
     fs.writeFileSync(path.join(out,'directions.png'),Buffer.from(directions.split(',')[1],'base64'));
     await pause(150);assert.equal(errors.length,0,JSON.stringify(errors));
-    console.log('PASS: browser boot, class selection, 1,008 directional/level/pose renders, 18 skill icons, live FX and passive UI. '+out);
+    console.log('PASS: browser boot, class selection, 1,008 directional/level/pose renders, 18 skill icons, live FX and eight active skill evolution cards. '+out);
   }finally{if(ws)ws.close();preview.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

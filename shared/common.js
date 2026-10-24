@@ -362,7 +362,7 @@
   const basicReach = (cls, lvl) => cls === 'arbiter' ? (lvl >= 30 ? 245 : 92) : (CLASSES[cls] || CLASSES.dualblade).reach;
   CLASSES.arbiter = {
     id: 'arbiter', name: 'เทวทัณฑ์', weapon: 'ดาบสัตย์',
-    desc: 'Divine Arbiter · ดาบประชิดและคลื่นระยะกลาง สะสมสัตย์ ดาบบริวาร และจุติชั่วคราว · วิวัฒนาการอัตโนมัติ Lv.30 / 70 / 110',
+    desc: 'Divine Arbiter · ตีธรรมดาโตตามเลเวล · 8 สกิลกดใช้ เรียน อัปแต้ม และวิวัฒนาการในคัมภีร์วิชา · รัศมีและปีกตาม Lv.30 / 70 / 110',
     hp: 155, hpG: 24, mp: 100, mpG: 13, atk: 14, atkG: 3.9, def: 3, defG: 1.1,
     speed: 215, crit: .09, reach: 92,
     // Cooldowns below are final milliseconds (added after the legacy cooldown conversion).
@@ -370,24 +370,54 @@
       { id: 'oathBasic', name: 'คมดาบสัตย์', key: '1', lvl: 1, mp: 0, cd: 780, free: true,
         arbiter: { kind: 'basic', range: 105, windup: 180, power: 1 }, evo: [],
         desc: 'โจมตีธรรมดาแยกจาก 8 สกิล: ประชิด 3 จังหวะ 90/100/110% · Lv.30 คลื่นดาบระยะ 260 กว้าง 48 สูงสุด 3 เป้า ดาเมจ 75% · ฝึกอัตโนมัติ +5% ทุก 4 เลเวล สูงสุด 55% · ขั้นอาชีพ +30% ต่อขั้น · ไม่ใช้แต้ม' },
-      { id: 'oathSlash', name: 'ฟันคำสัตย์', key: '2', lvl: 1, mp: 12, cd: 4000, evo: [],
+      { id: 'oathSlash', name: 'ฟันคำสัตย์', key: '2', lvl: 1, mp: 12, cd: 4000,
+        evo: [{ lvl: 40, name: 'ฟันสัตย์พิพากษา', desc: 'พลังเพิ่ม 30% ระยะฟันเพิ่มเป็น 135' }],
         arbiter: { kind: 'single', range: 115, windup: 240, power: 1.7 }, desc: 'ฟันเป้าเดียว 170% ATK ระยะ 115 · เตรียมฟัน 0.24 วิ' },
-      { id: 'oathResonance', name: 'สะสมสัตย์', lvl: 10, mp: 0, cd: 0, passive: true, evo: [],
-        desc: 'พาสซีฟ: โจมตีโดนสะสม 1 ชั้นต่อการใช้ท่า สูงสุด 5 ชั้น · การโจมตีถัดไปแรงขึ้น 30% แล้วเริ่มสะสมใหม่ · ดาบบริวารไม่สะสม' },
-      { id: 'arcblade', name: 'คมอาคม', key: '3', lvl: 30, mp: 20, cd: 6500, evo: [],
+      { id: 'oathResonance', name: 'สะสมสัตย์', key: '3', lvl: 2, mp: 14, cd: 18000,
+        arbiter: { kind: 'resonance', duration: 12000 },
+        evo: [{ lvl: 60, name: 'สัตย์สวรรค์', desc: 'โบนัสสะสมสัตย์แรงขึ้น 30% และบัพนานขึ้น 2 วิ · อัปสเต็กเพิ่มโบนัสและระยะเวลา' }],
+        desc: 'บัพ 12 วิ: โจมตีโดนสะสม 1 ชั้นต่อท่า ครบ 5 ชั้น การโจมตีถัดไปแรงขึ้น 30% แล้วเริ่มใหม่ · อัปสเต็กเพิ่มโบนัส 5% และเวลา 0.25 วิ/สเต็ก · หมดบัพล้างชั้น · ดาบบริวารไม่สะสม' },
+      { id: 'arcblade', name: 'คมอาคม', key: '4', lvl: 4, mp: 20, cd: 6500,
+        evo: [{ lvl: 80, name: 'คมอาคมผ่าสวรรค์', desc: 'พลังเพิ่ม 30% ระยะ 310 กว้าง 64 สูงสุด 4 เป้า' }],
         arbiter: { kind: 'line', range: 280, width: 28, cap: 4, windup: 350, power: 1.8 }, desc: 'คลื่นเส้นตรง 180% ATK ระยะ 280 กว้าง 56 สูงสุด 4 เป้า · เตรียม 0.35 วิ' },
-      { id: 'astralBlades', name: 'ดาบบริวาร', lvl: 50, mp: 0, cd: 2500, passive: true, evo: [],
-        desc: 'พาสซีฟ: โจมตีธรรมดาโดนมีโอกาส 25% ฟันเสริม 35% ATK เพียง 1 เป้า ทุก 2.5 วิ · ไม่กระตุ้นพาสซีฟอื่น' },
-      { id: 'oathAegis', name: 'เกราะสัตย์', key: '4', lvl: 70, mp: 26, cd: 20000, maxRank: 1, evo: [],
-        arbiter: { kind: 'ward', duration: 5000, guard: .2 }, desc: 'ลดดาเมจตนเอง 20% นาน 5 วิ (PvP 15%) · ธรรมะเสริมความแม่นยำ 3% · อธรรมเพิ่มโอกาสหลบ 3% · ไม่ซ้อนเกราะนักพรต/แนวหน้า' },
-      { id: 'bladeOrbit', name: 'วงแหวนคมดาบ', key: '5', lvl: 85, mp: 38, cd: 12000, evo: [],
+      { id: 'astralBlades', name: 'ดาบบริวาร', key: '5', lvl: 7, mp: 24, cd: 20000,
+        arbiter: { kind: 'astral', duration: 10000 },
+        evo: [{ lvl: 90, name: 'ดาบบริวารดารา', desc: 'ดาบเสริมแรงขึ้น 30% บัพนานขึ้น 2 วิ' }, { lvl: 130, name: 'ดาบบริวารจักรฟ้า', desc: 'ดาบเสริมแรงขึ้นรวม 60% บัพนานขึ้นรวม 4 วิ · สูงสุดหนึ่งเป้าต่อครั้ง' }],
+        desc: 'เรียกดาบ 10 วิ: ตีธรรมดาโดนมีโอกาส 25% ฟันเสริม 35% ATK หนึ่งเป้า ทุก 2.5 วิ · อัปสเต็กเพิ่มพลังดาบ 5% และเวลา 0.25 วิ/สเต็ก · ไม่กระตุ้นเอฟเฟกต์ไอเทมซ้ำ' },
+      { id: 'oathAegis', name: 'เกราะสัตย์', key: '6', lvl: 10, mp: 26, cd: 20000,
+        evo: [{ lvl: 100, name: 'เกราะสัตย์สวรรค์', desc: 'เพิ่มการลดดาเมจอีก 3 จุดเปอร์เซ็นต์ นานขึ้น 1 วิ' }],
+        arbiter: { kind: 'ward', duration: 5000, guard: .2 }, desc: 'ลดดาเมจตนเอง 20% นาน 5 วิ (PvP ใช้ 75% ของเกราะ) · อัปสเต็กเพิ่ม 0.4 จุดเปอร์เซ็นต์/สเต็ก · ธรรมะเสริมแม่นยำ 3% อธรรมเสริมหลบ 3% · ใช้เกราะที่แรงที่สุด' },
+      { id: 'bladeOrbit', name: 'วงแหวนคมดาบ', key: '7', lvl: 30, mp: 38, cd: 12000,
+        evo: [{ lvl: 110, name: 'วงแหวนพิพากษา', desc: 'พลังเพิ่ม 30% รัศมีเพิ่มเป็น 180 สูงสุด 5 เป้า' }],
         arbiter: { kind: 'circle', range: 155, cap: 5, windup: 450, power: 2.4 }, desc: 'กวาดรอบตัว 240% ATK รัศมี 155 สูงสุด 5 เป้า · เตรียม 0.45 วิ' },
-      { id: 'ascendantForm', name: 'จุติผู้พิพากษา', key: '6', lvl: 110, mp: 55, cd: 60000, maxRank: 1, evo: [],
-        arbiter: { kind: 'form', duration: 10000 }, desc: 'จุติ 10 วิ เพิ่มดาเมจ 12% (PvP 8%) และความเร็วโจมตี 10% · ระยะและจำนวนเป้าเท่าเดิม' },
-      { id: 'finalVerdict', name: 'มหาพิพากษา', key: '7', lvl: 110, mp: 65, cd: 35000, evo: [],
+      { id: 'ascendantForm', name: 'จุติผู้พิพากษา', key: '8', lvl: 50, mp: 55, cd: 60000,
+        evo: [{ lvl: 120, name: 'จุติมหาตุลาการ', desc: 'เพิ่มดาเมจอีก 4 จุดเปอร์เซ็นต์ ตีเร็วอีก 3 จุดเปอร์เซ็นต์ นานขึ้น 2 วิ · PvP ได้โบนัสดาเมจสองในสาม' }],
+        arbiter: { kind: 'form', duration: 10000 }, desc: 'จุติ 10 วิ เพิ่มดาเมจ 12% (PvP 8%) ตีเร็ว 10% · อัปสเต็กเพิ่มดาเมจและตีเร็วอย่างละ 0.3 จุดเปอร์เซ็นต์/สเต็ก · ระยะและจำนวนเป้าเท่าเดิม' },
+      { id: 'finalVerdict', name: 'มหาพิพากษา', key: '9', lvl: 70, mp: 65, cd: 35000,
+        evo: [{ lvl: 130, name: 'มหาพิพากษาสามภพ', desc: 'พลังเพิ่ม 30% รัศมีเพิ่มเป็น 170 · ระยะวาง 280 สูงสุด 5 เป้า วงเตือน 1.2 วิเท่าเดิม' }],
         arbiter: { kind: 'verdict', range: 280, radius: 145, cap: 5, windup: 1200, power: 4.2 }, desc: 'เลือกพื้นที่ระยะ 280 รัศมี 145 สูงสุด 5 เป้า 420% ATK · วงเตือน 1.2 วิ หลบออกได้ · ถูกควบคุมหรือตายยกเลิก' },
     ],
   };
+  // Shared learned parameters: active skills grow only through invested points/evolutions.
+  // Character-level evolution power belongs exclusively to the free basic attack.
+  function arbiterSpec(sk, sl = 1, rank = 0) {
+    const s = { ...sk.arbiter }, trained = Math.max(0, Math.min(11, sl - 1));
+    if (s.kind === 'single' && rank) s.range = 135;
+    if (s.kind === 'line' && rank) { s.range = 310; s.width = 32; }
+    if (s.kind === 'circle' && rank) s.range = 180;
+    if (s.kind === 'verdict' && rank) s.radius = 170;
+    if (s.kind === 'resonance' || s.kind === 'astral') {
+      s.duration += trained * 250 + rank * 2000;
+      s.bonus = (s.kind === 'resonance' ? ARBITER.resonance : ARBITER.astralPower) * skillPower(sl, rank);
+    }
+    if (s.kind === 'ward') { s.guard += trained * .004 + rank * .03; s.duration += rank * 1000; }
+    if (s.kind === 'form') {
+      s.damage = .12 + trained * .003 + rank * .04;
+      s.aspd = .1 + trained * .003 + rank * .03;
+      s.duration += rank * 2000;
+    }
+    return s;
+  }
   const CLASS_IDS = Object.keys(CLASSES);          // snapshot index of a class
   // Fractions, not percentages. Both factions use the same combat rules.
   const CLASS_ROLES = {
@@ -420,7 +450,7 @@
     rend: 'เกราะแตกไม่ซ้อนกัน ใช้ค่าที่แรงที่สุด',
   };
   // timed buffs a skill leaves on the caster / party (HUD buff row; values are applied on the server)
-  const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion', 'guardianOath', 'oathAegis', 'ascendantForm'];
+  const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion', 'guardianOath', 'oathResonance', 'astralBlades', 'oathAegis', 'ascendantForm'];
   // skills that move the caster: a root blocks them (server and client)
   const MOVE_SKILLS = ['shadowstep', 'skyfall', 'twindragon', 'rollshot'];
   // where ดาวตกเพลิงฟ้า's meteors land round the aim (golden-angle ring), shared so every client draws the real spots
@@ -632,6 +662,7 @@
   function cleanSkills(cls, saved, lvl) {
     const list = (CLASSES[cls] || CLASSES.dualblade).skills, basic = basicOf(cls);
     const d = { v: SKILL_VER, sk: {}, ev: {}, bar: [], auto: !!(saved && saved.auto) };
+    if (cls === 'arbiter') d.av = 1;
     if (saved && saved.v !== SKILL_VER) saved = { auto: saved.auto };
     const old = !saved || !saved.sk;
     for (const sk of list) {
@@ -651,6 +682,13 @@
       const id = i>=9 && i>=bar.length ? list.find(s=>s.key===BAR_KEYS[i])?.id : bar[i];
       d.bar[i] = ids.has(id) && !used.has(id) ? id : null;
       if (d.bar[i]) used.add(id);
+    }
+    // One-time migration: preserve old investments and custom slots, add the two former passives.
+    if (cls === 'arbiter' && saved?.sk && !saved.av) {
+      for (const id of ['oathResonance', 'astralBlades']) if (!used.has(id)) {
+        const i = d.bar.findIndex((value, index) => index < 9 && !value);
+        if (i >= 0) { d.bar[i] = id; used.add(id); }
+      }
     }
     return d;
   }
@@ -1648,7 +1686,7 @@
   const spawnPoint = (f) => ({ x: BASES[f].spawn.tx * TILE + TILE / 2, y: BASES[f].spawn.ty * TILE + TILE / 2 });
 
   return {
-    ARBITER, ARBITER_STAGES, arbiterStage, arbiterPower, basicReach,
+    ARBITER, ARBITER_STAGES, arbiterStage, arbiterPower, arbiterSpec, basicReach,
     TILE, MAP_W, MAP_H, T, FACTIONS, BASES, CENTER, STONES, CLASSES, CLASS_ROLES, roleOf, combatMoveScale, MAX_LVL, CONSUMABLES, STACK_MAX, stackCount, stackKey, ITEM_USE_CD,
     skillRank, skillMult, skillInfo, stageOf, SKILL_STAGES, stagesOf, STANCES, GCD_MS, CLASS_IDS, ALL_SKILLS, setViewClass, spearSequence, spearAreaContains,
     BAG_SIZE, STORAGE_SIZE, RARITY, GRADES, GRADE_LIGHT, gradeLight, EPIC, AFFIXES, OPTIONS, PASSIVES, DROP_LVL_RANGE, TOP_ITEM_LVL, canDropHigh, rollGrade, gradeChances, gradeBands, HIGH_BANDS, BOSS_GRADES, BOSS_RESPAWN,

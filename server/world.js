@@ -654,7 +654,7 @@ class World {
     const rank = C.skillRankOf(p.skl, sk.id), mult = C.skillPower(sl, rank);
     const fx = (data) => this.fx(p, { id: p.id, r: rank, sl, ...data });
     const alive = () => this.alive(p);
-    if (arbiter) return this.castArbiter(p, sk, arbiter, mult * C.arbiterPower(p.lvl, basic), now);
+    if (arbiter) return this.castArbiter(p, sk, arbiter, basic ? C.arbiterPower(p.lvl, true) : mult, now);
     if (front) {
       const mapId = p.mapId, epoch = p.controlEpoch || 0;
       const castId=p.frontlineSeq=(p.frontlineSeq||0)+1;
@@ -1196,9 +1196,9 @@ class World {
   }
   // Validate before spending mana or starting cooldowns; clients and Auto Hunt share this path.
   arbiterAim(p, sk, d, a) {
-    const s = sk.arbiter, R = C.ARBITER;
+    const s = C.arbiterSpec(sk, p.skl.sk[sk.id], C.skillRankOf(p.skl, sk.id)), R = C.ARBITER;
     const plan = { ...s, a, x: p.x, y: p.y };
-    if (s.kind === 'ward' || s.kind === 'form') return plan;
+    if (C.BUFF_SKILLS.includes(sk.id)) return plan;
     if (Date.now() < (p.rootUntil || 0)) return null;
     if (C.safeAt(this.defOf(p), p.x, p.y)) return null;
     if (s.kind === 'basic' || s.kind === 'single') {
@@ -1232,12 +1232,17 @@ class World {
     const fx = data => this.fx(p, { t: 'arbiter', id: p.id, skill: sk.id, token, mapId, a: plan.a, ...data });
     if (plan.kind === 'ward') {
       this.addBuff(p, sk.id, plan.duration, { arbiterGuard: plan.guard,
-        accuracy: p.faction === 'dharma' ? .03 : 0, evasion: p.faction === 'adharma' ? .03 : 0 });
+        accuracy: p.faction === 'dharma' ? .03 : 0, evasion: p.faction === 'adharma' ? .03 : 0 }, plan.guard);
       fx({ phase: 'ward', x: p.x, y: p.y, dur: plan.duration }); return;
     }
     if (plan.kind === 'form') {
-      this.addBuff(p, sk.id, plan.duration, { arbiterForm: 1, aspd: .1 });
+      this.addBuff(p, sk.id, plan.duration, { arbiterForm: 1, arbiterDamage: plan.damage, aspd: plan.aspd }, plan.damage);
       fx({ phase: 'form', x: p.x, y: p.y, dur: plan.duration }); return;
+    }
+    if (plan.kind === 'resonance' || plan.kind === 'astral') {
+      if (plan.kind === 'resonance' && !this.buffVal(p, 'oathResonance')) p.oathStacks = 0;
+      this.addBuff(p, sk.id, plan.duration, { [plan.kind === 'resonance' ? 'oathResonance' : 'astralPower']: plan.bonus }, plan.bonus);
+      fx({ phase: plan.kind === 'resonance' ? 'resonance' : 'blades', x: p.x, y: p.y, dur: 700 }); return;
     }
     const windup = plan.kind === 'basic' ? Math.min(plan.windup, C.basicCd(sk, p.stats.aspd + this.buffVal(p, 'aspd')) * .6) : plan.windup;
     p.lockUntil = now + windup;
@@ -1253,7 +1258,7 @@ class World {
         this.enemiesOf(p, center.x, center.y, range).includes(t) && dist(center, t) <= range + radiusOf(t) &&
         !C.safeAt(this.defOf(p), t.x, t.y) && this.arbiterClear(p, t, center);
       if (C.safeAt(this.defOf(p), p.x, p.y)) return;
-      if (plan.target && !legal(plan.target, plan.wave ? R.wave : sk.arbiter.range)) return;
+      if (plan.target && !legal(plan.target, plan.wave ? R.wave : plan.kind === 'basic' ? R.melee : plan.range)) return;
       let targets, power = plan.power;
       if (plan.kind === 'basic') {
         p.arbiterCombo = ((p.arbiterCombo || 0) + 1) % 3;
@@ -1269,19 +1274,21 @@ class World {
       } else if (plan.target) targets = [plan.target];
       else targets = this.enemiesOf(p, origin.x, origin.y, plan.radius || plan.range)
         .filter(t => legal(t, plan.radius || plan.range, origin)).sort((a,b) => dist(origin,a)-dist(origin,b)).slice(0, plan.cap);
-      const resonance = p.lvl >= 10 && p.skl.sk.oathResonance;
+      const resonance = this.buffVal(p, 'oathResonance');
+      if (!resonance) p.oathStacks = 0;
       const empowered = resonance && (p.oathStacks || 0) >= R.stacks;
       let landed = null;
       for (const t of targets) {
-        const dealt = this.applyDamage(p, t, power * mult * (empowered ? 1 + R.resonance : 1),
+        const dealt = this.applyDamage(p, t, power * mult * (empowered ? 1 + resonance : 1),
           { onHitWeight: 1 / Math.max(1, targets.length) });
         if (dealt > 0 && !landed) landed = t;
       }
       if (landed && resonance) p.oathStacks = empowered ? 0 : Math.min(R.stacks, (p.oathStacks || 0) + 1);
       // One proc per basic cast, with its own clock; never recursively generates stacks or gear procs.
-      if (landed && plan.kind === 'basic' && p.lvl >= 50 && p.skl.sk.astralBlades && Date.now() >= (p.astralAt || 0) && Math.random() < R.astralChance) {
+      const astral = this.buffVal(p, 'astralPower');
+      if (landed && plan.kind === 'basic' && astral && Date.now() >= (p.astralAt || 0) && Math.random() < R.astralChance) {
         p.astralAt = Date.now() + R.astralCd;
-        if (!landed.dead) this.applyDamage(p, landed, R.astralPower, { proc: true, onHitWeight: 0 });
+        if (!landed.dead) this.applyDamage(p, landed, astral, { proc: true, onHitWeight: 0 });
         fx({ phase: 'astral', x: landed.x, y: landed.y, dur: 400 });
       }
       fx({ phase: 'release', x: origin.x, y: origin.y, radius: plan.radius || plan.range,
@@ -2511,7 +2518,7 @@ class World {
       * (this.taoistSolo(tgt) ? C.TAOIST_SOLO.taken : 1);
     if (sP && src.cls === 'arbiter' && !opts.reflect) {
       if (tP) dmg *= C.ARBITER.pvp;
-      if (this.buffVal(src, 'arbiterForm')) dmg *= tP ? 1.08 : 1.12;
+      dmg *= 1 + this.buffVal(src, 'arbiterDamage') * (tP ? 2 / 3 : 1);
     }
     if (tP) {
       const tfx = tgt.stats.fx;
@@ -3284,7 +3291,7 @@ class World {
           C.ITEMS[q.eq.weapon].tier, C.armorTiers(q.eq), C.ITEMS[q.eq.weapon].plus || 0, C.gearGrades(q.eq), C.ITEMS[q.eq.weapon].grade || 0,
           C.CLASS_IDS.indexOf(q.cls), C.gearPlus(q.eq),
           q.pk ? 1 : 0, q.evil || 0, this.canPk(p, q, now) ? 1 : 0,
-          q.cls === 'arbiter' ? [this.buffVal(q, 'arbiterForm') ? 1 : 0, q.oathStacks || 0, q.lvl >= 50 && q.skl.sk.astralBlades ? 1 : 0] : null]);
+          q.cls === 'arbiter' ? [this.buffVal(q, 'arbiterForm') ? 1 : 0, this.buffVal(q, 'oathResonance') ? q.oathStacks || 0 : 0, this.buffVal(q, 'astralPower') ? 1 : 0] : null]);
       }
       const pt = this.partyOf(p), ours = pt ? new Set(pt.members) : new Set([p.id]);   // aggro 2 = on p or its party
       for (const m of this.maps[p.mapId].monsters) {

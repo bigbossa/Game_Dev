@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const C=require('../shared/world-data'),World=require('../server/world'),Store=require('../server/store');
 const originalNow=Date.now,originalRandom=Math.random;let now=100000,seq=0,checks=0;
+const pointsUsed=d=>130-C.skillPtsFree(d,130);
 const copy=x=>JSON.parse(JSON.stringify(x));
 function fixture(lvl=130,pvp=false,faction='dharma',cls='arbiter'){
   const w=Object.create(World.prototype);w.players=new Map();w.parties=new Map();w.bySocket=new Map();w.timers=[];w.seq=100;
@@ -36,10 +37,11 @@ try{
     assert(C.cleanSkills('arbiter',null,1).sk.oathSlash);assert.equal(C.skillPtsFree(C.cleanSkills('arbiter',null,1),1),0);
   });
   for(const faction of ['dharma','adharma'])for(const pvp of [false,true]){
-    test(`${faction} ${pvp?'PvP':'PvE'} every active skill and passive cast rejection`,()=>{
+    test(`${faction} ${pvp?'PvP':'PvE'} basic and all eight active skills`,()=>{
       for(const sk of C.CLASSES.arbiter.skills){const f=fixture(130,pvp,faction),hp=f.t.hp,mp=f.p.mp;cast(f,sk.id);flush(f.w);
-        if(sk.passive){assert.equal(f.p.mp,mp);assert.equal(f.t.hp,hp);assert.equal(f.p.cds[sk.id],undefined);}
-        else if(['ward','form'].includes(sk.arbiter.kind))assert(f.p.buffs[sk.id]);else assert(f.t.hp<hp,sk.id);
+        assert(!sk.passive);
+        if(C.BUFF_SKILLS.includes(sk.id)){assert(f.p.buffs[sk.id]);assert.equal(f.t.hp,hp);}else assert(f.t.hp<hp,sk.id);
+        assert.equal(f.p.mp,mp-C.skillMp(sk,130));assert(f.p.cds[sk.id]>now);
       }
     });
   }
@@ -63,17 +65,23 @@ try{
     cast(f);flush(f.w);for(const t of [f.t,near,third])assert(t.hp<1e8);for(const t of [extra,side,behind,far])assert.equal(t.hp,1e8);
   });
   test('resonance counts once per landed cast, consumes on sixth, misses do not stack',()=>{
-    const f=fixture(30);f.w.applyDamage=()=>10;
-    for(let i=0;i<5;i++){cast(f);flush(f.w);reset(f);assert.equal(f.p.oathStacks,i+1);}
+    const f=fixture(30);f.p.skl.sk.oathResonance=1;f.w.applyDamage=()=>10;
+    cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);now+=800; // Learning alone grants no passive.
+    cast(f,'oathResonance');f.p.arbiterCombo=0;
+    for(let i=0;i<5;i++){cast(f);flush(f.w);now+=800;assert.equal(f.p.oathStacks,i+1);}
     let power;f.w.applyDamage=(p,t,v)=>{power=v;return 10;};cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);assert(Math.abs(power-1.1*1.3*C.arbiterPower(30,true))<1e-8);
-    reset(f);f.w.applyDamage=()=>0;cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);
-    reset(f);f.w.applyDamage=()=>10;f.enemy();f.enemy();cast(f,'arcblade');flush(f.w);assert.equal(f.p.oathStacks,1);
+    now+=800;f.w.applyDamage=()=>0;cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);
+    now+=800;f.w.applyDamage=()=>10;f.enemy();f.enemy();cast(f,'arcblade');flush(f.w);assert.equal(f.p.oathStacks,1);
+    reset(f);cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);
+    now+=800;f.p.oathStacks=5;cast(f,'oathResonance');assert.equal(f.p.oathStacks,0);
   });
   test('astral one proc per basic, ICD and no gear recursion',()=>{
     const f=fixture(70),hits=[];Math.random=()=>0;f.w.applyDamage=(p,t,v,o)=>{hits.push(o);return 10;};
+    cast(f);flush(f.w);assert.equal(hits.filter(o=>o.proc).length,0);now+=800;cast(f,'astralBlades');
     cast(f);flush(f.w);assert.equal(hits.filter(o=>o.proc).length,1);assert.equal(hits.at(-1).onHitWeight,0);
     now+=800;cast(f);flush(f.w);assert.equal(hits.filter(o=>o.proc).length,1);
-    now+=2500;cast(f);flush(f.w);assert.equal(hits.filter(o=>o.proc).length,2);Math.random=()=>.5;
+    now+=2500;cast(f);flush(f.w);assert.equal(hits.filter(o=>o.proc).length,2);
+    now=f.p.buffs.astralBlades.until+1;cast(f);flush(f.w);assert.equal(hits.filter(o=>o.proc).length,2);Math.random=()=>.5;
   });
   test('telegraphed ultimate can be dodged; target membership is checked at impact',()=>{
     const f=fixture(130,true);cast(f,'finalVerdict');assert.equal(f.t.hp,1e8);assert(f.w.events.some(a=>a[4]?.phase==='windup'));
@@ -91,9 +99,11 @@ try{
     }
   });
   test('ward and transformation expire; PvP reductions; faction traits',()=>{
-    for(const faction of ['dharma','adharma']){const f=fixture(130,true,faction);cast(f,'oathAegis');assert.equal(f.w.buffVal(f.p,'arbiterGuard'),.2);assert.equal(f.w.buffVal(f.p,faction==='dharma'?'accuracy':'evasion'),.03);now+=5001;assert.equal(f.w.buffVal(f.p,'arbiterGuard'),0);
-      cast(f,'ascendantForm');assert.equal(f.w.buffVal(f.p,'arbiterForm'),1);now+=10001;assert.equal(f.w.buffVal(f.p,'arbiterForm'),0);}
-    for(const pvp of [false,true]){const f=fixture(130,pvp);const base=f.w.applyDamage(f.t,f.p,1);f.p.hp=f.p.stats.maxHp;cast(f,'oathAegis');const ward=f.w.applyDamage(f.t,f.p,1);assert(Math.abs(ward/base-(pvp?.85:.8))<.03);}
+    for(const faction of ['dharma','adharma']){const f=fixture(130,true,faction);f.p.skl.sk.oathAegis=1;delete f.p.skl.ev.oathAegis;
+      cast(f,'oathAegis');assert.equal(f.w.buffVal(f.p,'arbiterGuard'),.2);assert.equal(f.w.buffVal(f.p,faction==='dharma'?'accuracy':'evasion'),.03);now+=5001;assert.equal(f.w.buffVal(f.p,'arbiterGuard'),0);
+      cast(f,'ascendantForm');assert.equal(f.w.buffVal(f.p,'arbiterForm'),1);now=f.p.buffs.ascendantForm.until+1;assert.equal(f.w.buffVal(f.p,'arbiterForm'),0);}
+    for(const pvp of [false,true]){const f=fixture(130,pvp);f.p.skl.sk.oathAegis=1;delete f.p.skl.ev.oathAegis;
+      const base=f.w.applyDamage(f.t,f.p,1);f.p.hp=f.p.stats.maxHp;cast(f,'oathAegis');const ward=f.w.applyDamage(f.t,f.p,1);assert(Math.abs(ward/base-(pvp?.85:.8))<.03);}
   });
   test('real level-up and save/load preserve existing characters at all evolution thresholds',()=>{
     for(const cls of C.CLASS_IDS)for(const lvl of [29,69,109]){
@@ -109,15 +119,76 @@ try{
     }
     const f=fixture(129);f.w.gainExp(f.p,C.expToNext(129)*100);assert.equal(f.p.lvl,130);assert.equal(f.p.exp,0);
   });
-  test('Auto Hunt invokes the same server cast handler and excludes passives',()=>{
+  test('Auto Hunt casts both new buffs, then attacks; skips active buffs and distant targets',()=>{
     const f=fixture(30),calls=[],node={addEventListener(){},classList:{toggle(){}},querySelectorAll(){return[];}};
     const G={cls:'arbiter',me:f.p,stats:{lvl:30,mp:f.p.mp,hp:f.p.hp,mhp:f.p.hp},skl:f.p.skl,mapId:'lab',
-      useSlot(id){calls.push(id);cast(f,id);}};
+      useSlot(id){calls.push(id);cast(f,id);this.stats.bf=f.w.buffList(f.p);}};
     const context={C,G,window:null,document:{getElementById:()=>node},localStorage:{getItem(){return null;}},HUD:{cdLeft:()=>0},performance:{now:()=>now}};context.window=context;
     vm.runInNewContext(fs.readFileSync(require.resolve('../public/js/bot.js'),'utf8'),context);
-    context.BOT.api={radiusOf:()=>20,orderMove(){}};context.BOT.fight(f.t,now);flush(f.w);assert(f.t.hp<1e8);assert.equal(calls[0],'arcblade');
+    context.BOT.api={radiusOf:()=>20,orderMove(){}};
+    for(let i=0;i<4;i++){context.BOT.fight(f.t,now);flush(f.w);now+=C.GCD_MS;}
+    assert.deepEqual(calls,['oathAegis','oathResonance','astralBlades','bladeOrbit']);assert(f.t.hp<1e8);
     f.t.x=3000;calls.length=0;context.BOT.fight(f.t,now);assert.equal(calls.length,0);assert.equal(G.order.type,'attack');
-    assert(!f.p.skl.bar.includes('oathResonance'));
+    assert(f.p.skl.bar.includes('oathResonance'));assert(f.p.skl.bar.includes('astralBlades'));
+  });
+  test('eight learned skills have standard unlocks, spend points, and evolve only on request',()=>{
+    const list=C.CLASSES.arbiter.skills.slice(1);
+    assert.deepEqual(list.map(s=>s.key),['2','3','4','5','6','7','8','9']);
+    assert.deepEqual(list.map(s=>s.lvl),[1,2,4,7,10,30,50,70]);
+    for(const sk of list){
+      const f=fixture(130);f.p.skl=C.cleanSkills('arbiter',{v:C.SKILL_VER,av:1,sk:{oathBasic:1},ev:{}},130);
+      assert(!f.p.skl.sk[sk.id]);cast(f,sk.id);assert.equal(f.p.cds[sk.id],undefined);
+      f.w.onSkills(f.p,{cmd:'evo',id:sk.id});assert(!f.p.skl.ev[sk.id]);
+      for(let i=0;i<12;i++)f.w.onSkills(f.p,{cmd:'up',id:sk.id});
+      assert.equal(f.p.skl.sk[sk.id],12);assert.equal(pointsUsed(f.p.skl),12);
+      f.w.onSkills(f.p,{cmd:'up',id:sk.id});assert.equal(pointsUsed(f.p.skl),12);
+      for(let i=0;i<sk.evo.length;i++){
+        f.p.lvl=sk.evo[i].lvl-1;f.w.onSkills(f.p,{cmd:'evo',id:sk.id});assert.equal(f.p.skl.ev[sk.id]||0,i);
+        f.p.lvl=sk.evo[i].lvl;f.w.onSkills(f.p,{cmd:'evo',id:sk.id});assert.equal(f.p.skl.ev[sk.id],i+1);
+      }
+      assert.equal(pointsUsed(f.p.skl),12+sk.evo.length*C.EVO_COST);
+    }
+    const f=fixture();const used=pointsUsed(f.p.skl);f.w.onSkills(f.p,{cmd:'up',id:'oathBasic'});
+    assert.equal(f.p.skl.sk.oathBasic,1);assert.equal(pointsUsed(f.p.skl),used);
+  });
+  test('basic damage grows with character level; active damage grows with invested rank only',()=>{
+    function power(lvl,id,sl=1,ev=0){const f=fixture(lvl);f.p.skl.sk[id]=sl;f.p.skl.ev[id]=ev;let result;
+      f.w.applyDamage=(p,t,v)=>{result=v;return 1;};cast(f,id);flush(f.w);return result;}
+    assert(power(30,'oathBasic')>power(29,'oathBasic'));
+    assert(power(70,'oathBasic')>power(69,'oathBasic'));
+    assert(power(110,'oathBasic')>power(109,'oathBasic'));
+    assert.equal(power(130,'oathSlash'),power(1,'oathSlash'));
+    for(const id of ['oathSlash','arcblade','bladeOrbit','finalVerdict']){
+      assert(Math.abs(power(130,id,12)/power(130,id)-1.55)<1e-8);
+      assert(Math.abs(power(130,id,12,1)/power(130,id,12)-1.3)<1e-8);
+    }
+    for(const [id,x,y] of [['oathSlash',2148,2000],['arcblade',2300,2000],['bladeOrbit',2185,2000],['finalVerdict',2080,2168]]){
+      for(const rank of [0,1]){const f=fixture();f.p.skl.ev[id]=rank;f.t.x=x;f.t.y=y;
+        cast(f,id,id==='finalVerdict'?{tx:2080,ty:2000}:{});flush(f.w);assert.equal(f.t.hp<1e8,!!rank,id);}
+    }
+  });
+  test('buff upgrades affect authoritative bonuses and timers; transformation respects PvP scaling',()=>{
+    for(const id of ['oathResonance','astralBlades','oathAegis','ascendantForm']){
+      const values=[];
+      for(const [sl,rank] of [[1,0],[12,0],[12,1]]){const f=fixture();f.p.skl.sk[id]=sl;f.p.skl.ev[id]=rank;cast(f,id);values.push(f.p.buffs[id]);}
+      const key={oathResonance:'oathResonance',astralBlades:'astralPower',oathAegis:'arbiterGuard',ascendantForm:'arbiterDamage'}[id];
+      assert(values[1][key]>values[0][key]);assert(values[2][key]>values[1][key]);assert(values[2].dur>values[1].dur);
+    }
+    for(const pvp of [false,true]){const f=fixture(130,pvp);f.p.skl.sk.ascendantForm=1;f.p.skl.ev.ascendantForm=0;
+      const before=f.w.applyDamage(f.p,f.t,1);cast(f,'ascendantForm');const after=f.w.applyDamage(f.p,f.t,1);
+      assert(Math.abs(after/before-(pvp?1.08:1.12))<.01);
+      now=f.p.buffs.ascendantForm.until+1;assert.equal(f.w.applyDamage(f.p,f.t,1),before);
+    }
+  });
+  test('legacy arbiter migration preserves points and custom slots, adds buffs once, persists',()=>{
+    const old={v:C.SKILL_VER,auto:false,sk:{oathBasic:1,oathSlash:9,oathResonance:1,astralBlades:1,oathAegis:1},ev:{},
+      bar:['oathSlash','oathBasic','arcblade','oathAegis','bladeOrbit','ascendantForm','finalVerdict',null,null,null,null]};
+    const d=C.cleanSkills('arbiter',copy(old),130);assert.deepEqual(d.sk,old.sk);assert.equal(pointsUsed(d),pointsUsed(old));
+    assert.deepEqual(d.bar.slice(0,7),old.bar.slice(0,7));assert.deepEqual(d.bar.slice(7,9),['oathResonance','astralBlades']);
+    assert.equal(d.auto,false);d.bar[7]=null;assert.deepEqual(C.cleanSkills('arbiter',copy(d),130),d);
+    const f=fixture();f.p.skl=d;f.w.save(f.p);const saved=copy(f.w.store.get(f.p.name));
+    assert.deepEqual(C.cleanSkills('arbiter',saved.skl,130),d);
+    for(const cls of C.CLASS_IDS.filter(c=>c!=='arbiter')){const s=C.cleanSkills(cls,null,130);assert(!('av' in s));assert.deepEqual(C.cleanSkills(cls,copy(s),130),s);}
   });
   console.log(`PASS: ${checks} Divine Arbiter test groups.`);
 }finally{Date.now=originalNow;Math.random=originalRandom;}
