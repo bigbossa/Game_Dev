@@ -10,6 +10,7 @@ const rows = [];
 function fixture(pvp = false) {
   const w = Object.create(World.prototype);
   w.players = new Map(); w.parties = new Map(); w.timers = []; w.events = [];
+  w.fund = { until: 0 }; // No active donation EXP bonus in combat fixtures.
   w.maps = { arena: { def: { pvp, gates: [], camp: { x0: 0, y0: 0, x1: 4, y1: 4 } },
     map: { w: 200, h: 200, solid: new Uint8Array(40000) }, monsters: [] } };
   w.emitNear = (...args) => w.events.push(args);

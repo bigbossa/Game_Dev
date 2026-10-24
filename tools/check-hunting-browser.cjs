@@ -49,6 +49,15 @@ const out=path.join(__dirname,'../artifacts/hunting-v3'),pause=ms=>new Promise(r
       if(before!==JSON.stringify([map.tiles,map.solid,map.objects]))throw Error('Renderer modified geometry');
       const data=a.getContext('2d').getImageData(0,0,a.width,a.height).data;
       for(let i=3;i<data.length;i+=4)if(data[i]!==255)throw Error('Transparent ground seam');
+      // Shift the chunk origin by half a chunk: overlapping world pixels must agree.
+      // Covers river/road shoulders and cliff scatter, whose padded drawing must not depend on camera.
+      for(const [cx,cy]of [[6,2],[10,0]])for(const [dx,dy]of [[.5,0],[0,.5]]){
+        const first=Art.renderChunk(map,cx,cy,1),shifted=Art.renderChunk(map,cx+dx,cy+dy,1),s=first.width;
+        const aa=first.getContext('2d').getImageData(dx*s,dy*s,s-dx*s,s-dy*s).data;
+        const bb=shifted.getContext('2d').getImageData(0,0,s-dx*s,s-dy*s).data;
+        let changed=0;for(let i=0;i<aa.length;i++)if(Math.abs(aa[i]-bb[i])>2)changed++;
+        if(changed>aa.length*.001)throw Error('Stage 2 chunk seam '+cx+'/'+cy+' '+dx+'/'+dy+': '+changed);
+      }
       return true;
     })()`));
    }

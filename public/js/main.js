@@ -401,20 +401,21 @@
       case 'heal': FX.heal(d.id, d.k); break;
       case 'cover': FX.cover(d.id, d.to); break;
       case 'lvl': {
-        FX.levelUp(d.id, d.f);
-        const was = e ? ModelTiers.tierOf(e.lvl || 1) : 0, now = ModelTiers.tierOf(d.lvl);
+        const arbiter=e?.cls==='arbiter',oldLevel=e?.lvl||1;
+        if(arbiter)ArbiterLook.levelUp(d.id,d.f,oldLevel,d.lvl);else FX.levelUp(d.id, d.f);
+        const was=arbiter?C.arbiterStage(oldLevel):ModelTiers.tierOf(oldLevel),now=arbiter?C.arbiterStage(d.lvl):ModelTiers.tierOf(d.lvl);
         if (e) e.lvl = d.lvl;
         if (d.id === G.myId) {
           HUD.toast(`เลเวลอัพ! ตอนนี้ Lv.${d.lvl}`);
           BOOK.refresh();
           if (d.lvl % 10 === 0 && d.lvl / 10 <= 13) { // every 10 levels: a new martial stage (stance + skill)
             HUD.toast(`บรรลุขั้นวิชาที่ ${d.lvl / 10}: ${C.STANCES[d.lvl / 10]} · กด K ดูคัมภีร์วิชา`);
-            if (e) FX.text(e.x, e.y - 150, `ขั้นวิชา ${d.lvl / 10}`, '#9fe8ff', 26, { max: 2200, vy: -30 });
+            if (e&&!arbiter) FX.text(e.x, e.y - 150, `ขั้นวิชา ${d.lvl / 10}`, '#9fe8ff', 26, { max: 2200, vy: -30 });
           }
         }
         if (now > was) {                                    // new look unlocked
-          FX.equip(d.id, d.f);
-          if (d.id === G.myId) HUD.toast(`ปลดล็อกลักษณะใหม่: ${ModelTiers.nameOf(now, d.f || (e && e.faction), e && e.cls)} (ทรงผมและออร่าเปลี่ยน)`);
+          if(!arbiter)FX.equip(d.id, d.f);
+          if (d.id === G.myId) HUD.toast(arbiter?`วิวัฒนาการเทวทัณฑ์ · Lv.${d.lvl}`:`ปลดล็อกลักษณะใหม่: ${ModelTiers.nameOf(now, d.f || (e && e.faction), e && e.cls)} (ทรงผมและออร่าเปลี่ยน)`);
         }
         break;
       }
@@ -707,6 +708,7 @@
     HUD.update(m);
     if (res.note) HUD.toast(res.note);
     HUD.chat({ sys: 1, t: `ยินดีต้อนรับสู่ยุทธภพ ${m.name}! กด H เพื่อดูวิธีเล่น` });
+    if(m.lvl<=C.BEGINNER.maxLevel)HUD.chat({sys:1,t:'เริ่มจากภูตน้ำค้าง Lv.1 แล้วค่อยเลือกมอนสเตอร์ใกล้เลเวลตัวเองในแผนที่ M · อัปสกิลที่ K และแต้มสถานะที่ C · ในหมู่บ้านมีแรงช่วยฝึกและพักฟื้นสำหรับ Lv.1–20'});
     HUD.chat({ sys: 1, t: `แผนที่ล่ามอนสเตอร์ใช้ร่วมกันทั้งสองฝ่าย · สู้กับฝ่ายตรงข้ามได้เมื่อเปิดสถานะ PvP (⚔ หรือ U · Lv.${C.PK.minLvl}+) ฆ่าผู้เล่นนอกสนามรบ แต้มชั่วร้าย -${C.PK.evilPerKill} · ไปสนามรบธรรมะ-อธรรมได้ที่ศิลาเคลื่อนย้ายในค่าย` });
     canvas.focus();
   }

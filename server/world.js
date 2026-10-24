@@ -287,10 +287,11 @@ class World {
       rec = {
         name, faction: d.faction === 'adharma' ? 'adharma' : 'dharma', cls: C.CLASSES[d.cls] ? d.cls : 'dualblade',
         lvl: 1, exp: 0, kills: 0, deaths: 0, pvp: 0, accountId: account.id,
+        gold:C.BEGINNER.gold,inv:C.BEGINNER.supplies.map(([id,count])=>C.stackKey(id,count)),
       };
       this.store.put(rec);
     } else if (!rec || rec.accountId !== account.id) return ack({ ok: false, msg: 'ไม่พบตัวละครนี้ในบัญชีของคุณ' });
-    const r = rec, note = '';
+    const r = rec, note = d.create ? 'ได้รับชุดเริ่มต้น: ยาเลือด 12 · ยาปราณ 8 · ใบกลับเมือง 2 · ทอง 320 — เปิดกระเป๋า I เพื่อใช้' : '';
     const now = Date.now();
     const p = {
       id: 'p' + this.seq++, socket, name: r.name, faction: r.faction, cls: C.CLASSES[r.cls] ? r.cls : 'dualblade',
@@ -2513,9 +2514,11 @@ class World {
       * C.levelGapMul(src.lvl, tgt.def.lvl || 0).dealt                                   // monsters above the player shrug blows off
       * (this.taoistSolo(src) ? C.TAOIST_SOLO.dealt : 1)
       * (this.warriorSolo(src) ? C.WARRIOR_SOLO.dealt : 1)
-      * (opts.pveSkill || 1);                                                            // นักรบแนวหน้า skills 2–9
+      * (opts.pveSkill || 1)
+      * (1+C.BEGINNER.dealt*this.beginnerSupport(src,tgt,now));                            // village regular monsters only
     else if (tP) dmg *= C.levelGapMul(tgt.lvl, src.def.lvl || 0).taken                   // ... and hit harder
-      * (this.taoistSolo(tgt) ? C.TAOIST_SOLO.taken : 1);
+      * (this.taoistSolo(tgt) ? C.TAOIST_SOLO.taken : 1)
+      * (1-C.BEGINNER.reduce*this.beginnerSupport(tgt,src,now));
     if (sP && src.cls === 'arbiter' && !opts.reflect) {
       if (tP) dmg *= C.ARBITER.pvp;
       dmg *= 1 + this.buffVal(src, 'arbiterDamage') * (tP ? 2 / 3 : 1);
@@ -2724,7 +2727,8 @@ class World {
   shareExp(src, m) {
     const near = this.expGroup(src, m.mapId, m.x, m.y);
     const boost = this.fundExp();                            // ระดมทุน boost
-    const gain = (q, v) => this.gainExp(q, Math.max(1, Math.round(v * boost * C.expPenalty(q.lvl, m.def.lvl) * C.levelExpMul(q.lvl) * (1 + (q.stats.fx.exp || 0)))));
+    const gain = (q, v) => this.gainExp(q, Math.max(1, Math.round(v * boost * C.expPenalty(q.lvl, m.def.lvl) * C.levelExpMul(q.lvl) * (1 + (q.stats.fx.exp || 0))
+      * (1+C.BEGINNER.exp*this.beginnerSupport(q,m)))));
     if (near.length > 1 && this.partyRules(src).exp === 'each') {
       const hit = near.filter((q) => m.threat.get(q.id) > 0);
       if (!hit.includes(src)) hit.push(src);
@@ -2735,6 +2739,18 @@ class World {
     const pool = m.def.exp * (1 + C.partyExpBonus(near.length));
     const sumLvl = near.reduce((a, q) => a + q.lvl, 0);
     for (const q of near) gain(q, pool * (q.lvl / sumLvl));
+  }
+
+  beginnerSupport(p,m,now=Date.now()) {
+    if(p.mapId!==C.BEGINNER.map||p.pk||p.pkFight>now||this.defOf(p).pvp)return 0;
+    if(m&&(isPlayer(m)||m.mapId!==p.mapId||m.def.boss||!Number.isFinite(m.def.lvl)||m.def.lvl>C.BEGINNER.maxLevel))return 0;
+    return C.beginnerStrength(p.lvl);
+  }
+  beginnerRest(p,now,dt) {
+    const strength=this.beginnerSupport(p,undefined,now);
+    if(!strength||p.dead||p.dots.length||now-Math.max(p.lastHurt||0,p.lastHitAt||0,p.actUntil||0)<=C.BEGINNER.restAfterMs)return;
+    p.hp=Math.min(p.stats.maxHp,p.hp+p.stats.maxHp*C.BEGINNER.hpRegen*strength*dt);
+    p.mp=Math.min(p.stats.maxMp,p.mp+p.stats.maxMp*C.BEGINNER.mpRegen*strength*dt);
   }
 
   gainExp(p, amount) {
@@ -3273,6 +3289,7 @@ class World {
       } else {
         if (now - p.lastHurt > 6000) p.hp += S.maxHp * 0.012 * dt;
         p.mp += S.maxMp * C.roleOf(p.cls).manaRegen * dt;
+        this.beginnerRest(p,now,dt);
       }
       p.hp = Math.min(S.maxHp, p.hp);
       p.mp = Math.min(S.maxMp, p.mp);

@@ -158,9 +158,9 @@
             g.save();g.scale(1,.35);ring(g,49,p,seconds*.25,8);g.restore();
             for(let i=0;i<3;i++){const a=seconds*.8+i*TAU/3;g.save();g.translate(Math.cos(a)*45,-48+Math.sin(a)*11);g.scale(.65,.8);shield(g,p,.65);g.restore();}
           }else if(d.phase==='form'){
-            g.save();g.translate(0,-65);wings(g,p,1.5+rank*.1,Math.sin(seconds*2)*.06);g.restore();
-            g.save();g.translate(0,-115);g.scale(1,.35);ring(g,39,p,seconds*.4,10);g.restore();
-            for(let i=0;i<8;i++){const h=(seconds*28+i*17)%110;diamond(g,Math.sin(i*2.4)*48,-h,2.5,p);}
+            // The model owns the painted wings and crest. One ground seal avoids duplicate wings over the face.
+            g.save();g.scale(1,.32);g.globalAlpha*=.6;ring(g,43+rank*3,p,seconds*.16,6);g.restore();
+            for(let i=0;i<6;i++){const h=(seconds*19+i*23)%112;diamond(g,(i%2?1:-1)*(35+i*3),-h,1.5,p);}
           }else if(d.phase==='resonance'){
             g.translate(0,-44);halo(g,0,0,58,p);ring(g,24+ease*17,p,t*.4,10);
             for(let i=0;i<5;i++){const a=i*TAU/5-Math.PI/2;diamond(g,Math.cos(a)*33,Math.sin(a)*33,6+ease*2,p);}
@@ -197,5 +197,32 @@
         }
         g.restore();
       }});
+  };
+  A.levelUp=(id,faction,from,to)=>{
+    const entity=window.G?.ents?.get(id);if(!entity)return;
+    const p=palette(faction||entity.faction),evolved=C.arbiterStage(to)>C.arbiterStage(from),duration=evolved?1900:1150;
+    FX.list=FX.list.filter(f=>!(f.arbiterLevel&&f.owner===id));
+    let ended=false;
+    for(const layer of ['ground','top'])FX.list.push({t0:performance.now(),dur:duration,layer,arbiterEffect:true,arbiterLevel:true,owner:id,
+      draw(g,progress){
+        const e=window.G?.ents?.get(id);if(!e||e.dead)ended=true;if(ended)return;
+        const t=clamp(progress),fade=Math.min(1,t*8,(1-t)*3),ease=1-Math.pow(1-t,3);
+        g.save();g.translate(e.x,e.y);g.globalAlpha*=fade;
+        if(layer==='ground'){
+          g.save();g.scale(1,.34);g.globalAlpha*=.7;ring(g,24+ease*(evolved?39:22),p,t*.18,6);g.restore();
+        }else{
+          // Slender side ribbons and rising motes frame the character instead of a solid light column.
+          for(const side of [-1,1]){
+            const x=side*(evolved?36:26),height=(evolved?150:110)*ease;
+            const grad=g.createLinearGradient(x,-height,x,0);grad.addColorStop(0,p.main+'00');grad.addColorStop(.65,p.main+'55');grad.addColorStop(1,p.edge+'00');
+            g.strokeStyle=grad;g.lineWidth=3;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+side*12,-height*.3,x-side*7,-height*.75,x,-height);g.stroke();
+          }
+          for(let i=0;i<(evolved?14:8);i++){
+            const h=(t*(evolved?165:120)+i*17)%150,x=Math.sin(i*2.4)*43;
+            g.save();g.globalAlpha*=Math.sin(h/150*Math.PI);diamond(g,x,-h,i%3?1.5:2.5,p);g.restore();
+          }
+        }g.restore();
+      }});
+    FX.text(entity.x,entity.y-118,evolved?'วิวัฒนาการ · Lv.'+to:'Lv.'+to,p.edge,evolved?22:18,{max:duration,vy:-18});
   };
 })();

@@ -54,15 +54,16 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       }})()`);await pause(25);
     }
     const gallery=await run(`(()=>{
-      const c=document.createElement('canvas');c.width=1280;c.height=840;const g=c.getContext('2d');g.fillStyle='#121c2c';g.fillRect(0,0,c.width,c.height);
-      g.font='bold 22px sans-serif';g.fillStyle='#e5c887';g.fillText('เทวทัณฑ์ · โมเดลจิบิอ้างอิงอาชีพเดิม',28,36);
+      const c=document.createElement('canvas');c.width=1840;c.height=840;const g=c.getContext('2d');g.fillStyle='#121c2c';g.fillRect(0,0,c.width,c.height);
+      g.font='bold 22px sans-serif';g.fillStyle='#e5c887';g.fillText('เทวทัณฑ์ · ปีกวาดลงสีและเอฟเฟกต์วิวัฒนาการ V3',28,36);
       for(let row=0;row<2;row++)for(let col=0;col<5;col++){
-        const lvl=[1,30,70,110,130][col],faction=row?'adharma':'dharma',x=128+col*250,y=340+row*350;
+        const lvl=[1,30,70,110,130][col],faction=row?'adharma':'dharma',x=184+col*368,y=340+row*350;
         g.fillStyle='#9caec4';g.font='16px sans-serif';g.fillText((row?'อธรรม':'ธรรมะ')+' · Lv.'+lvl+(col===4?' จุติ':''),x-75,y+30);
-        ArbiterLook.draw(g,{...G.me,faction,lvl,arbiterForm:col===4,astralBlades:lvl>=50},{dir:2,frame:1},x,y,1.12,1000);
+        ArbiterLook.draw(g,{...G.me,faction,lvl,arbiterForm:col===4,astralBlades:lvl>=50},{dir:2,frame:1},x,y,.95,1000);
       }return c.toDataURL();
     })()`);
     fs.writeFileSync(path.join(out,'progression.png'),Buffer.from(gallery.split(',')[1],'base64'));
+    fs.writeFileSync(path.join(out,'progression-v3.png'),Buffer.from(gallery.split(',')[1],'base64'));
     const comparison=await run(`(async()=>{
       const c=document.createElement('canvas');c.width=1000;c.height=440;const g=c.getContext('2d');g.fillStyle='#121c2c';g.fillRect(0,0,1000,440);
       g.fillStyle='#e5c887';g.font='22px sans-serif';g.fillText('อ้างอิงสัดส่วนและลายเส้น · ทวน / นักรบแนวหน้า / เทวทัณฑ์',28,35);
@@ -146,6 +147,46 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       finally{G.socket.emit=emit;G.control=control;G.spearWait={};}return sent;
     })()`);
     assert.deepEqual(rooted,['oathResonance','astralBlades','oathAegis','ascendantForm']);
+    const evolution=await run(`(()=>{
+      const c=document.createElement('canvas');c.width=1200;c.height=730;const g=c.getContext('2d');g.fillStyle='#121c2c';g.fillRect(0,0,c.width,c.height);
+      g.fillStyle='#e5c887';g.font='22px sans-serif';g.fillText('เทวทัณฑ์ · จังหวะอัปเลเวล 30 / 70 / 110',24,32);
+      const saved={...G.me},oldWings=Wings.draw,oldAura=ModelTiers.drawAura;let n=0;
+      Wings.draw=()=>{throw Error('Generic wings must not stack on painted wings');};
+      ModelTiers.drawAura=()=>{throw Error('Generic evolution aura must not stack');};
+      try{
+        for(const [row,faction]of ['dharma','adharma'].entries())for(const [col,lvl]of [30,70,110].entries()){
+          Object.assign(G.me,{faction,x:0,y:0,lvl:lvl-1,dead:false,arbiterForm:false,astralBlades:false});FX.list=[];FX.texts=[];
+          arbiterFx({t:'lvl',id:G.me.id,f:faction,lvl});
+          if(G.me.lvl!==lvl||FX.list.filter(f=>f.arbiterLevel).length!==2||FX.list.some(f=>!f.arbiterLevel))throw Error('Wrong evolution event');
+          if(!FX.texts.some(t=>JSON.stringify(t).includes('วิวัฒนาการ')))throw Error('Missing milestone label');
+          const x=200+col*400,y=275+row*345;g.save();g.translate(x,y);g.scale(1.05,1.05);
+          for(const fx of FX.list.filter(f=>f.layer==='ground'))fx.draw(g,.36);
+          ArbiterLook.draw(g,G.me,{dir:2,frame:1},0,0,.72,1000);
+          for(const fx of FX.list.filter(f=>f.layer==='top'))fx.draw(g,.36);
+          g.restore();g.fillStyle='#d5ddea';g.font='16px sans-serif';g.fillText(faction+' · '+(lvl-1)+' → '+lvl,x-90,y+40);n++;
+        }
+        for(const lvl of [2,60,80,100,120,130]){
+          G.me.lvl=lvl-1;FX.list=[];FX.texts=[];arbiterFx({t:'lvl',id:G.me.id,f:G.me.faction,lvl});
+          if(FX.list.length!==2||FX.list.some(f=>!f.arbiterLevel)||FX.texts.some(t=>JSON.stringify(t).includes('วิวัฒนาการ')))throw Error('Wrong ordinary level effect '+lvl);
+        }
+        const fx=FX.list[0],probe=document.createElement('canvas');probe.width=probe.height=600;const pg=probe.getContext('2d');
+        pg.translate(300,300);pg.globalAlpha=.63;fx.draw(pg,.3);const tr=pg.getTransform();
+        if(tr.e!==300||tr.f!==300||Math.abs(pg.globalAlpha-.63)>.001)throw Error('Level FX canvas leak');
+        G.me.dead=true;fx.draw(pg,.4);G.me.dead=false;pg.clearRect(-300,-300,600,600);fx.draw(pg,.5);
+        if(pg.getImageData(0,0,600,600).data.some(v=>v))throw Error('Level FX revived after death');
+      }finally{Object.assign(G.me,saved);Wings.draw=oldWings;ModelTiers.drawAura=oldAura;FX.list=[];FX.texts=[];}
+      return {image:c.toDataURL(),samples:n};
+    })()`);
+    assert.equal(evolution.samples,6);fs.writeFileSync(path.join(out,'level-up-v3.png'),Buffer.from(evolution.image.split(',')[1],'base64'));
+    const wingViews=await run(`(()=>{
+      const c=document.createElement('canvas');c.width=2400;c.height=760;const g=c.getContext('2d');g.fillStyle='#121c2c';g.fillRect(0,0,c.width,c.height);
+      g.fillStyle='#e5c887';g.font='22px sans-serif';g.fillText('ปีกวิวัฒนาการ Lv.110 · ทั้ง 8 ทิศ',24,32);
+      for(let row=0;row<2;row++)for(let dir=0;dir<8;dir++){
+        const faction=row?'adharma':'dharma';ArbiterLook.draw(g,{...G.me,faction,lvl:110,arbiterForm:false},{dir,frame:1},150+dir*300,315+row*360,.83,1000);
+      }return c.toDataURL();
+    })()`);
+    fs.writeFileSync(path.join(out,'wing-directions-v3.png'),Buffer.from(wingViews.split(',')[1],'base64'));
+    console.log('PASS: evolution milestones, ordinary levels, no duplicate wing/aura layers, level FX state and death cleanup.');
     await pause(150);assert.equal(errors.length,0,JSON.stringify(errors));
     console.log('PASS: browser boot, class selection, 1,008 directional/level/pose renders, 18 skill icons, live FX and eight active skill evolution cards. '+out);
   }finally{if(ws)ws.close();preview.kill();}

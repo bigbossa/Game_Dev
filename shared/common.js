@@ -469,6 +469,12 @@
   const MAX_LVL = 130;
   // shared cooldown between skills 1-8 (the basic attack is not affected), on top of each skill's own cooldown
   const GCD_MS = 700;
+  // Beginner assistance is scoped by the server to village PvE; never a player stat bonus.
+  const BEGINNER = { map:'village', fullUntil:10, maxLevel:20, dealt:.25, reduce:.3, exp:.25,
+    restAfterMs:4000, hpRegen:.028, mpRegen:.025, gold:320,
+    supplies:[['potHpS',12],['potMpS',8],['scrollTown',2]] };
+  const beginnerStrength = lvl => !Number.isFinite(lvl)||lvl<1||lvl>BEGINNER.maxLevel ? 0
+    : lvl<=BEGINNER.fullUntil?1:(BEGINNER.maxLevel+1-lvl)/(BEGINNER.maxLevel+1-BEGINNER.fullUntil);
   // ---------------- EXP rate (Yulgang style: the first levels go fast, the high ones are a long grind) ----------------
   // EXP to the next level = the old curve × EXP_CURVE, which rises with the level and steps up at the Lv.60 and
   // Lv.100 milestones. Solo at the own level (~6 s a kill): Lv.10 ≈ 0.3 h · Lv.30 ≈ 3 h · Lv.50 ≈ 13 h ·
@@ -1687,7 +1693,7 @@
 
   return {
     ARBITER, ARBITER_STAGES, arbiterStage, arbiterPower, arbiterSpec, basicReach,
-    TILE, MAP_W, MAP_H, T, FACTIONS, BASES, CENTER, STONES, CLASSES, CLASS_ROLES, roleOf, combatMoveScale, MAX_LVL, CONSUMABLES, STACK_MAX, stackCount, stackKey, ITEM_USE_CD,
+    TILE, MAP_W, MAP_H, T, FACTIONS, BASES, CENTER, STONES, CLASSES, CLASS_ROLES, roleOf, combatMoveScale, MAX_LVL, CONSUMABLES, STACK_MAX, stackCount, stackKey, ITEM_USE_CD, BEGINNER, beginnerStrength,
     skillRank, skillMult, skillInfo, stageOf, SKILL_STAGES, stagesOf, STANCES, GCD_MS, CLASS_IDS, ALL_SKILLS, setViewClass, spearSequence, spearAreaContains,
     BAG_SIZE, STORAGE_SIZE, RARITY, GRADES, GRADE_LIGHT, gradeLight, EPIC, AFFIXES, OPTIONS, PASSIVES, DROP_LVL_RANGE, TOP_ITEM_LVL, canDropHigh, rollGrade, gradeChances, gradeBands, HIGH_BANDS, BOSS_GRADES, BOSS_RESPAWN,
     makeKey, gradeId, gearFx, gearGrade, gearGrades, gearPlus, WEAPONS, WEAPON_BY_TIER, ARMORS, ARMOR_SETS, ALL_ITEMS, ITEMS, SLOTS, SLOT_NAMES, ARMOR_SLOTS,

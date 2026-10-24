@@ -33,7 +33,7 @@ function fixture(Type = World, lvl = 1) {
     const cls = 'warrior', alloc = C.cleanAlloc({}, lvl), eq = { weapon: 'w0' };
     const stats = C.playerStats(cls, lvl, eq, alloc), messages = [];
     const p = {
-      id: 'p' + ++serial, name, gm, cls, faction: 'dharma', lvl, exp: 0,
+      id: 'p' + ++serial, name, gm, gmOn: gm, cls, faction: 'dharma', lvl, exp: 0,
       mapId: C.START_MAP, x: 2000, y: 2000, stats, alloc, eq,
       hp: stats.maxHp, mp: stats.maxMp, dead: false, kills: 0, deaths: 0, pvp: 0,
       inv: Array(C.BAG_SIZE).fill(null), gold: 123, stones: 4, charms: C.cleanCharms(),

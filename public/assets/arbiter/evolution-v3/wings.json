@@ -1,0 +1,33 @@
+{
+  "version": 3,
+  "wings": {
+    "dharma-2": {
+      "file": "dharma-2.png",
+      "width": 632,
+      "height": 337,
+      "rootX": 316,
+      "rootY": 212
+    },
+    "dharma-3": {
+      "file": "dharma-3.png",
+      "width": 656,
+      "height": 406,
+      "rootX": 329,
+      "rootY": 260
+    },
+    "adharma-2": {
+      "file": "adharma-2.png",
+      "width": 633,
+      "height": 332,
+      "rootX": 317,
+      "rootY": 202
+    },
+    "adharma-3": {
+      "file": "adharma-3.png",
+      "width": 656,
+      "height": 408,
+      "rootX": 330,
+      "rootY": 248
+    }
+  }
+}
