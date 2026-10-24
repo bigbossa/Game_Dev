@@ -22,7 +22,8 @@ const out=path.join(__dirname,'../artifacts/hunting-v3'),pause=ms=>new Promise(r
      if(JSON.stringify(map.objects)!==JSON.stringify(local.objects)||map.tiles.some((v,i)=>v!==local.tiles[i])||map.solid.some((v,i)=>v!==local.solid[i]))throw Error('Client/server geometry mismatch');
      let landmarks=0;for(const o of map.objects){
        const p=Art.propSprite(o);if(!p)throw Error('Missing sprite '+o[0]);
-       if(o[0]!=='landmark')continue;landmarks++;
+       if(o[0]==='landmark')landmarks++;
+       else if(!(def.id==='pass'&&o[0]==='tree'))continue;
        const g=p.img.getContext('2d'),w=p.img.width,h=p.img.height,d=g.getImageData(0,0,w,h).data;
        let ink=0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const a=d[(y*w+x)*4+3];if(a>128)ink++;if((x<2||y<2||x>=w-2||y>=h-2)&&a)throw Error('Clipped '+o[1]);}
        if(ink<1500)throw Error('Empty '+o[1]);
@@ -36,6 +37,21 @@ const out=path.join(__dirname,'../artifacts/hunting-v3'),pause=ms=>new Promise(r
    }
    await run(`(()=>{const d=HuntingReview.state().def;HuntingReview.focus((d.lair.tx+.5)*C.TILE,(d.lair.ty+.5)*C.TILE);})()`);
    const boss=await run("document.getElementById('detail').toDataURL('image/png').split(',')[1]");fs.writeFileSync(path.join(out,id+'-arena.png'),Buffer.from(boss,'base64'));
+   if(id==='pass'){
+    for(const [name,x,y]of [['bridge',82,35],['willows',43,47],['gate',128,12],['cliffs',51,8],['camp',11,36]]){
+     await run(`HuntingReview.focus(${x}*C.TILE,${y}*C.TILE)`);
+     const shot=await run("document.getElementById('detail').toDataURL('image/png').split(',')[1]");fs.writeFileSync(path.join(out,'pass-'+name+'.png'),Buffer.from(shot,'base64'));
+    }
+    assert(await run(`(()=>{
+      const {map}=HuntingReview.state(),before=JSON.stringify([map.tiles,map.solid,map.objects]);
+      const a=Art.renderChunk(map,6,2,1),b=Art.renderChunk(map,6,2,1);
+      if(a.toDataURL()!==b.toDataURL())throw Error('Unstable stage 2 ground');
+      if(before!==JSON.stringify([map.tiles,map.solid,map.objects]))throw Error('Renderer modified geometry');
+      const data=a.getContext('2d').getImageData(0,0,a.width,a.height).data;
+      for(let i=3;i<data.length;i+=4)if(data[i]!==255)throw Error('Transparent ground seam');
+      return true;
+    })()`));
+   }
    console.log(JSON.stringify(result));
   }
   // Overview click and drag/zoom interact with the same camera used for captures.

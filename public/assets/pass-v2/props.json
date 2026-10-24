@@ -1,0 +1,90 @@
+{
+  "version": 2,
+  "source": "map-art/pass-v2/props-source.png",
+  "props": {
+    "watchtower": {
+      "file": "watchtower.png",
+      "width": 353,
+      "height": 432,
+      "ax": 177,
+      "ay": 423,
+      "occludes": true,
+      "sourceCell": [
+        47,
+        10,
+        470,
+        531
+      ]
+    },
+    "canyonGate": {
+      "file": "canyonGate.png",
+      "width": 509,
+      "height": 412,
+      "ax": 255,
+      "ay": 403,
+      "occludes": true,
+      "sourceCell": [
+        516,
+        52,
+        1093,
+        516
+      ]
+    },
+    "waystone": {
+      "file": "waystone.png",
+      "width": 222,
+      "height": 302,
+      "ax": 111,
+      "ay": 293,
+      "occludes": true,
+      "sourceCell": [
+        1174,
+        57,
+        1512,
+        524
+      ]
+    },
+    "willow": {
+      "file": "willow.png",
+      "width": 222,
+      "height": 196,
+      "ax": 111,
+      "ay": 187,
+      "occludes": true,
+      "sourceCell": [
+        20,
+        541,
+        553,
+        1007
+      ]
+    },
+    "cliffs": {
+      "file": "cliffs.png",
+      "width": 392,
+      "height": 332,
+      "ax": 196,
+      "ay": 323,
+      "occludes": true,
+      "sourceCell": [
+        552,
+        573,
+        1055,
+        997
+      ]
+    },
+    "shrub": {
+      "file": "shrub.png",
+      "width": 104,
+      "height": 83,
+      "ax": 52,
+      "ay": 74,
+      "occludes": false,
+      "sourceCell": [
+        1090,
+        659,
+        1518,
+        990
+      ]
+    }
+  }
+}

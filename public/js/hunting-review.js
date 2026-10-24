@@ -2,6 +2,7 @@
   const $=id=>document.getElementById(id),ids=C.MAP_ORDER.filter(id=>!['village','pvp'].includes(id));
   const states=new Map();let current,camera={x:0,y:0},zoom=.72,drag=null;
   Art.buildProps();
+  const artReady=PassArt.load(src=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Missing image: '+src));img.src=src;}));
   function chunk(state,x,y){const key=x+','+y;if(!state.chunks.has(key))state.chunks.set(key,Art.renderChunk(state.map,x,y,.7));return state.chunks.get(key);}
   function scene(g,state,rect,w,h){
     const scale=Math.min(w/rect.w,h/rect.h),S=C.TILE*Art.CHUNK;
@@ -22,6 +23,7 @@
   function draw(){if(!current)return;scene($('detail').getContext('2d'),current,{x:camera.x-360/zoom,y:camera.y-290/zoom,w:720/zoom,h:580/zoom},720,580);overview();}
   function focus(x,y){camera={x,y};draw();}
   async function select(id){
+    await artReady;
     if(!states.has(id)){
       const r=await fetch('/api/map/'+id);if(!r.ok)throw Error('โหลดด่านไม่สำเร็จ');const p=await r.json();
       if(p.version!==3)throw Error('เซิร์ฟเวอร์ยังใช้แมพรุ่นเดิม กรุณารีสตาร์ตเซิร์ฟเวอร์เกม');

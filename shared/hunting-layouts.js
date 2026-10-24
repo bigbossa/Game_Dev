@@ -16,6 +16,7 @@
   const landmark=(kind,name,x,y,rx=3,depth=2)=>({kind,name,x,y,rx,depth});
   return {
     pass:{
+      riverX:y=>83+Math.sin(y*.09)*3,riverHalf:2.8,
       w:150,h:72,camp:[2,26,'E'],next:[147,30],lair:[128,23,8],trees:.28,
       subtitle:'ทางคาราวานสองสาย • สะพานข้ามผา',
       slots:[[32,26],[34,49],[52,18],[53,51],[72,23],[73,52],[94,18],[94,51],[113,49],[132,49],[112,24],[138,28]],
@@ -30,7 +31,7 @@
         P.each((x,y)=>{if(D.roads.some(([, ...p])=>distance(x+.5,y+.5,p)<7+P.fbm(x/8,y/8)*3))P.set(x,y,T.GRASS);});
         P.rect(0,23,24,51,T.GRASS);
         for(const [x,y]of D.slots)P.disc(x,y,9,T.GRASS);
-        P.river(y=>83+Math.sin(y*.09)*3,2.8);
+        P.river(D.riverX,D.riverHalf);
         P.disc(128,22,11,T.PLAZA);
       }
     },

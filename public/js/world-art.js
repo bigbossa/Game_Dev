@@ -551,6 +551,7 @@
   };
   // returns {img, ax, ay, light?}
   Art.propSprite = function (o) {
+    if(MAP_ID==='pass'&&window.PassArt?.ready){const p=PassArt.prop(o);if(p)return p;}
     if(o[0]==='village')return window.VillageArt?.prop(o)||null;
     if(o[0]==='landmark')return window.HuntingArt?.prop(o)||null;
     const [t, v, x, y] = o;
@@ -595,15 +596,17 @@
   };
   Art.CHUNK = 12;
   // colours of the current map (C.THEMES); the PvP map keeps the original west/east look
-  let TH = C.THEMES.pvp, MW = C.MAP_W;
+  let TH = C.THEMES.pvp, MW = C.MAP_W, MAP_ID = 'pvp';
   Art.setMap = function (def) {
     TH = { ...(C.THEMES[def.theme] || C.THEMES.pvp), ...(PALETTES[def.theme] || {}) };
+    MAP_ID=def.id;if(def.id==='pass'&&window.PassArt)Object.assign(TH,PassArt.palette);
     MW = def.w || C.MAP_W;
   };
   Art.theme = () => TH;
   // res = canvas pixels per world pixel (sharper ground on high-DPI screens / zoomed in)
   Art.renderChunk = function (map, cx, cy, res = 1) {
     if(map.id==='village'&&window.VillageArt?.ready)return VillageArt.renderChunk(map,cx,cy,res);
+    if(map.id==='pass'&&window.PassArt?.ready)return PassArt.renderChunk(map,cx,cy,res);
     const N = Art.CHUNK, S = N * TILE;
     const [c, g] = mk(Math.round(S * res), Math.round(S * res));
     g.scale(res, res);

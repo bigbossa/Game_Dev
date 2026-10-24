@@ -127,7 +127,7 @@
     if (weapMeta) WeaponLook.initArt(weapMeta);
     ArmorLook.init(IMG);
     Art.buildProps();
-    await VillageArt.load(loadImg);
+    await Promise.all([VillageArt.load(loadImg),PassArt.load(loadImg)]);
     await loadMap(C.START_MAP);                    // login backdrop; the character's own map loads on join
     $('loading').classList.add('hidden');
     initLogin();
@@ -1884,7 +1884,7 @@
     list.sort((a, b) => a.y - b.y);
     for (const d of list) {
       if (d.kind === 'prop') {
-        if(d.sp.paintedVillage)VillageArt.drawProp(ctx,d,G.me);
+        if(d.sp.paintedVillage||d.sp.paintedPass)VillageArt.drawProp(ctx,d,G.me);
         else ctx.drawImage(d.sp.img, d.x - d.sp.ax, d.y - d.sp.ay);
       }
       else if (d.kind === 'p') drawPlayer(d, now);
