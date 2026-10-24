@@ -13,17 +13,19 @@
     const sl = S.sk[sk.id] || 0, rank = C.skillRankOf(S, sk.id), cap = C.skillCap(sk, lvl);
     const info = C.skillInfoAt(sk, rank), free = S.free || 0;
     const key = S.bar.indexOf(sk.id);
+    const maximum = sk.free || sk.passive ? 1 : sk.maxRank || C.SKILL_MAX;
+    const power = C.skillPower(sl, rank) * (sk.arbiter && !['ward','form'].includes(sk.arbiter.kind) ? C.arbiterPower(lvl, !!sk.free) : 1);
     const canUp = cap > sl && free > 0;
-    const upWhy = sl >= C.SKILL_MAX ? 'สเต็กเต็ม' : !cap ? `ต้องการ Lv.${sk.lvl}` : sl >= cap ? `สเต็กถัดไป Lv.${sk.lvl + sl * C.SKILL_LVL_GAP}` : !free ? 'แต้มไม่พอ' : '';
-    let html = `<div class="sk-card${sl ? ' got' : ''}${!cap ? ' locked' : ''}" data-id="${sk.id}" draggable="${sl ? 'true' : 'false'}">` +
-      `<div class="sk-ico" title="${sl ? 'ลากไปวางบนแถบสกิล' : ''}"></div><div class="sk-main">` +
+    const upWhy = sl >= maximum ? 'สเต็กเต็ม' : !cap ? `ต้องการ Lv.${sk.lvl}` : sl >= cap ? `สเต็กถัดไป Lv.${sk.lvl + sl * C.SKILL_LVL_GAP}` : !free ? 'แต้มไม่พอ' : '';
+    let html = `<div class="sk-card${sl ? ' got' : ''}${!cap ? ' locked' : ''}" data-id="${sk.id}" draggable="${sl && !sk.passive ? 'true' : 'false'}">` +
+      `<div class="sk-ico" title="${sl && !sk.passive ? 'ลากไปวางบนแถบสกิล' : ''}"></div><div class="sk-main">` +
       `<div class="sk-title"><b>${esc(info.name)}</b>${rank ? ` <span class="sk-stars">${'★'.repeat(rank)}</span>` : ''} <small>Lv.${sk.lvl}${sk.mp ? ` · ปราณ ${C.skillMp(sk, lvl)}` : ''} · คูลดาวน์ ${(sk.cd / 1000).toFixed(1)} วิ</small></div>` +
       `<div class="sk-desc">${esc(info.desc)}</div>` +
       (window.SkillDesigns?.[sk.id]?`<div class="sk-desc"><small>กระบวนท่า: ${esc(SkillDesigns[sk.id].title)}</small></div>`:'') +
-      `<div class="sk-lvl"><span class="sk-pips">${Array.from({ length: C.SKILL_MAX }, (_, i) => `<i class="${i < sl ? 'on' : i < cap ? 'can' : ''}"></i>`).join('')}</span>` +
-      `<span>สเต็ก <b>${sl}</b>/${C.SKILL_MAX}${sl ? ` · พลัง ×${C.skillPower(sl, rank).toFixed(2)}` : ''}</span></div>` +
+      `<div class="sk-lvl"><span class="sk-pips">${Array.from({ length: maximum }, (_, i) => `<i class="${i < sl ? 'on' : i < cap ? 'can' : ''}"></i>`).join('')}</span>` +
+      `<span>สเต็ก <b>${sl}</b>/${maximum}${sl && !sk.passive && !['ward','form'].includes(sk.arbiter?.kind) ? ` · พลัง ×${power.toFixed(2)}` : ''}${sk.free ? ' · ฝึกตามเลเวล ไม่ใช้แต้ม' : ''}</span></div>` +
       `<div class="sk-acts"><button type="button" data-up="${sk.id}"${canUp ? '' : ' disabled'} title="${esc(upWhy)}">${sl ? '+1 สเต็ก' : 'เรียนสกิล'}</button>` +
-      `<label class="sk-key">ปุ่ม <select data-bar="${sk.id}"${sl ? '' : ' disabled'}><option value="-1">—</option>` +
+      `<label class="sk-key">${sk.passive ? 'พาสซีฟ' : 'ปุ่ม'} <select data-bar="${sk.id}"${sl && !sk.passive ? '' : ' disabled'}><option value="-1">—</option>` +
       C.BAR_KEYS.map((k, i) => `<option value="${i}"${key === i ? ' selected' : ''}>${k}</option>`).join('') + `</select></label></div>`;
     // evolution path of this skill
     if (sk.evo && sk.evo.length) {
@@ -47,8 +49,9 @@
     const cls = C.CLASSES[G.cls] || C.CLASSES.dualblade;
     const cost = lvl < 30 ? 0 : lvl * 100;
     $('bookPanel').querySelector('.panel-head span').textContent = `📜 คัมภีร์วิชา${cls.name}`;
+    const evolution = G.cls === 'arbiter' ? C.ARBITER_STAGES[C.arbiterStage(lvl)].name : '';
     let html = `<div class="bk-now">แต้มสกิลคงเหลือ <b class="sk-free">${S.free}</b> <small>(ได้ 1 แต้มทุกเลเวล)</small>` +
-      ` · ขั้นวิชา <b>${st}</b>/13 ${esc(C.STANCES[st] || '')}` +
+      (evolution ? ` · <b>${esc(evolution)}</b> · วิวัฒนาการอัตโนมัติ 30 / 70 / 110 · พลังสกิล ×${C.arbiterPower(lvl).toFixed(2)}` : ` · ขั้นวิชา <b>${st}</b>/13 ${esc(C.STANCES[st] || '')}`) +
       `<div class="sk-tools"><label><input type="checkbox" id="skAuto"${S.auto ? ' checked' : ''}> อัปสกิลอัตโนมัติเมื่อเลเวลอัป</label>` +
       `<button type="button" class="sk-reset">รีเซ็ตสกิล${cost ? ` (${fmt(cost)} ทอง)` : ' (ฟรีก่อน Lv.30)'}</button></div>` +
       `<small class="sk-hint">เรียนสกิล → อัปสเต็ก (สูงสุด ${C.SKILL_MAX}) → อัพขั้นวิชาเมื่อถึงเลเวล · ลากการ์ดไปวางบนแถบสกิล หรือเลือก "ปุ่ม" เพื่อจัดตำแหน่ง</small></div>`;
@@ -71,7 +74,7 @@
   // put a skill on key slot i (-1 = take it off the bar); a skill already elsewhere moves, the old occupant swaps in
   BOOK.place = function (id, i) {
     const S = G.skl;
-    if (!S || !C.ALL_SKILLS[id]) return;
+    if (!S || !C.ALL_SKILLS[id] || C.ALL_SKILLS[id].passive) return;
     const bar = S.bar.slice(), from = bar.indexOf(id);
     if (from >= 0) bar[from] = i >= 0 ? bar[i] : null;
     if (i >= 0) bar[i] = id;

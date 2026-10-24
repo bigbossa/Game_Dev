@@ -346,9 +346,52 @@
     if (s.key === '1') s.cd = Math.round((s.cd * BASIC_CD_MUL) / 10) * 10;
     else if (!s.ritual && !s.extra && !['0', '-'].includes(s.key)) s.cd = Math.round((s.cd * SKILL_CD_MUL) / 500) * 500;
   }
+  // Append only: existing snapshot class indices and saved class/skill IDs must stay stable.
+  const ARBITER_STAGES = [
+    { lvl: 1, name: 'ผู้ถือสัตย์แห่งคมดาบ', en: 'Oathblade' },
+    { lvl: 30, name: 'อัศวินคมอาคม', en: 'Arcblade Knight' },
+    { lvl: 70, name: 'ผู้พิพากษารัศมี', en: 'Radiant Arbiter' },
+    { lvl: 110, name: 'มหาผู้พิพากษา', en: 'Exalted Arbiter' },
+  ];
+  const arbiterStage = lvl => ARBITER_STAGES.filter(s => lvl >= s.lvl).length - 1;
+  // Same 5% training steps / 30% evolution steps used by existing skillPower, derived without rewriting saves.
+  const arbiterPower = (lvl, basic = false) => (1 + .3 * Math.max(0, arbiterStage(lvl))) *
+    (basic ? 1 + .05 * Math.min(11, Math.floor((Math.max(1,lvl)-1)/4)) : 1);
+  const ARBITER = { melee: 105, wave: 260, width: 24, waveCap: 3, stacks: 5,
+    resonance: .3, astralChance: .25, astralCd: 2500, astralPower: .35, pvp: .85 };
+  const basicReach = (cls, lvl) => cls === 'arbiter' ? (lvl >= 30 ? 245 : 92) : (CLASSES[cls] || CLASSES.dualblade).reach;
+  CLASSES.arbiter = {
+    id: 'arbiter', name: 'เทวทัณฑ์', weapon: 'ดาบสัตย์',
+    desc: 'Divine Arbiter · ดาบประชิดและคลื่นระยะกลาง สะสมสัตย์ ดาบบริวาร และจุติชั่วคราว · วิวัฒนาการอัตโนมัติ Lv.30 / 70 / 110',
+    hp: 155, hpG: 24, mp: 100, mpG: 13, atk: 14, atkG: 3.9, def: 3, defG: 1.1,
+    speed: 215, crit: .09, reach: 92,
+    // Cooldowns below are final milliseconds (added after the legacy cooldown conversion).
+    skills: [
+      { id: 'oathBasic', name: 'คมดาบสัตย์', key: '1', lvl: 1, mp: 0, cd: 780, free: true,
+        arbiter: { kind: 'basic', range: 105, windup: 180, power: 1 }, evo: [],
+        desc: 'โจมตีธรรมดาแยกจาก 8 สกิล: ประชิด 3 จังหวะ 90/100/110% · Lv.30 คลื่นดาบระยะ 260 กว้าง 48 สูงสุด 3 เป้า ดาเมจ 75% · ฝึกอัตโนมัติ +5% ทุก 4 เลเวล สูงสุด 55% · ขั้นอาชีพ +30% ต่อขั้น · ไม่ใช้แต้ม' },
+      { id: 'oathSlash', name: 'ฟันคำสัตย์', key: '2', lvl: 1, mp: 12, cd: 4000, evo: [],
+        arbiter: { kind: 'single', range: 115, windup: 240, power: 1.7 }, desc: 'ฟันเป้าเดียว 170% ATK ระยะ 115 · เตรียมฟัน 0.24 วิ' },
+      { id: 'oathResonance', name: 'สะสมสัตย์', lvl: 10, mp: 0, cd: 0, passive: true, evo: [],
+        desc: 'พาสซีฟ: โจมตีโดนสะสม 1 ชั้นต่อการใช้ท่า สูงสุด 5 ชั้น · การโจมตีถัดไปแรงขึ้น 30% แล้วเริ่มสะสมใหม่ · ดาบบริวารไม่สะสม' },
+      { id: 'arcblade', name: 'คมอาคม', key: '3', lvl: 30, mp: 20, cd: 6500, evo: [],
+        arbiter: { kind: 'line', range: 280, width: 28, cap: 4, windup: 350, power: 1.8 }, desc: 'คลื่นเส้นตรง 180% ATK ระยะ 280 กว้าง 56 สูงสุด 4 เป้า · เตรียม 0.35 วิ' },
+      { id: 'astralBlades', name: 'ดาบบริวาร', lvl: 50, mp: 0, cd: 2500, passive: true, evo: [],
+        desc: 'พาสซีฟ: โจมตีธรรมดาโดนมีโอกาส 25% ฟันเสริม 35% ATK เพียง 1 เป้า ทุก 2.5 วิ · ไม่กระตุ้นพาสซีฟอื่น' },
+      { id: 'oathAegis', name: 'เกราะสัตย์', key: '4', lvl: 70, mp: 26, cd: 20000, maxRank: 1, evo: [],
+        arbiter: { kind: 'ward', duration: 5000, guard: .2 }, desc: 'ลดดาเมจตนเอง 20% นาน 5 วิ (PvP 15%) · ธรรมะเสริมความแม่นยำ 3% · อธรรมเพิ่มโอกาสหลบ 3% · ไม่ซ้อนเกราะนักพรต/แนวหน้า' },
+      { id: 'bladeOrbit', name: 'วงแหวนคมดาบ', key: '5', lvl: 85, mp: 38, cd: 12000, evo: [],
+        arbiter: { kind: 'circle', range: 155, cap: 5, windup: 450, power: 2.4 }, desc: 'กวาดรอบตัว 240% ATK รัศมี 155 สูงสุด 5 เป้า · เตรียม 0.45 วิ' },
+      { id: 'ascendantForm', name: 'จุติผู้พิพากษา', key: '6', lvl: 110, mp: 55, cd: 60000, maxRank: 1, evo: [],
+        arbiter: { kind: 'form', duration: 10000 }, desc: 'จุติ 10 วิ เพิ่มดาเมจ 12% (PvP 8%) และความเร็วโจมตี 10% · ระยะและจำนวนเป้าเท่าเดิม' },
+      { id: 'finalVerdict', name: 'มหาพิพากษา', key: '7', lvl: 110, mp: 65, cd: 35000, evo: [],
+        arbiter: { kind: 'verdict', range: 280, radius: 145, cap: 5, windup: 1200, power: 4.2 }, desc: 'เลือกพื้นที่ระยะ 280 รัศมี 145 สูงสุด 5 เป้า 420% ATK · วงเตือน 1.2 วิ หลบออกได้ · ถูกควบคุมหรือตายยกเลิก' },
+    ],
+  };
   const CLASS_IDS = Object.keys(CLASSES);          // snapshot index of a class
   // Fractions, not percentages. Both factions use the same combat rules.
   const CLASS_ROLES = {
+    arbiter: { evasion: .03, evasionG: .02, accuracy: .05, resistance: 0, aspd: 0, attackMove: .65, critPower: 1.6, manaRegen: .022 },
     warrior: { evasion: 0.02, evasionG: 0.01, accuracy: 0.04, resistance: 0.15, aspd: 0, attackMove: 0.6, critPower: 1.5, manaRegen: 0.022 },
     spearman: { evasion: 0.01, evasionG: 0.01, accuracy: 0.04, resistance: 0, aspd: 0, attackMove: 0.55, critPower: 1.5, manaRegen: 0.022 },
     dualblade: { evasion: 0.12, evasionG: 0.08, accuracy: 0.03, resistance: 0, aspd: 0.12, attackMove: 0.8, critPower: 1.75, manaRegen: 0.02 },
@@ -377,7 +420,7 @@
     rend: 'เกราะแตกไม่ซ้อนกัน ใช้ค่าที่แรงที่สุด',
   };
   // timed buffs a skill leaves on the caster / party (HUD buff row; values are applied on the server)
-  const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion', 'guardianOath'];
+  const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion', 'guardianOath', 'oathAegis', 'ascendantForm'];
   // skills that move the caster: a root blocks them (server and client)
   const MOVE_SKILLS = ['shadowstep', 'skyfall', 'twindragon', 'rollshot'];
   // where ดาวตกเพลิงฟ้า's meteors land round the aim (golden-angle ring), shared so every client draws the real spots
@@ -549,9 +592,9 @@
     { name: 'วิชาปรมาจารย์', from: 70, to: MAX_LVL },
   ];
   const skillPtsTotal = (lvl) => Math.max(1, lvl);
-  const skillCap = (sk, lvl) => (lvl < sk.lvl ? 0 : Math.min(SKILL_MAX, 1 + Math.floor((lvl - sk.lvl) / SKILL_LVL_GAP)));
+  const skillCap = (sk, lvl) => (lvl < sk.lvl ? 0 : sk.free || sk.passive ? 1 : Math.min(sk.maxRank || SKILL_MAX, 1 + Math.floor((lvl - sk.lvl) / SKILL_LVL_GAP)));
   const basicOf = (cls) => (CLASSES[cls] || CLASSES.dualblade).skills.find((s) => s.key === '1');
-  const skillPtsUsed = (d) => Object.values((d && d.sk) || {}).reduce((t, n) => t + n, 0) +
+  const skillPtsUsed = (d) => Object.entries((d && d.sk) || {}).reduce((t, [id, n]) => t + (ALL_SKILLS[id]?.free ? 0 : n), 0) +
     Object.values((d && d.ev) || {}).reduce((t, n) => t + n * EVO_COST, 0);
   const skillPtsFree = (d, lvl) => skillPtsTotal(lvl) - skillPtsUsed(d);
   // can evolution i of a skill be unlocked now? (returns '' or the reason it cannot)
@@ -602,7 +645,7 @@
     if (skillPtsFree(d, lvl) < 0) { d.sk = { [basic.id]: 1 }; d.ev = {}; }
     if (old) autoSkills(cls, d, lvl);
     // skill bar: keys 1-9 hold any skill of the class (or nothing); default = each skill on its own key
-    const ids = new Set(list.map((s) => s.id)), used = new Set();
+    const ids = new Set(list.filter(s => !s.passive).map((s) => s.id)), used = new Set();
     const bar = saved && Array.isArray(saved.bar) ? saved.bar : BAR_KEYS.map((k) => (list.find((s) => s.key === k) || {}).id);
     for (let i = 0; i < BAR_KEYS.length; i++) {
       const id = i>=9 && i>=bar.length ? list.find(s=>s.key===BAR_KEYS[i])?.id : bar[i];
@@ -634,6 +677,7 @@
   //   tip    why, shown in the stat panel
   const STAT_GUIDE_KEY = 'guide';
   const STAT_GUIDES = {
+    arbiter: { share: { atk: .35, hp: .2, aspd: .15, crit: .1, def: .1, mp: .1 }, tip: 'ดาบผสม: โจมตีและชีวิตเป็นหลัก เสริมปราณสำหรับคลื่นดาบ บริหารระยะและคูลดาวน์จุติ' },
     warrior: { share: { atk: 0.25, hp: 0.35, def: 0.2, mp: 0.1, aspd: 0.1 },
       tip: 'แนวหน้าดาบและโล่: เน้น HP และป้องกัน เสริมโจมตี/ปราณเพื่อยืนคุ้มกันทีม ไม่ใช่สายดาเมจหรือฮีล' },
     dualblade: { share: { atk: 0.4, aspd: 0.2, crit: 0.2, hp: 0.15, def: 0.05 },
@@ -1246,8 +1290,10 @@
   for (const w of WEAPONS) {
     w.names = { dualblade: w.name, taoist: w.name.replace('ดาบคู่', 'แส้'), archer: w.name.replace('ดาบคู่', 'ธนู'), spearman: w.name.replace('ดาบคู่', 'ทวน') };
     w.names.warrior = w.name.replace('ดาบคู่', 'ดาบและโล่');
+    w.names.arbiter = w.name.replace('ดาบคู่', 'ดาบสัตย์');
     w.descs = { dualblade: w.desc, taoist: w.desc.replace(/ใบดาบ/g, 'ขนแส้').replace(/ดาบ/g, 'แส้'), archer: bowDesc(w.desc), spearman: w.desc.replace(/ดาบคู่/g, 'ทวน').replace(/ใบดาบ/g, 'คมทวน').replace(/ดาบ/g, 'ทวน') };
     w.descs.warrior = 'ชุดดาบมือเดียวและโล่ ใช้ช่องอาวุธเดียว ค่าสถานะและการตีบวกเท่ากับอาวุธระดับเดียวกัน';
+    w.descs.arbiter = 'ดาบสัตย์มือเดียว ใช้ค่าสถานะและการตีบวกของอาวุธระดับเดียวกัน';
   }
   // นักพรต outfit: the same armour items read as Taoist robes, trousers, wrist cuffs and shoulder shawls
   const TAO_SETS = [
@@ -1602,6 +1648,7 @@
   const spawnPoint = (f) => ({ x: BASES[f].spawn.tx * TILE + TILE / 2, y: BASES[f].spawn.ty * TILE + TILE / 2 });
 
   return {
+    ARBITER, ARBITER_STAGES, arbiterStage, arbiterPower, basicReach,
     TILE, MAP_W, MAP_H, T, FACTIONS, BASES, CENTER, STONES, CLASSES, CLASS_ROLES, roleOf, combatMoveScale, MAX_LVL, CONSUMABLES, STACK_MAX, stackCount, stackKey, ITEM_USE_CD,
     skillRank, skillMult, skillInfo, stageOf, SKILL_STAGES, stagesOf, STANCES, GCD_MS, CLASS_IDS, ALL_SKILLS, setViewClass, spearSequence, spearAreaContains,
     BAG_SIZE, STORAGE_SIZE, RARITY, GRADES, GRADE_LIGHT, gradeLight, EPIC, AFFIXES, OPTIONS, PASSIVES, DROP_LVL_RANGE, TOP_ITEM_LVL, canDropHigh, rollGrade, gradeChances, gradeBands, HIGH_BANDS, BOSS_GRADES, BOSS_RESPAWN,

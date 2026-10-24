@@ -66,7 +66,11 @@ try{
   }
   for(const lvl of [60,100,130])for(const cls of C.CLASS_IDS){const learned=C.cleanSkills(cls,null,lvl);
     for(const sk of C.CLASSES[cls].skills.filter(s=>learned.sk[s.id]))for(const mode of ['single80','single300','boss80','pack5','pvp80']){
-      const runs=seeds.map(seed=>single(cls,lvl,seed,mode,sk));assert.deepEqual(single(cls,lvl,seeds[0],mode,sk,'adharma'),runs[0]);parity++;
+      const runs=seeds.map(seed=>single(cls,lvl,seed,mode,sk));
+      const dark=single(cls,lvl,seeds[0],mode,sk,'adharma'),light=JSON.parse(JSON.stringify(runs[0]));
+      // Arbiter Aegis has equal defensive power with intentional accuracy/evasion faction traits.
+      if(sk.id==='oathAegis')for(const r of [dark,light]){delete r.buffs.oathAegis.accuracy;delete r.buffs.oathAegis.evasion;}
+      assert.deepEqual(dark,light);parity++;
       skills.push({cls,lvl,id:sk.id,name:sk.name,mode,skillLevel:learned.sk[sk.id],rank:C.skillRankOf(learned,sk.id),baseCooldownMs:sk.cd,mpCost:C.skillMp(sk,lvl),damage:avg(runs,'damage'),hits:avg(runs,'hits'),rawSelfHeal:avg(runs,'rawSelfHeal'),casts:avg(runs,'casts'),buffs:runs[0].buffs});
     }
   }

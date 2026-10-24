@@ -1,0 +1,24 @@
+# Divine Arbiter model generation
+
+> Archived first exploration only. The tall 4×4 designs below were replaced after review against the existing classes. They are retained in `class-art/arbiter/archive/` and are not loaded by the game. The shipped chibi design, references and rebuild instructions are documented in [../class-art/arbiter/PROMPTS.md](../class-art/arbiter/PROMPTS.md).
+
+## Attack atlas prompt
+
+Use case: identity-preserve. Asset type: 2D MMORPG attack-direction atlas.
+Edit the attached original Divine Arbiter character atlas. Preserve the exact same two characters, facial identity, armor, hair, faction palettes, single sword, art rendering style, the FOUR columns by FOUR rows layout and the directional ordering. Change only their body and sword poses into a forceful single sword slash action: torso twists, sword arm extends and sword sweeps forward across the body, knees bend, one foot advances, long robe and hair trail. ONE full-body character in EACH cell, same scale, no cut-off hands feet or swords. Keep entire silhouette strictly inside each equal cell with at least 5% transparent gap. First two rows white gold blue Dharma, last two rows black red purple Adharma. Row directions: E SE S SW, then W NW N NE; repeat those rows for dark faction. No floating effects, no wings, no halo, no slash trails. TRUE transparent background. This is one attack contact pose for each of 8 directions per faction, not a collage, not a title page. All feet aligned near 91% height within each cell.
+
+## Attack spacing refinement
+
+Edit this attack sprite atlas ONLY to fix sprite packing. Keep every character's exact appearance, same attack pose and facing, same 4 columns by 4 rows order, same faction palettes and transparent alpha. Currently figures and swords touch neighboring cells and canvas edges. Shrink EACH of the 16 entire figures including its sword to fit FULLY inside the middle 75% WIDTH and middle 75% HEIGHT of its own equal-sized cell. There must be substantial EMPTY transparent margins on ALL FOUR SIDES OF EVERY SINGLE CELL. Absolutely no sword tip, hair, foot, clothing or glow crosses a cell boundary. Smaller figures with clear separation are required. Do not add labels, grid lines, backgrounds, duplicate people or alter pose. Consistent feet baseline at 85% of each cell height. Transparent background.
+
+Tool: built-in image_gen, transparent background. Original source is retained in Codex generated_images; project atlas: public/assets/arbiter/stances.png.
+
+## Directional stance atlas prompt
+
+Use case: stylized-concept
+Asset type: production-ready 2D MMORPG character directional atlas, one image, transparent background.
+Create an ORIGINAL Divine Arbiter oath-swordsman for a Thai fantasy martial-arts MMORPG. A handsome young adult male with heroic stylized 4.5-head proportions, painterly hand-painted game sprite quality, elegant layered plate and long split robe, engraved oath diamond insignia, one single straight sword in his RIGHT hand, empty LEFT hand. No shield, no dual swords. Long tied-back silver hair for light faction, long black violet hair for dark faction. Not any existing franchise character.
+STRICT ATLAS: exactly 4 equal-width columns and 4 equal-height rows, 16 equal cells, no grid lines or text. Each cell contains exactly ONE complete full-body character centered horizontally, feet at 91% of its cell height, head around 12%, all weapons/hair contained within the cell with ample padding. Consistent scale and lighting. Mild elevated orthographic game camera; no perspective floor or ground shadow. Each figure neutral combat-ready standing pose, sword angled downward, both feet visible. Entire silhouette including sword inside its own cell.
+Rows 1 and 2 are the SAME DHARMA light faction character: white and pale blue armor, fine gold trim, blue sash, ivory hair. Row 1 directions left-to-right: facing screen right (east), front-right (southeast), straight toward viewer (south), front-left (southwest). Row 2: facing screen left (west), rear-left (northwest), straight away (north), rear-right (northeast).
+Rows 3 and 4 are the SAME ADHARMA dark faction character: black plum armor, crimson sash, violet magical inlays, black violet hair, red metallic edges. Row 3 directions east, southeast, south, southwest. Row 4 directions west, northwest, north, northeast.
+These are base Oathblade warrior models: NO wings, NO halo, NO floating swords, NO glowing ground effects. Those get rendered separately during evolution in the game. Clean distinct readable face, detailed layered armor with sharp clean alpha silhouettes. Transparent empty space between characters, no captions, no backgrounds, no logos, no watermarks. Square atlas, maximum available resolution. Maintain precise identical cell placements so game can draw each source rectangle directly.

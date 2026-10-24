@@ -8,6 +8,7 @@
 
   // ------------------------------------------------------------ skill icons
   function icon(id, f) {
+    if (C.ALL_SKILLS[id]?.cls === 'arbiter') return ArbiterLook.icon(id, f);
     const c = document.createElement('canvas'); c.width = c.height = 112;
     const g = c.getContext('2d');
     const sk = C.ALL_SKILLS[id];

@@ -615,7 +615,7 @@ class World {
     if (!d) return;
     const sk = SKILLS[p.cls][d.id];
     const now = Date.now();
-    if (!sk || p.dead || now < p.lockUntil || now < (p.stunUntil || 0)) return;
+    if (!sk || sk.passive || p.dead || now < p.lockUntil || now < (p.stunUntil || 0)) return;
     if (now < (p.rootUntil || 0) && (sk.spear || sk.ritual || C.MOVE_SKILLS.includes(sk.id))) return;
     if (p.lvl < sk.lvl) return this.toast(p, `ต้องการเลเวล ${sk.lvl} เพื่อใช้ ${sk.name}`);
     const sl = p.skl.sk[sk.id] || 0;
@@ -627,6 +627,8 @@ class World {
     if (p.mp < mpCost) return this.toast(p, 'ปราณไม่พอ');
     let a = Number(d.a);
     if (!Number.isFinite(a)) a = (p.dir * Math.PI) / 4;
+    const arbiter = sk.arbiter && this.arbiterAim(p, sk, d, a);
+    if (sk.arbiter && !arbiter) return;
     // Spear skills lock exactly one legal melee target before spending resources.
     const front = sk.frontline;
     const frontTarget = front && front.damage && !front.area && this.slashTarget(p, a, front.range, Math.PI, d.tid);
@@ -652,6 +654,7 @@ class World {
     const rank = C.skillRankOf(p.skl, sk.id), mult = C.skillPower(sl, rank);
     const fx = (data) => this.fx(p, { id: p.id, r: rank, sl, ...data });
     const alive = () => this.alive(p);
+    if (arbiter) return this.castArbiter(p, sk, arbiter, mult * C.arbiterPower(p.lvl, basic), now);
     if (front) {
       const mapId = p.mapId, epoch = p.controlEpoch || 0;
       const castId=p.frontlineSeq=(p.frontlineSeq||0)+1;
@@ -1191,6 +1194,100 @@ class World {
     b[id] = { ...vals, k, until: now + ms, dur: ms };
     return true;
   }
+  // Validate before spending mana or starting cooldowns; clients and Auto Hunt share this path.
+  arbiterAim(p, sk, d, a) {
+    const s = sk.arbiter, R = C.ARBITER;
+    const plan = { ...s, a, x: p.x, y: p.y };
+    if (s.kind === 'ward' || s.kind === 'form') return plan;
+    if (Date.now() < (p.rootUntil || 0)) return null;
+    if (C.safeAt(this.defOf(p), p.x, p.y)) return null;
+    if (s.kind === 'basic' || s.kind === 'single') {
+      const range = s.kind === 'basic' && p.lvl >= 30 ? R.wave : s.range;
+      const target = this.slashTarget(p, a, range, Math.PI, d.tid);
+      if (!target || (d.tid && target.id !== d.tid) || !this.arbiterClear(p, target)) return null;
+      plan.target = target;
+      plan.range = range;
+      plan.a = Math.atan2(target.y - p.y, target.x - p.x);
+      plan.wave = s.kind === 'basic' && dist(p, target) > R.melee + radiusOf(target);
+    }
+    if (s.kind === 'verdict') {
+      const x = Number(d.tx), y = Number(d.ty);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || Math.hypot(x-p.x,y-p.y) > s.range ||
+          !C.canStand(this.mapOf(p), x, y) || !this.arbiterClear(p, { x, y })) return null;
+      plan.x = x; plan.y = y;
+    }
+    return plan;
+  }
+  arbiterClear(p, target, origin = p) {
+    const map = this.mapOf(p), n = Math.max(1, Math.ceil(dist(origin, target) / 12));
+    for (let i = 1; i <= n; i++) if (C.solidAt(map, origin.x+(target.x-origin.x)*i/n, origin.y+(target.y-origin.y)*i/n)) return false;
+    return true;
+  }
+  castArbiter(p, sk, plan, mult, now) {
+    p.dir = C.dirFromAngle(plan.a);
+    const R = C.ARBITER, mapId = p.mapId, epoch = p.controlEpoch || 0, travel = p.arbiterTravel || 0;
+    const token = p.arbiterSeq = (p.arbiterSeq || 0) + 1;
+    const valid = () => this.alive(p) && p.mapId === mapId && (p.arbiterTravel || 0) === travel &&
+      (p.controlEpoch || 0) === epoch && Date.now() >= (p.stunUntil || 0) && Date.now() >= (p.rootUntil || 0);
+    const fx = data => this.fx(p, { t: 'arbiter', id: p.id, skill: sk.id, token, mapId, a: plan.a, ...data });
+    if (plan.kind === 'ward') {
+      this.addBuff(p, sk.id, plan.duration, { arbiterGuard: plan.guard,
+        accuracy: p.faction === 'dharma' ? .03 : 0, evasion: p.faction === 'adharma' ? .03 : 0 });
+      fx({ phase: 'ward', x: p.x, y: p.y, dur: plan.duration }); return;
+    }
+    if (plan.kind === 'form') {
+      this.addBuff(p, sk.id, plan.duration, { arbiterForm: 1, aspd: .1 });
+      fx({ phase: 'form', x: p.x, y: p.y, dur: plan.duration }); return;
+    }
+    const windup = plan.kind === 'basic' ? Math.min(plan.windup, C.basicCd(sk, p.stats.aspd + this.buffVal(p, 'aspd')) * .6) : plan.windup;
+    p.lockUntil = now + windup;
+    p.actUntil = now + windup + 200;
+    fx({ phase: 'windup', x: plan.x, y: plan.y, radius: plan.radius || plan.range, width: plan.width || R.width,
+      wave: plan.wave, dur: windup, stage: C.arbiterStage(p.lvl) });
+    this.later(windup, () => {
+      if (!valid()) {
+        this.emitNear(mapId, plan.x, plan.y, 'fx', { t: 'arbiter', id: p.id, token, phase: 'cancel', mapId }); return;
+      }
+      const origin = plan.kind === 'verdict' ? { x: plan.x, y: plan.y } : { x: p.x, y: p.y };
+      const legal = (t, range, center = p) => !t.dead && t.mapId === mapId &&
+        this.enemiesOf(p, center.x, center.y, range).includes(t) && dist(center, t) <= range + radiusOf(t) &&
+        !C.safeAt(this.defOf(p), t.x, t.y) && this.arbiterClear(p, t, center);
+      if (C.safeAt(this.defOf(p), p.x, p.y)) return;
+      if (plan.target && !legal(plan.target, plan.wave ? R.wave : sk.arbiter.range)) return;
+      let targets, power = plan.power;
+      if (plan.kind === 'basic') {
+        p.arbiterCombo = ((p.arbiterCombo || 0) + 1) % 3;
+        power = plan.wave ? .75 : [.9, 1, 1.1][(p.arbiterCombo + 2) % 3];
+      }
+      if (plan.kind === 'line' || plan.wave) {
+        const range = plan.wave ? R.wave : plan.range, width = plan.width || R.width;
+        const dx = Math.cos(plan.a), dy = Math.sin(plan.a);
+        targets = this.enemiesOf(p, p.x, p.y, range).filter(t => {
+          const x = t.x-p.x, y = t.y-p.y, along = x*dx+y*dy;
+          return along >= 0 && along <= range && Math.abs(x*dy-y*dx) <= width + radiusOf(t) && legal(t, range);
+        }).sort((a,b) => dist(p,a)-dist(p,b)).slice(0, plan.cap || R.waveCap);
+      } else if (plan.target) targets = [plan.target];
+      else targets = this.enemiesOf(p, origin.x, origin.y, plan.radius || plan.range)
+        .filter(t => legal(t, plan.radius || plan.range, origin)).sort((a,b) => dist(origin,a)-dist(origin,b)).slice(0, plan.cap);
+      const resonance = p.lvl >= 10 && p.skl.sk.oathResonance;
+      const empowered = resonance && (p.oathStacks || 0) >= R.stacks;
+      let landed = null;
+      for (const t of targets) {
+        const dealt = this.applyDamage(p, t, power * mult * (empowered ? 1 + R.resonance : 1),
+          { onHitWeight: 1 / Math.max(1, targets.length) });
+        if (dealt > 0 && !landed) landed = t;
+      }
+      if (landed && resonance) p.oathStacks = empowered ? 0 : Math.min(R.stacks, (p.oathStacks || 0) + 1);
+      // One proc per basic cast, with its own clock; never recursively generates stacks or gear procs.
+      if (landed && plan.kind === 'basic' && p.lvl >= 50 && p.skl.sk.astralBlades && Date.now() >= (p.astralAt || 0) && Math.random() < R.astralChance) {
+        p.astralAt = Date.now() + R.astralCd;
+        if (!landed.dead) this.applyDamage(p, landed, R.astralPower, { proc: true, onHitWeight: 0 });
+        fx({ phase: 'astral', x: landed.x, y: landed.y, dur: 400 });
+      }
+      fx({ phase: 'release', x: origin.x, y: origin.y, radius: plan.radius || plan.range,
+        width: plan.width || R.width, wave: plan.wave, combo: p.arbiterCombo, dur: 400 });
+    });
+  }
   // sum of one value over the running buffs (0 for monsters)
   buffVal(q, key) {
     if (!q.buffs) return 0;
@@ -1429,6 +1526,8 @@ class World {
     }
   }
   changeMapOne(p, to, pos) {
+    p.arbiterTravel = (p.arbiterTravel || 0) + 1;
+    p.oathStacks = p.arbiterCombo = 0;
     this.dropAggro(p);
     this.emitNear(p.mapId, p.x, p.y, 'fx', { t: 'spawn', id: p.id, f: p.faction });
     p.mapId = to;
@@ -2380,7 +2479,7 @@ class World {
     }
     // Accuracy counters evasion. Stuns disable dodging; periodic/proc damage never rolls a dodge.
     const evade = tP && now >= (tgt.stunUntil || 0)
-      ? Math.max(0, (tgt.stats.evasion || 0) - (sP ? src.stats.accuracy || 0 : 0)) : 0;
+      ? Math.max(0, (tgt.stats.evasion || 0) + this.buffVal(tgt, 'evasion') - (sP ? (src.stats.accuracy || 0) + this.buffVal(src, 'accuracy') : 0)) : 0;
     if (!opts.dot && !opts.proc && !opts.flat && evade && Math.random() < evade) {
       this.emitNear(tgt.mapId, tgt.x, tgt.y, 'evade', { id: tgt.id });
       return 0;
@@ -2410,9 +2509,13 @@ class World {
       * (opts.pveSkill || 1);                                                            // นักรบแนวหน้า skills 2–9
     else if (tP) dmg *= C.levelGapMul(tgt.lvl, src.def.lvl || 0).taken                   // ... and hit harder
       * (this.taoistSolo(tgt) ? C.TAOIST_SOLO.taken : 1);
+    if (sP && src.cls === 'arbiter' && !opts.reflect) {
+      if (tP) dmg *= C.ARBITER.pvp;
+      if (this.buffVal(src, 'arbiterForm')) dmg *= tP ? 1.08 : 1.12;
+    }
     if (tP) {
       const tfx = tgt.stats.fx;
-      const ward = Math.max(this.buffVal(tgt, 'guard'), this.buffVal(tgt, 'frontGuard')); // tank wards never multiply healer wards
+      const ward = Math.max(this.buffVal(tgt, 'guard'), this.buffVal(tgt, 'frontGuard'), this.buffVal(tgt, 'arbiterGuard') * (sP ? .75 : 1)); // strongest ward only
       // ปราการสุดท้าย (gear passive): below 35% HP, a blow is reduced only when the passive fires
       const wall = tfx.bulwark && tgt.hp < tgt.stats.maxHp * 0.35 && Math.random() < ((tgt.stats.procs && tgt.stats.procs.bulwark) || 0);
       // ทวน locked in a heavy strike (C.SPEAR_WINDUP_GUARD); a stun / root since the cast ends it
@@ -2487,12 +2590,15 @@ class World {
   // special options / passives of the attacker's gear on a landed hit
   onHitFx(p, tgt, dmg, opts) {
     const fx = p.stats.fx;
+    const mapId = p.mapId, epoch = p.controlEpoch || 0, travel = p.arbiterTravel || 0;
     // Splitting a spear strike must not multiply its mana/proc budget.
     const weight=opts.onHitWeight??1;
     if (fx.mana) p.mp = Math.min(p.stats.maxMp, p.mp + p.stats.maxMp * fx.mana * weight);
     if (fx.thunder && !opts.proc && Math.random() < Math.min(1,fx.thunder*weight))
       this.later(140, () => {
         if (!this.alive(p) || tgt.dead) return;
+        if (p.cls === 'arbiter' && (p.mapId !== mapId || tgt.mapId !== mapId ||
+            (p.controlEpoch || 0) !== epoch || (p.arbiterTravel || 0) !== travel || !this.arbiterClear(p,tgt))) return;
         this.emitNear(tgt.mapId, tgt.x, tgt.y, 'fx', { t: 'bolt', x: Math.round(tgt.x), y: Math.round(tgt.y), f: p.faction });
         this.applyDamage(p, tgt, 1.2, { proc: true });
       });
@@ -2632,6 +2738,8 @@ class World {
     while (p.lvl < C.MAX_LVL && p.exp >= C.expToNext(p.lvl)) {
       p.exp -= C.expToNext(p.lvl);
       p.lvl++;
+      if (p.cls === 'arbiter' && C.ARBITER_STAGES.some(s => s.lvl === p.lvl))
+        this.toast(p, `วิวัฒนาการ: ${C.ARBITER_STAGES[C.arbiterStage(p.lvl)].name}`);
       if (p.autoStat) this.addStat(p, p.autoStat, C.STAT_PTS);
       p.stats = C.playerStats(p.cls, p.lvl, p.eq, p.alloc);
       p.hp = p.stats.maxHp;
@@ -2773,6 +2881,7 @@ class World {
   barAdd(p, ids) {
     const bar = p.skl.bar;
     for (const id of ids) {
+      if (SKILLS[p.cls][id]?.passive) continue;
       if (bar.includes(id)) continue;
       const def = C.BAR_KEYS.indexOf(SKILLS[p.cls][id].key);
       const i = bar[def] ? bar.indexOf(null) : def;
@@ -3174,7 +3283,8 @@ class World {
           q.faction === 'dharma' ? 0 : 1, q.name, q.lvl, q.dead ? 1 : 0, now < q.actUntil ? 1 : 0,
           C.ITEMS[q.eq.weapon].tier, C.armorTiers(q.eq), C.ITEMS[q.eq.weapon].plus || 0, C.gearGrades(q.eq), C.ITEMS[q.eq.weapon].grade || 0,
           C.CLASS_IDS.indexOf(q.cls), C.gearPlus(q.eq),
-          q.pk ? 1 : 0, q.evil || 0, this.canPk(p, q, now) ? 1 : 0]);         // field PvP: flag, evil points, p may hit q
+          q.pk ? 1 : 0, q.evil || 0, this.canPk(p, q, now) ? 1 : 0,
+          q.cls === 'arbiter' ? [this.buffVal(q, 'arbiterForm') ? 1 : 0, q.oathStacks || 0, q.lvl >= 50 && q.skl.sk.astralBlades ? 1 : 0] : null]);
       }
       const pt = this.partyOf(p), ours = pt ? new Set(pt.members) : new Set([p.id]);   // aggro 2 = on p or its party
       for (const m of this.maps[p.mapId].monsters) {

@@ -1026,6 +1026,7 @@
     if (it.slot === 'weapon' && viewCls() === 'spearman') SpearmanLook.icon(g, faction, ICON, it.tier);
     else if (it.slot === 'weapon' && viewCls() === 'archer') bowIcon(g, it, faction);
     else if (it.slot === 'weapon' && viewCls() !== 'dualblade' && whiskIcon(g, it, faction)) { /* class weapon art */ }
+    else if (it.slot === 'weapon' && viewCls() === 'arbiter') ArbiterLook.weaponIcon(g,it,faction,ICON);
     else if (it.slot === 'weapon') weaponIcon(g, it, faction);
     else if (viewCls() === 'archer' && ARMOR_ICON[it.slot] && window.ArcherGear) ArcherGear.armourIcon(g, it.slot, it.tier, faction, ICON);
     else if (viewCls() === 'taoist' && TAO_ICON[it.slot]) TAO_ICON[it.slot](g, it, faction);

@@ -9,13 +9,14 @@
   const $ = (id) => document.getElementById(id);
   // skills 2-9 of the character's class (G.cls is set at login)
   const clsOf = () => C.CLASSES[(window.G && G.cls) || 'dualblade'] || C.CLASSES.dualblade;
-  const skillsOf = () => clsOf().skills.filter((s) => s.key !== '1');
+  const skillsOf = () => clsOf().skills.filter((s) => s.key !== '1' && !s.passive);
   const learned = (id) => !!(G.skl && G.skl.sk[id]);
   // the key the player put the skill on (– when it is not on the bar)
   const keyOf = (s) => { const i = G.skl ? G.skl.bar.indexOf(s.id) : -1; return i >= 0 ? C.BAR_KEYS[i] : G.skl ? '–' : s.key; };
   // reach of each skill (world px from the target's edge) and the order they are tried in (big ones first)
   // (heals / buffs are cast on the bot itself and its party: buffs when a fight starts, heals when someone is hurt)
   const RANGE = { lotus: 110, shadowstep: 260, rend: 140, tempest: 120, crescent: 160, skyfall: 260, thousand: 120, twindragon: 200,
+    oathSlash: 100, arcblade: 250, oathAegis: 9999, bladeOrbit: 130, ascendantForm: 9999, finalVerdict: 240,
     ...Object.fromEntries(C.CLASSES.warrior.skills.filter(s=>s.key!=='1'&&s.frontline).map(s=>[s.id,s.frontline.ward?9999:(s.frontline.range||100)-15])),
     ...Object.fromEntries(C.CLASSES.spearman.skills.filter(s=>s.spear).map(s => [s.id, s.spear.range - 15])),
     ...Object.fromEntries(Object.values(C.ALL_SKILLS).filter(s=>s.ritual).map(s=>[s.id,s.ritual.range||s.ritual.radius-30])),
@@ -26,9 +27,11 @@
     'nirvana', 'mercy', 'aegis', 'might', 'heavens', 'meteor', 'skybolt', 'spiritsword',
     'hawkeye', 'gale', 'stormphoenix', 'skyrain', 'blast', 'deadeye', 'scatter', 'rollshot'];
   const HEALS = ['mercy', 'nirvana'];
+  PRIORITY.unshift('oathAegis', 'ascendantForm', 'finalVerdict', 'bladeOrbit', 'arcblade', 'oathSlash');
   PRIORITY.unshift('ironGuard','rallyGuard','lastBastion','guardianOath','battleCry','sunderStrike','shieldBash','shieldSweep','earthShatter','citadelStrike');
   PRIORITY.unshift(...Object.values(C.ALL_SKILLS).filter(s=>s.ritual).sort((a,b)=>b.lvl-a.lvl).map(s=>s.id));
   const DEF = { radius: 450, basic: true, skills: { lotus: true, rend: true, crescent: true, skybolt: true, mercy: true, aegis: true,
+    oathSlash: true, arcblade: true, oathAegis: true, bladeOrbit: true, ascendantForm: true, finalVerdict: true,
     spearCrush: true, spearBreak: true, spearHeart: true, spearBoss: true,
     shieldBash: true, shieldSweep: true, ironGuard: true, battleCry: true,
     spiritsword: true, scatter: true, hawkeye: true, gale: true, deadeye: true }, hpOn: true, hp: 50, mpOn: true, mp: 30 };

@@ -4,6 +4,9 @@
   "description": "2D MMORPG - ธรรมะ vs อธรรม",
   "main": "server/index.js",
   "scripts": {
+    "check:arbiter": "node tools/check-arbiter.cjs",
+    "check:arbiter-browser": "node tools/check-arbiter-browser.cjs",
+    "arbiter": "node tools/build-arbiter-model.cjs",
     "check:maps": "node tools/check-hunting-maps.cjs",
     "check:maps-browser": "node tools/check-hunting-browser.cjs",
     "preview:maps": "node tools/preview-hunting.cjs",
