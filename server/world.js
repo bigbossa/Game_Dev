@@ -951,11 +951,11 @@ class World {
         break;
       }
       case 'mercy': {
-        // a small instant group heal, once per cast: the caster and party members in 480 (allies get 20% more),
+        // An instant group heal in radius 480; allies get the stronger healing multiplier.
         // slow / root washed off. บัวทิพย์ฟื้นชีวา heals 35% more at once (no healing over time).
         p.lockUntil = now + 250;
         const who = this.partyNear(p, 480);
-        const amount = (q) => Math.round((q.stats.maxHp * 0.08 + p.stats.atk * 1.3 * mult) * (q === p ? C.TAOIST_SELF_HEAL_MULT : 1.2) * (rank ? 1.35 : 1));
+        const amount = (q) => Math.round((q.stats.maxHp * 0.08 + p.stats.atk * 1.3 * mult) * (q === p ? C.TAOIST_SELF_HEAL_MULT : C.TAOIST_ALLY_HEAL_MULT) * (rank ? 1.35 : 1));
         fx({ t: 'mercy', ids: who.map((q) => q.id), x: Math.round(p.x), y: Math.round(p.y) });
         for (const q of who) {
           this.healPlayer(q, amount(q));
@@ -1033,7 +1033,7 @@ class World {
         const who = this.partyNear(p, 520);
         fx({ t: 'nirvana', ids: who.map((q) => q.id), x: Math.round(p.x), y: Math.round(p.y) });
         for (const q of who) {
-          this.healPlayer(q, Math.round((q.stats.maxHp * 0.25 + p.stats.atk * 3 * mult) * (q === p ? C.TAOIST_SELF_HEAL_MULT : 1.2)));
+          this.healPlayer(q, Math.round((q.stats.maxHp * 0.25 + p.stats.atk * 3 * mult) * (q === p ? C.TAOIST_SELF_HEAL_MULT : C.TAOIST_ALLY_HEAL_MULT)));
           if (q !== p) q.mp = Math.min(q.stats.maxMp, q.mp + q.stats.maxMp * 0.15);   // party only: never refunds its own cost
           q.stunUntil = q.rootUntil = q.slowUntil = 0;
           this.sendControl(q);

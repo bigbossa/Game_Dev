@@ -118,6 +118,50 @@
     const c=document.createElement('canvas');c.width=c.height=112;c.getContext('2d').drawImage(cache.get(key),0,0);return c;
   };
 
+  // Combat V4: tapered silk-light trails, prismatic petals and restrained bloom.
+  // No random values per frame: strands stay attached to the motion instead of flickering.
+  function ribbon(g,p,r,start,sweep,width,flatten=1) {
+    const point=(u,inner)=>{
+      const a=start+sweep*u,body=Math.pow(Math.sin(Math.PI*u),.7),rr=r-(inner?width*body:0);
+      return [Math.cos(a)*rr,Math.sin(a)*rr*flatten];
+    };
+    const grad=g.createLinearGradient(-r,-r*flatten,r,r*flatten);
+    grad.addColorStop(0,p.edge+'00');grad.addColorStop(.28,p.edge+'90');grad.addColorStop(.65,p.main+'dd');grad.addColorStop(1,p.core);
+    g.save();g.beginPath();for(let i=0;i<=32;i++){const [x,y]=point(i/32,false);i?g.lineTo(x,y):g.moveTo(x,y);}
+    g.strokeStyle=grad;g.lineWidth=7;g.globalAlpha*=.22;g.shadowColor=p.main;g.shadowBlur=9;g.stroke();g.restore();
+    g.beginPath();for(let i=0;i<=32;i++){const [x,y]=point(i/32,false);i?g.lineTo(x,y):g.moveTo(x,y);}
+    for(let i=32;i>=0;i--){const [x,y]=point(i/32,true);g.lineTo(x,y);}g.closePath();g.fillStyle=grad;g.fill();
+    g.beginPath();for(let i=4;i<31;i++){const [x,y]=point(i/32,false);i===4?g.moveTo(x,y):g.lineTo(x,y);}
+    g.strokeStyle=p.core;g.lineWidth=1.25;g.stroke();
+    g.beginPath();for(let i=0;i<=28;i++){const a=start+sweep*i/32;const x=Math.cos(a)*(r+5),y=Math.sin(a)*(r+5)*flatten;i?g.lineTo(x,y):g.moveTo(x,y);}
+    g.strokeStyle=p.edge+'95';g.lineWidth=.7;g.stroke();
+  }
+  function star(g,x,y,size,p,angle=0) {
+    g.save();g.translate(x,y);g.rotate(angle);halo(g,0,0,size*2.4,p,.65);
+    shape(g,[[0,-size], [size*.17,-size*.17],[size*.62,0],[size*.17,size*.17],[0,size],[-size*.17,size*.17],[-size*.62,0],[-size*.17,-size*.17]],p.core);
+    g.restore();
+  }
+  function petal(g,p,x,y,angle,size,alpha=1) {
+    g.save();g.translate(x,y);g.rotate(angle);g.globalAlpha*=alpha;
+    const grad=g.createLinearGradient(0,0,0,-size);grad.addColorStop(0,p.main+'00');grad.addColorStop(.5,p.main+'55');grad.addColorStop(1,p.core+'dd');
+    g.beginPath();g.moveTo(0,0);g.bezierCurveTo(-size*.48,-size*.35,-size*.16,-size*.84,0,-size);
+    g.bezierCurveTo(size*.33,-size*.66,size*.4,-size*.27,0,0);g.fillStyle=grad;g.fill();
+    g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(size*.12,-size*.54,0,-size);g.strokeStyle=p.edge+'bb';g.lineWidth=.9;g.stroke();g.restore();
+  }
+  function motes(g,p,t,r,count=12,lift=0) {
+    for(let i=0;i<count;i++){
+      const a=i*2.39996,dist=r*(.25+.7*t)*(.6+(i%4)*.12),x=Math.cos(a)*dist,y=Math.sin(a)*dist*.65-lift*t;
+      g.save();g.globalAlpha*=Math.sin(Math.PI*clamp((1-t)*1.3))*(.5+(i%3)*.2);
+      if(i%4===0)star(g,x,y,3+i%3,p,a);else petal(g,p,x,y,a+t,6+i%5);g.restore();
+    }
+  }
+  function lance(g,p,height,width) {
+    const grad=g.createLinearGradient(0,-height,0,0);grad.addColorStop(0,p.main+'00');grad.addColorStop(.4,p.main+'60');grad.addColorStop(.88,p.core);grad.addColorStop(1,p.edge);
+    shape(g,[[-width,-height],[width,-height],[width*.55,-height*.2],[0,0],[-width*.55,-height*.2]],grad);
+    line(g,[[0,-height*.86],[0,-height*.1]],p.core,1.8);
+    for(const s of [-1,1])line(g,[[s*width*2.3,-height*.88],[s*width*1.5,-height*.35]],p.main+'90',.8);
+  }
+
   A.play = d => {
     const key=d.id+':'+d.token,sk=C.ALL_SKILLS[d.skill],spec=sk?.arbiter;
     if(d.phase==='cancel'||d.phase==='release')FX.list=FX.list.filter(f=>f.arbiterToken!==key);
@@ -125,7 +169,9 @@
     const p=palette(d.f),rank=Math.max(0,Math.min(2,d.r||0));
     const warning=d.phase==='windup'&&spec.kind==='verdict',windup=d.phase==='windup';
     const follow=['ward','form','resonance','blades'].includes(d.phase),persistent=['ward','form'].includes(d.phase);
-    const duration=Math.max(1,d.dur||400),radius=Math.max(1,d.radius||spec.radius||spec.range||60);
+    // Only the release afterglow gets more time. Authoritative windup and buff lifetimes are untouched.
+    const afterglow=d.phase==='release'?(spec.kind==='verdict'?800:spec.kind==='circle'?550:400):0;
+    const duration=Math.max(1,d.dur||400,afterglow),radius=Math.max(1,d.radius||spec.radius||spec.range||60);
     let ended=false;
     if(follow)FX.list=FX.list.filter(f=>!(f.arbiterEffect&&f.owner===d.id&&f.skill===d.skill&&f.follow));
     // Decorations are bounded; never evict an authoritative ground warning to make room for a flash.
@@ -141,58 +187,91 @@
         g.save();g.translate(follow&&entity?entity.x:d.x,follow&&entity?entity.y:d.y);
         g.lineCap='round';g.lineJoin='round';
         if(warning){
-          // This circle is in world coordinates, not a perspective ellipse: it is the actual server hit area.
-          g.fillStyle=p.main+'16';g.beginPath();g.arc(0,0,radius,0,TAU);g.fill();
-          ring(g,radius,p,0,12);g.strokeStyle=p.core;g.lineWidth=3;
-          g.beginPath();g.arc(0,0,radius-5,-Math.PI/2,-Math.PI/2+TAU*t);g.stroke();
-          g.globalAlpha*=.35+.45*t;g.save();g.rotate(-t*.5);ring(g,radius*.48,p,0,6);g.restore();
-          diamond(g,0,0,18+6*t,p);g.restore();return;
+          // The outer circle remains the exact server hit area, with a filling timing rim.
+          const wash=g.createRadialGradient(0,0,radius*.15,0,0,radius);
+          wash.addColorStop(0,p.main+'00');wash.addColorStop(.82,p.main+'08');wash.addColorStop(1,p.edge+'38');
+          g.fillStyle=wash;g.beginPath();g.arc(0,0,radius,0,TAU);g.fill();
+          g.strokeStyle=p.edge;g.lineWidth=1.5;g.stroke();g.strokeStyle=p.core;g.lineWidth=2.5;
+          g.beginPath();g.arc(0,0,radius-4,-Math.PI/2,-Math.PI/2+TAU*t);g.stroke();
+          for(let i=0;i<6;i++){const a=i*TAU/6;const x=Math.cos(a)*radius*.83,y=Math.sin(a)*radius*.83;
+            petal(g,p,x,y,a-Math.PI/2,18+18*t,.4+.5*t);}
+          g.save();g.rotate(t*.25);shape(g,[[0,-30],[26,15],[-26,15]],null,p.main+'99');
+          shape(g,[[0,30],[26,-15],[-26,-15]],null,p.edge+'99');g.restore();star(g,0,0,9+9*t,p);
+          g.restore();return;
         }
         g.globalAlpha*=persistent?Math.min(1,t*20,out*8)*.65:windup?.3+.6*t:Math.min(1,out*3);
         if(windup){
-          g.rotate(d.a||0);halo(g,28,-14,35,p,t);crescent(g,36+12*t,p,0,.12);g.restore();return;
+          g.translate(0,-18);g.rotate(d.a||0);
+          ribbon(g,p,40+22*(1-t),-1.6+t*.5,1.8,3+5*t,.65);
+          for(let i=0;i<5;i++){const a=i*2.39996,r=65*(1-t)+12;star(g,Math.cos(a)*r,Math.sin(a)*r*.6,1+2*t,p);}
+          g.restore();return;
         }
         if(follow){
           const seconds=t*duration/1000;
           if(d.phase==='ward'){
-            g.save();g.scale(1,.35);ring(g,49,p,seconds*.25,8);g.restore();
-            for(let i=0;i<3;i++){const a=seconds*.8+i*TAU/3;g.save();g.translate(Math.cos(a)*45,-48+Math.sin(a)*11);g.scale(.65,.8);shield(g,p,.65);g.restore();}
+            // A translucent lotus shell: open at the face, strongest along the silhouette.
+            g.save();g.translate(0,-39);
+            for(let i=0;i<7;i++){const a=i*TAU/7+seconds*.22,x=Math.cos(a)*43,y=Math.sin(a)*17+35;
+              petal(g,p,x,y,Math.cos(a)*.5,66+Math.sin(a)*12,.55+.3*Math.sin(a));}
+            ribbon(g,p,53,seconds*.4,Math.PI*1.45,4,.36);g.restore();
+            star(g,0,-104,8,p,Math.sin(seconds)*.1);
           }else if(d.phase==='form'){
-            // The model owns the painted wings and crest. One ground seal avoids duplicate wings over the face.
-            g.save();g.scale(1,.32);g.globalAlpha*=.6;ring(g,43+rank*3,p,seconds*.16,6);g.restore();
-            for(let i=0;i<6;i++){const h=(seconds*19+i*23)%112;diamond(g,(i%2?1:-1)*(35+i*3),-h,1.5,p);}
+            // The model owns its wings. Ascending silk and a crown frame them without covering the torso.
+            for(const side of [-1,1]){
+              g.save();g.translate(side*49,-38);g.scale(side,1);
+              ribbon(g,p,55,-1.6+Math.sin(seconds*.7)*.15,2.3,9,.85);g.restore();
+              for(let i=0;i<4;i++){const h=(seconds*25+i*31)%136;petal(g,p,side*(38+h*.15),-h,side*.45,11,Math.sin(h/136*Math.PI));}
+            }
+            g.save();g.translate(0,-115);ribbon(g,p,23,Math.PI,Math.PI,4,.4);star(g,0,-9,7,p);g.restore();
           }else if(d.phase==='resonance'){
-            g.translate(0,-44);halo(g,0,0,58,p);ring(g,24+ease*17,p,t*.4,10);
-            for(let i=0;i<5;i++){const a=i*TAU/5-Math.PI/2;diamond(g,Math.cos(a)*33,Math.sin(a)*33,6+ease*2,p);}
+            g.translate(0,-48);halo(g,0,0,52,p,.4);
+            const pts=[];for(let i=0;i<5;i++){const a=i*TAU/5-Math.PI/2+t*.3;pts.push([Math.cos(a)*(28+ease*16),Math.sin(a)*(28+ease*16)]);}
+            line(g,[pts[0],pts[2],pts[4],pts[1],pts[3],pts[0]],p.edge+'80',.8);
+            for(const [x,y]of pts)star(g,x,y,6+Math.sin(t*Math.PI)*3,p);
+            ribbon(g,p,54,-t*2,Math.PI*1.25,7,.7);motes(g,p,t,75,10,20);
           }else{
-            g.translate(0,-35);for(let i=0;i<3;i++)sword(g,(i-1)*35,-ease*18,((i-1)*.3),.55+ease*.12,p);
-            sparks(g,p,ease,70,8);
+            // Summoning: three descending needles assemble into the model's orbiting blades.
+            for(let i=0;i<3;i++){g.save();g.translate((i-1)*37,-45-Math.sin(i+1)*15);g.rotate((i-1)*.3);
+              lance(g,p,65,5);star(g,0,0,9,p);g.restore();}
+            ribbon(g,p,64,t*1.2,Math.PI*1.7,6,.3);motes(g,p,t,80,10,35);
           }
         }else if(d.phase==='astral'){
-          g.translate(0,-22);g.rotate(-.45);sword(g,0,-32+ease*48,Math.PI,.7,p);crescent(g,40,p,t*.4,.2);
+          g.translate(0,-8);g.rotate(-.45);lance(g,p,90*(1-t*.4),7);star(g,0,0,18*out+4,p);motes(g,p,t,47,8);
         }else if(d.phase==='release'){
           if(spec.kind==='verdict'){
-            // The impact appears immediately after server damage; the remaining motion is a short afterglow.
-            g.save();g.globalAlpha*=out;ring(g,radius,p,0,12);g.restore();
-            halo(g,0,-12,radius*.7,p,out);g.save();g.scale(1,.4);ring(g,radius*(.65+.35*ease),p,t*.2,12);g.restore();
-            g.save();g.globalAlpha*=out;sword(g,0,-105+ease*12,Math.PI,1.7+rank*.15,p);g.restore();
-            for(let i=0;i<6+rank*2;i++){const a=i*TAU/(6+rank*2),r=radius*.65;line(g,[[Math.cos(a)*r,Math.sin(a)*r-100*out],[Math.cos(a)*r,Math.sin(a)*r]],i%2?p.main:p.edge,2);}
-            sparks(g,p,ease,radius,14);
+            // Damage lands on release: the lance is already touching the ground at t=0.
+            halo(g,0,-8,radius*.62,p,out*.65);
+            g.save();g.globalAlpha*=out;lance(g,p,240+rank*25,15+rank*3);
+            g.translate(0,-120);line(g,[[-41,-12],[-23,0],[23,0],[41,-12]],p.edge,2);
+            star(g,0,0,13,p);g.restore();
+            star(g,0,-3,36*out+9,p,Math.PI/2);
+            for(let i=0;i<3;i++)ribbon(g,p,radius*(.38+.58*ease)-i*10,i*TAU/3+t*.2,1.8,12*out+2,.42);
+            for(let i=0;i<8;i++){const a=i*TAU/8;petal(g,p,Math.cos(a)*radius*.72*ease,Math.sin(a)*radius*.3*ease,a+Math.PI/2,36*out+12);}
+            motes(g,p,t,radius,22,30);
           }else if(spec.kind==='circle'){
-            ring(g,radius*(.7+.3*ease),p,t*.8,12);
-            for(let i=0;i<4+rank;i++){const a=t*1.4+i*TAU/(4+rank);g.save();g.translate(Math.cos(a)*radius*.65,Math.sin(a)*radius*.65);sword(g,0,0,a+Math.PI/2,.65,p);g.restore();}
-            sparks(g,p,ease,radius,12);
+            for(let i=0;i<3;i++){
+              const a=i*TAU/3+ease*2.5,r=radius*(.65+.3*ease);
+              ribbon(g,p,r,a,1.8,15+rank*3,.66);
+              star(g,Math.cos(a+1.8)*r,Math.sin(a+1.8)*r*.66,7,p,a);
+            }motes(g,p,t,radius,18);
           }else if(spec.kind==='line'||d.wave){
             g.rotate(d.a||0);const width=Math.max(8,d.width||24),x=radius*ease;
-            const trail=g.createLinearGradient(Math.max(0,x-110),0,x+1,0);trail.addColorStop(0,p.main+'00');trail.addColorStop(1,p.main+'90');
-            shape(g,[[Math.max(0,x-110),-width*.5],[x,-width],[x,width],[Math.max(0,x-110),width*.5]],trail);
-            g.translate(x,0);g.scale(.6,1);crescent(g,width*1.2,p,0,.35);line(g,[[-20,0],[4,0]],p.core,2);
+            for(const side of [-1,1]){
+              const trail=g.createLinearGradient(0,0,Math.max(1,x),0);trail.addColorStop(0,p.main+'00');trail.addColorStop(.8,p.main+'65');trail.addColorStop(1,p.core);
+              g.beginPath();g.moveTo(0,side*width*.2);g.bezierCurveTo(x*.4,side*width*.1,x*.8,side*width,x,0);
+              g.bezierCurveTo(x*.72,side*width*.45,x*.3,0,0,side*width*.2);g.fillStyle=trail;g.fill();
+            }
+            g.translate(x,0);ribbon(g,p,width*1.12,-1.5,3,8+rank*2,1);star(g,width*.3,0,10,p,Math.PI/2);
+            motes(g,p,t,width*1.4,8);
           }else{
-            g.rotate(d.a||0);const r=spec.kind==='basic'?70:90;
-            g.translate(0,-14);crescent(g,r,p,(t-.5)*.7,.23+rank*.06);
-            if(spec.kind==='single'){g.save();g.globalAlpha*=.4;crescent(g,r*.78,p,-.25,.16);g.restore();}
-            if((d.combo||0)===0&&spec.kind==='basic')line(g,[[24,-25],[73,22]],p.edge,2);
-            g.translate(r*.65,0);sparks(g,p,ease,33,6+rank*2);
+            g.rotate(d.a||0);const basic=spec.kind==='basic',r=basic?78:103,flip=(d.combo||0)%2?-1:1;
+            g.translate(0,-14);g.scale(1,flip);
+            const a=-1.75+ease*.7;
+            ribbon(g,p,r,a,2.2,basic?12:23,.74);
+            if(basic&&(d.combo||0)===0){g.save();g.globalAlpha*=.45;ribbon(g,p,r*.82,-a-2.2,2.2,8,.74);g.restore();}
+            if(!basic){g.save();g.globalAlpha*=.55;ribbon(g,p,r*.83,a-.35,2.5,9,.74);g.restore();}
+            star(g,Math.cos(a+2.2)*r,Math.sin(a+2.2)*r*.74,basic?7:12,p);
+            g.translate(r*.68,0);motes(g,p,t,basic?35:54,basic?7:13);
           }
         }
         g.restore();

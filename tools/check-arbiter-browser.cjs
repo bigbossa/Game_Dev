@@ -105,16 +105,41 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
           const d={id:G.me.id,skill:sk.id,token:100+i,r:sk.evo.length,f:'${faction}',x:0,y:0,a:0,phase,
             radius:s.radius||s.range||80,width:s.width||24,dur:s.duration||400};
           FX.list=[];
-          if(s.kind==='verdict'){
-            ArbiterLook.play({...d,phase:'windup',dur:1200});g.save();g.scale(.8,.8);FX.list[0].draw(g,.7);g.restore();FX.list=[];
-          }
           ArbiterLook.draw(g,{...G.me,lvl:1,wt:0},{dir:0,frame:1},0,0,.46*.8,1000);
           ArbiterLook.play(d);g.save();g.scale(.8,.8);FX.list.forEach(f=>f.draw(g,.3));g.restore();
           g.restore();g.fillStyle='#dceafa';g.font='17px sans-serif';g.fillText(sk.key+' · '+sk.name,x+20,y+310);
         });}finally{Object.assign(G.me,original);FX.list=[];}return c.toDataURL();
       })()`);
-      fs.writeFileSync(path.join(out,'skill-effects-'+faction+'-v2.png'),Buffer.from(effects.split(',')[1],'base64'));
+      fs.writeFileSync(path.join(out,'skill-effects-'+faction+'-v4.png'),Buffer.from(effects.split(',')[1],'base64'));
     }
+    // Self-contained flipbook from the real renderer: no preview server needed to review it later.
+    const flipbook=await run(`(()=>{
+      const saved={...G.me},frames={dharma:[],adharma:[]},c=document.createElement('canvas');c.width=1140;c.height=960;
+      const g=c.getContext('2d');
+      try{for(const faction of ['dharma','adharma'])for(let frame=0;frame<32;frame++){
+        Object.assign(G.me,{x:0,y:0,faction,dead:false});const ms=frame*62.5;
+        g.fillStyle='#101c2b';g.fillRect(0,0,c.width,c.height);g.fillStyle='#efd8a8';g.font='22px sans-serif';
+        g.fillText('เทวทัณฑ์ · เอฟเฟกต์ใหม่ V4 · '+(faction==='dharma'?'ธรรมะ':'อธรรม'),24,32);
+        C.CLASSES.arbiter.skills.forEach((sk,i)=>{
+          const s=C.arbiterSpec(sk,12,sk.evo.length),x=i%3*380,y=50+Math.floor(i/3)*300;
+          const buff=({resonance:'resonance',astral:'blades',ward:'ward',form:'form'})[s.kind];
+          const wind=s.windup||0,phase=buff||(ms<wind?'windup':'release');
+          const dur=buff?(buff==='ward'||buff==='form'?s.duration:700):phase==='windup'?wind:400;
+          FX.list=[];ArbiterLook.play({id:G.me.id,skill:sk.id,token:i,r:sk.evo.length,f:faction,x:0,y:0,a:0,
+            phase,dur,radius:s.radius||s.range||80,width:s.width||24,combo:1});
+          g.save();g.beginPath();g.rect(x+4,y,372,264);g.clip();g.translate(x+180,y+184);g.scale(.7,.7);
+          const elapsed=buff||phase==='windup'?ms:ms-wind;
+          for(const fx of FX.list.filter(f=>f.layer==='ground'))fx.draw(g,Math.min(1,elapsed/fx.dur));
+          ArbiterLook.draw(g,{...G.me,lvl:1,wt:0},{dir:0,frame:1,atk:phase==='release'&&elapsed<350},0,0,.55,1000+ms);
+          for(const fx of FX.list.filter(f=>f.layer!=='ground'))fx.draw(g,Math.min(1,elapsed/fx.dur));
+          g.restore();g.font='16px sans-serif';g.fillStyle='#dceafa';g.fillText(sk.key+' · '+sk.name,x+20,y+285);
+        });frames[faction].push(c.toDataURL());
+      }}finally{Object.assign(G.me,saved);FX.list=[];}return frames;
+    })()`);
+    fs.writeFileSync(path.join(out,'skill-effects-v4.html'),`<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>เทวทัณฑ์ · เอฟเฟกต์ V4</title>
+      <style>body{margin:0;background:#101c2b;color:#e4eaf2;font:16px system-ui;text-align:center}nav{padding:12px;position:sticky;top:0;background:#101c2bee}button,select{font:inherit;padding:8px 16px;margin:4px;border:1px solid #6c92ac;border-radius:8px;background:#20364a;color:inherit}img{width:min(100%,1140px);display:block;margin:auto}input{width:200px;vertical-align:middle}</style>
+      <nav><select id="faction" aria-label="ฝ่าย"><option value="dharma">ธรรมะ</option><option value="adharma">อธรรม</option></select><button id="play">หยุดภาพ</button><input id="time" aria-label="จังหวะเอฟเฟกต์" type="range" min="0" max="31" value="0"><span>วงเตือน → ออกท่า → แสงจาง</span></nav><img id="view" alt="ตัวอย่างเอฟเฟกต์สกิลเทวทัณฑ์จากตัวเกม">
+      <script>const frames=${JSON.stringify(flipbook)};let playing=true,index=0;const view=document.getElementById('view'),time=document.getElementById('time'),faction=document.getElementById('faction'),play=document.getElementById('play');function show(){view.src=frames[faction.value][index];time.value=index}play.onclick=()=>{playing=!playing;play.textContent=playing?'หยุดภาพ':'เล่นภาพ'};time.oninput=()=>{index=Number(time.value);playing=false;play.textContent='เล่นภาพ';show()};faction.onchange=show;setInterval(()=>{if(playing){index=(index+1)%32;show()}},62.5);show();</script></html>`);
     const samples=await run(`(()=>{
       const c=document.createElement('canvas');c.width=800;c.height=800;const g=c.getContext('2d');let n=0;
       const saved={x:G.me.x,y:G.me.y,dead:G.me.dead};Object.assign(G.me,{x:0,y:0,dead:false});

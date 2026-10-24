@@ -245,7 +245,7 @@
   CLASSES.warrior = {
     id: 'warrior', name: 'นักรบแนวหน้า', weapon: 'ดาบและโล่',
     desc: 'ถือดาบกับโล่ รับความเสียหายและคุ้มกันปาร์ตี้ HP/เกราะสูง โจมตีช้า ไม่มีฮีลตนเอง ยั่วยุได้เฉพาะมอนสเตอร์ · พาสซีฟโล่รับแทน: เพื่อนในปาร์ตี้ใกล้ตัวโดนโจมตี รับดาเมจแทน 30%',
-    hp: 205, hpG: 30, mp: 85, mpG: 10, atk: 12, atkG: 3.2, def: 6, defG: 1.5,
+    hp: 230, hpG: 34, mp: 85, mpG: 10, atk: 14, atkG: 3.7, def: 6, defG: 1.5,
     speed: 195, crit: 0.05, reach: 105,
     skills: [
       { id: 'guardSlash', name: 'ดาบพิทักษ์', key: '1', lvl: 1, mp: 0, cd: 700,
@@ -363,11 +363,11 @@
   CLASSES.arbiter = {
     id: 'arbiter', name: 'เทวทัณฑ์', weapon: 'ดาบสัตย์',
     desc: 'Divine Arbiter · ตีธรรมดาโตตามเลเวล · 8 สกิลกดใช้ เรียน อัปแต้ม และวิวัฒนาการในคัมภีร์วิชา · รัศมีและปีกตาม Lv.30 / 70 / 110',
-    hp: 155, hpG: 24, mp: 100, mpG: 13, atk: 14, atkG: 3.9, def: 3, defG: 1.1,
+    hp: 165, hpG: 26, mp: 100, mpG: 13, atk: 16, atkG: 4.5, def: 3, defG: 1.1,
     speed: 215, crit: .09, reach: 92,
     // Cooldowns below are final milliseconds (added after the legacy cooldown conversion).
     skills: [
-      { id: 'oathBasic', name: 'คมดาบสัตย์', key: '1', lvl: 1, mp: 0, cd: 780, free: true,
+      { id: 'oathBasic', name: 'คมดาบสัตย์', key: '1', lvl: 1, mp: 0, cd: 720, free: true,
         arbiter: { kind: 'basic', range: 105, windup: 180, power: 1 }, evo: [],
         desc: 'โจมตีธรรมดาแยกจาก 8 สกิล: ประชิด 3 จังหวะ 90/100/110% · Lv.30 คลื่นดาบระยะ 260 กว้าง 48 สูงสุด 3 เป้า ดาเมจ 75% · ฝึกอัตโนมัติ +5% ทุก 4 เลเวล สูงสุด 55% · ขั้นอาชีพ +30% ต่อขั้น · ไม่ใช้แต้ม' },
       { id: 'oathSlash', name: 'ฟันคำสัตย์', key: '2', lvl: 1, mp: 12, cd: 4000,
@@ -421,12 +421,12 @@
   const CLASS_IDS = Object.keys(CLASSES);          // snapshot index of a class
   // Fractions, not percentages. Both factions use the same combat rules.
   const CLASS_ROLES = {
-    arbiter: { evasion: .03, evasionG: .02, accuracy: .05, resistance: 0, aspd: 0, attackMove: .65, critPower: 1.6, manaRegen: .022 },
-    warrior: { evasion: 0.02, evasionG: 0.01, accuracy: 0.04, resistance: 0.15, aspd: 0, attackMove: 0.6, critPower: 1.5, manaRegen: 0.022 },
+    arbiter: { evasion: .03, evasionG: .02, accuracy: .05, resistance: 0, aspd: 0, attackMove: .65, critPower: 1.6, manaRegen: .026 },
+    warrior: { evasion: 0.02, evasionG: 0.01, accuracy: 0.04, resistance: 0.15, aspd: 0, attackMove: 0.6, critPower: 1.5, manaRegen: 0.026 },
     spearman: { evasion: 0.01, evasionG: 0.01, accuracy: 0.04, resistance: 0, aspd: 0, attackMove: 0.55, critPower: 1.5, manaRegen: 0.022 },
     dualblade: { evasion: 0.12, evasionG: 0.08, accuracy: 0.03, resistance: 0, aspd: 0.12, attackMove: 0.8, critPower: 1.75, manaRegen: 0.02 },
     archer: { evasion: 0.04, evasionG: 0.04, accuracy: 0.12, resistance: 0, aspd: 0, attackMove: 0.9, critPower: 1.6, manaRegen: 0.02 },
-    taoist: { evasion: 0.02, evasionG: 0.02, accuracy: 0.05, resistance: 0.3, aspd: 0, attackMove: 0.65, critPower: 1.6, manaRegen: 0.025 },
+    taoist: { evasion: 0.02, evasionG: 0.02, accuracy: 0.05, resistance: 0.3, aspd: 0, attackMove: 0.65, critPower: 1.6, manaRegen: 0.03 },
   };
   const roleOf = (cls) => CLASS_ROLES[cls] || CLASS_ROLES.dualblade;
   // Expiry times use the caller's clock (server Date.now / client performance.now).
@@ -542,20 +542,21 @@
   const DMG_FLOOR = 0.15;
   // ทวน: single-target spear skills hit this much harder against monsters only (never PvP) — boss-killer identity
   const SPEAR_PVE_MULT = 1.25;
-  // นักพรต: self-heal passive on mercy/nirvana — the caster's own share of the heal, same spot allies get 1.2
-  const TAOIST_SELF_HEAL_MULT = 1.15;
+  // นักพรต: mercy/nirvana instant healing; party allies retain the stronger share.
+  const TAOIST_SELF_HEAL_MULT = 1.25;
+  const TAOIST_ALLY_HEAL_MULT = 1.35;
   // นักพรต farming alone (no party member within PARTY_RANGE): hits monsters harder and takes less from them.
   // Monsters only — never PvP — and it switches off the moment a party member is near (the healer role stays).
-  const TAOIST_SOLO = { dealt: 1.4, taken: 0.85 };
+  const TAOIST_SOLO = { dealt: 1.65, taken: 0.85 };
   // นักพรต passive from น้ำทิพย์ชโลมชีวา (skill 3, once learned): every `everyMs` the caster and party members within
   // `range` heal a share of their own max HP: `min` at skill level 1 up to `max` at SKILL_MAX, +`evo` once evolved.
   // A player on the PvP map or with field PvP on gets `pvp` of it. Several นักพรต do not stack on one player.
   const TAOIST_MERCY_AURA = { everyMs: 5000, min: 0.02, max: 0.06, evo: 0.01, pvp: 0.5, range: 480 };
   // นักรบแนวหน้า farming alone (no party member within PARTY_RANGE): hits monsters harder. Monsters only, never PvP.
-  const WARRIOR_SOLO = { dealt: 1.4 };
+  const WARRIOR_SOLO = { dealt: 1.6 };
   // นักรบแนวหน้า: frontline skills 2–9 (not the basic attack ดาบพิทักษ์) hit monsters this much harder, solo or in a
   // party; stacks with WARRIOR_SOLO. Monsters only, never PvP.
-  const WARRIOR_PVE_SKILL = 1.2;
+  const WARRIOR_PVE_SKILL = 1.35;
   // นักรบแนวหน้า passive โล่หนาม from ตั้งโล่เหล็ก (skill 3, once learned): a blow taken sends `base` of its damage back
   // to the attacker, `guard` while ตั้งโล่เหล็ก is up; `pvp` of that against players; at most `capAtk` × the warrior's
   // ATK per blow. DoTs and reflected damage are never reflected; the reflection skips dodge, crits and damage bonuses.
@@ -1703,7 +1704,7 @@
     SKILL_MAX, SKILL_STEP, SKILL_LVL_GAP, EVO_NEED, EVO_COST, BAR_KEYS, SKILL_PATHS, skillPtsTotal, skillCap, basicOf, skillPtsFree,
     evoBlock, autoSkills, cleanSkills, skillRankOf, skillPower, skillInfoAt, SKILL_VER, BUFF_SKILLS, MOVE_SKILLS, meteorPoints, blastPoints,
     STAT_PTS, STAT_POINTS, PT_KEYS, statPtsTotal, statPtsFree, cleanAlloc, basicCd, BASIC_CD_MUL, STAT_GUIDE_KEY, STAT_GUIDES, statGuide, guideTarget, guidePoints, statLimits, CRIT_CAP, skillMp, MP_COST_PCT, MP_COST_CAP, SKILL_CD_MUL,
-    enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_PVE_SKILL, WARRIOR_THORNS, WARRIOR_COVER, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
+    enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_ALLY_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_PVE_SKILL, WARRIOR_THORNS, WARRIOR_COVER, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
     generateMap, solidAt, canStand, baseAt, areaName, spawnPoint, mulberry32, makeNoise,
   };
 });
