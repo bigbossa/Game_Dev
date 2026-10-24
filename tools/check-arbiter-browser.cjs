@@ -80,6 +80,72 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       }return c.toDataURL();
     })()`);
     fs.writeFileSync(path.join(out,'directions.png'),Buffer.from(directions.split(',')[1],'base64'));
+    const icons=await run(`(()=>{
+      const c=document.createElement('canvas');c.width=1360;c.height=390;const g=c.getContext('2d');g.fillStyle='#0b1422';g.fillRect(0,0,c.width,c.height);
+      g.font='bold 24px sans-serif';g.fillStyle='#efca78';g.fillText('เทวทัณฑ์ · ไอคอนสกิลใหม่ / ธรรมะ & อธรรม',24,34);
+      const seen=new Set();
+      for(const [row,faction] of ['dharma','adharma'].entries())C.CLASSES.arbiter.skills.forEach((sk,i)=>{
+        const im=ArbiterLook.icon(sk.id,faction),x=24+i*148,y=58+row*162;seen.add(im.toDataURL());g.drawImage(im,x,y);
+        if(im===ArbiterLook.icon(sk.id,faction))throw Error('Shared DOM canvas');
+        g.font='12px sans-serif';g.fillStyle='#d7e4f1';g.fillText(sk.key+' · '+sk.name,x,y+133);
+      });if(seen.size!==18)throw Error('Icons must be visually distinct');return c.toDataURL();
+    })()`);
+    fs.writeFileSync(path.join(out,'skill-icons-v2.png'),Buffer.from(icons.split(',')[1],'base64'));
+    for(const faction of ['dharma','adharma']){
+      const effects=await run(`(()=>{
+        const c=document.createElement('canvas');c.width=1200;c.height=1090;const g=c.getContext('2d');g.fillStyle='#101c2b';g.fillRect(0,0,c.width,c.height);
+        g.font='bold 24px sans-serif';g.fillStyle='#efca78';g.fillText('เทวทัณฑ์ · เอฟเฟกต์สกิล · ${faction}',24,35);
+        const original={x:G.me.x,y:G.me.y,faction:G.me.faction};Object.assign(G.me,{x:0,y:0,faction:'${faction}'});
+        try{C.CLASSES.arbiter.skills.forEach((sk,i)=>{
+          const x=i%3*400,y=55+Math.floor(i/3)*340,s=C.arbiterSpec(sk,12,sk.evo.length);
+          g.save();g.beginPath();g.rect(x+4,y,392,302);g.clip();g.translate(x+200,y+162);
+          g.strokeStyle='#273b50';g.lineWidth=1;g.beginPath();g.ellipse(0,0,130,45,0,0,Math.PI*2);g.stroke();
+          const phase=({resonance:'resonance',astral:'blades',ward:'ward',form:'form'})[s.kind]||'release';
+          const d={id:G.me.id,skill:sk.id,token:100+i,r:sk.evo.length,f:'${faction}',x:0,y:0,a:0,phase,
+            radius:s.radius||s.range||80,width:s.width||24,dur:s.duration||400};
+          FX.list=[];
+          if(s.kind==='verdict'){
+            ArbiterLook.play({...d,phase:'windup',dur:1200});g.save();g.scale(.8,.8);FX.list[0].draw(g,.7);g.restore();FX.list=[];
+          }
+          ArbiterLook.draw(g,{...G.me,lvl:1,wt:0},{dir:0,frame:1},0,0,.46*.8,1000);
+          ArbiterLook.play(d);g.save();g.scale(.8,.8);FX.list.forEach(f=>f.draw(g,.3));g.restore();
+          g.restore();g.fillStyle='#dceafa';g.font='17px sans-serif';g.fillText(sk.key+' · '+sk.name,x+20,y+310);
+        });}finally{Object.assign(G.me,original);FX.list=[];}return c.toDataURL();
+      })()`);
+      fs.writeFileSync(path.join(out,'skill-effects-'+faction+'-v2.png'),Buffer.from(effects.split(',')[1],'base64'));
+    }
+    const samples=await run(`(()=>{
+      const c=document.createElement('canvas');c.width=800;c.height=800;const g=c.getContext('2d');let n=0;
+      const saved={x:G.me.x,y:G.me.y,dead:G.me.dead};Object.assign(G.me,{x:0,y:0,dead:false});
+      try{for(const faction of ['dharma','adharma'])for(const sk of C.CLASSES.arbiter.skills)for(let rank=0;rank<=sk.evo.length;rank++){
+        const s=C.arbiterSpec(sk,12,rank),phase=({resonance:'resonance',astral:'blades',ward:'ward',form:'form'})[s.kind]||'release';
+        for(const mode of [phase,'windup',...(s.kind==='basic'?['wave','astral']:[])]){
+          FX.list=[];ArbiterLook.play({id:G.me.id,skill:sk.id,token:1,r:rank,f:faction,x:0,y:0,a:.4,
+            phase:mode==='wave'?'release':mode,wave:mode==='wave',radius:s.radius||s.range||80,width:s.width||24,dur:s.duration||400});
+          for(const t of [0,.15,.5,.85,1])for(const effect of FX.list){
+            g.setTransform(1,0,0,1,400,400);g.globalAlpha=.73;effect.draw(g,t);n++;
+            const m=g.getTransform();if(m.a!==1||m.b!==0||m.c!==0||m.d!==1||m.e!==400||m.f!==400||Math.abs(g.globalAlpha-.73)>.001)throw Error('Canvas state leak');
+          }
+        }
+      }
+      FX.list=[];const warning={id:G.me.id,skill:'finalVerdict',token:999,x:0,y:0,radius:170,phase:'windup',dur:1200};
+      ArbiterLook.play(warning);if(FX.list[0].layer!=='ground')throw Error('Warning layer');
+      for(let i=0;i<150;i++)ArbiterLook.play({id:G.me.id,skill:'oathSlash',token:i,x:0,y:0,phase:'release'});
+      if(FX.list.filter(f=>!f.warning).length>96||!FX.list.some(f=>f.warning))throw Error('FX budget or warning lost');
+      ArbiterLook.play({...warning,phase:'cancel'});if(FX.list.some(f=>f.warning))throw Error('Warning not cancelled');
+      FX.list=[];ArbiterLook.play({id:G.me.id,skill:'oathAegis',token:200,x:0,y:0,phase:'ward',dur:5000});
+      const effect=FX.list[0];G.me.dead=true;effect.draw(g,.2);G.me.dead=false;g.clearRect(-400,-400,800,800);effect.draw(g,.3);
+      if(g.getImageData(0,0,800,800).data.some(v=>v))throw Error('Buff revived after death');
+      }finally{Object.assign(G.me,saved);FX.list=[];}return n;
+    })()`);
+    assert.equal(samples,380);console.log('PASS: '+samples+' FX samples, canvas state, icon uniqueness, FX budget, warning cancellation and buff death cleanup.');
+    const rooted=await run(`(()=>{
+      const sent=[],emit=G.socket.emit,control=G.control;G.socket.emit=(event,d)=>{if(event==='skill')sent.push(d.id);};
+      G.control={rootUntil:performance.now()+10000};HUD.cds={};G.spearWait={};
+      try{for(const sk of C.CLASSES.arbiter.skills)G.useSlot(sk.id,{a:0,tid:'test',tx:G.me.x,ty:G.me.y});}
+      finally{G.socket.emit=emit;G.control=control;G.spearWait={};}return sent;
+    })()`);
+    assert.deepEqual(rooted,['oathResonance','astralBlades','oathAegis','ascendantForm']);
     await pause(150);assert.equal(errors.length,0,JSON.stringify(errors));
     console.log('PASS: browser boot, class selection, 1,008 directional/level/pose renders, 18 skill icons, live FX and eight active skill evolution cards. '+out);
   }finally{if(ws)ws.close();preview.kill();}

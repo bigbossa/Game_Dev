@@ -87,51 +87,8 @@
       portraits[faction]=c.toDataURL();
     }return portraits[faction];
   };
-  A.icon = (id,faction) => {
-    const c=document.createElement('canvas');c.width=c.height=112;const g=c.getContext('2d'),p=palette(faction);g.scale(1.75,1.75);
-    const bg=g.createRadialGradient(32,28,3,32,32,45);bg.addColorStop(0,p.cloth);bg.addColorStop(1,'#0c101c');
-    g.fillStyle=bg;g.fillRect(0,0,64,64);g.strokeStyle=p.edge;g.lineWidth=2;g.strokeRect(2,2,60,60);
-    const i=C.CLASSES.arbiter.skills.findIndex(s=>s.id===id);
-    if(i===2 || i===4 || i===6 || i===8){g.strokeStyle=p.glow;g.beginPath();g.arc(32,32,24,0,TAU);g.stroke();}
-    if(i===5)poly(g,[[13,12],[51,12],[47,42],[32,55],[17,42]],p.plate,p.edge);
-    const n=i===4?3:i===6?4:1;
-    for(let j=0;j<n;j++)blade(g,32+(j-(n-1)/2)*12,i===8?16:43,i===8?Math.PI:i===3?.7:i===1?-.6:0,.56,p);
-    if(i===2)for(let j=0;j<5;j++){const a=j*TAU/5-Math.PI/2;poly(g,[[0,-4],[3,0],[0,4],[-3,0]].map(([x,y])=>[32+Math.cos(a)*23+x,32+Math.sin(a)*23+y]),p.light,p.edge,1);}
-    if(i===7){g.strokeStyle=p.glow;g.beginPath();g.arc(32,15,12,0,TAU);g.stroke();}
-    return c;
-  };
   A.weaponIcon = (g,it,faction,size) => {
     const p=palette(faction);g.save();g.scale(size/64,size/64);
     blade(g,23,47,.6,.68+Math.min(it.tier||0,10)*.014,p);g.restore();
-  };
-  A.play = d => {
-    const key=d.id+':'+d.token;
-    if(d.phase==='cancel' || d.phase==='release')FX.list=FX.list.filter(f=>f.arbiterToken!==key);
-    if(d.phase==='cancel')return;
-    const p=palette(d.f), spec=C.ALL_SKILLS[d.skill]?.arbiter;
-    const warning=d.phase==='windup'&&spec?.kind==='verdict';
-    const dur=d.dur||400;
-    FX.list.push({t0:performance.now(),dur,layer:warning?'ground':'top',arbiterEffect:true,arbiterToken:warning?key:null,
-      draw(g,progress){
-        g.save();g.translate(d.x,d.y);g.strokeStyle=p.glow;g.fillStyle=p.cloth;g.lineWidth=3;
-        g.globalAlpha=warning?.35+progress*.4:Math.max(0,1-progress);
-        if(warning){
-          // World-space radius matches the server; targets whose collision radius overlaps can be hit.
-          g.beginPath();g.arc(0,0,d.radius,0,TAU);g.fill();g.stroke();
-          g.strokeStyle=p.edge;g.beginPath();g.arc(0,0,d.radius-7,-Math.PI/2,-Math.PI/2+TAU*progress);g.stroke();
-          g.fillStyle=p.light;g.font='bold 16px sans-serif';g.textAlign='center';g.fillText('มหาพิพากษา',0,-10);
-        } else if(d.phase==='astral')blade(g,0,-20+progress*30,Math.PI*.2,.8,p);
-        else if(['form','ward','resonance','blades'].includes(d.phase)){
-          const e=window.G?.ents.get(d.id);if(e){g.translate(e.x-d.x,e.y-d.y);}
-          g.beginPath();g.ellipse(0,-55,45,70,0,0,TAU);g.stroke();
-        } else if(d.phase==='release'){
-          if(spec?.kind==='line'||d.wave){g.rotate(d.a);g.fillStyle=p.glow;g.fillRect(d.radius*progress,-d.width,18,d.width*2);}
-          else if(spec?.kind==='verdict'||spec?.kind==='circle'){
-            g.beginPath();g.arc(0,0,d.radius*(.75+progress*.25),0,TAU);g.stroke();
-            for(let i=0;i<8;i++)blade(g,Math.cos(i*TAU/8)*d.radius*.6,Math.sin(i*TAU/8)*d.radius*.6,Math.PI,1,p);
-          }else{g.rotate(d.a);g.beginPath();g.arc(0,-25,75,-.9+progress,1.1+progress);g.stroke();}
-        }
-        g.restore();
-      }});
   };
 })();

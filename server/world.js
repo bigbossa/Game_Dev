@@ -1229,7 +1229,7 @@ class World {
     const token = p.arbiterSeq = (p.arbiterSeq || 0) + 1;
     const valid = () => this.alive(p) && p.mapId === mapId && (p.arbiterTravel || 0) === travel &&
       (p.controlEpoch || 0) === epoch && Date.now() >= (p.stunUntil || 0) && Date.now() >= (p.rootUntil || 0);
-    const fx = data => this.fx(p, { t: 'arbiter', id: p.id, skill: sk.id, token, mapId, a: plan.a, ...data });
+    const fx = data => this.fx(p, { t: 'arbiter', id: p.id, skill: sk.id, r: C.skillRankOf(p.skl, sk.id), token, mapId, a: plan.a, ...data });
     if (plan.kind === 'ward') {
       this.addBuff(p, sk.id, plan.duration, { arbiterGuard: plan.guard,
         accuracy: p.faction === 'dharma' ? .03 : 0, evasion: p.faction === 'adharma' ? .03 : 0 }, plan.guard);

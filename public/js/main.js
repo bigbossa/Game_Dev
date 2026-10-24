@@ -1187,7 +1187,7 @@
     const sk = SKILL[id];
     if (!sk || sk.passive || sk.cls !== (G.cls || 'dualblade') || AscendedSkills.active(me)) return;
     if (performance.now() < (G.control?.stunUntil || 0)) return;
-    if (performance.now() < (G.control?.rootUntil || 0) && (sk.spear || sk.ritual || (sk.arbiter && !['ward','form'].includes(sk.arbiter.kind)) || C.MOVE_SKILLS.includes(id))) return;
+    if (performance.now() < (G.control?.rootUntil || 0) && (sk.spear || sk.ritual || (sk.arbiter && !C.BUFF_SKILLS.includes(id)) || C.MOVE_SKILLS.includes(id))) return;
     if (st.lvl < sk.lvl) { if (id !== basicId()) HUD.toast(`ต้องการเลเวล ${sk.lvl}`); return; }
     if (G.skl && !G.skl.sk[id]) { HUD.toast(`ยังไม่ได้เรียน ${sk.name} — กด K เพื่อใช้แต้มสกิล`); return; }
     if (HUD.cdLeft(id) > 0 || (id !== basicId() && HUD.cdLeft('gcd') > 0)) return;
@@ -1225,7 +1225,7 @@
   }
   // same distance test as the server's slashTarget, a little short of it for movement between updates
   const spearGap = (t) => { const r = radiusOf(t); return Math.hypot(t.x - G.me.x, t.y - r * 0.4 - (G.me.y - 18)) - r; };
-  const inSpearReach = (t, sk) => spearGap(t) <= (sk.id === 'oathBasic' ? C.basicReach(G.cls, G.stats?.lvl || 1) + 12 : (sk.spear || sk.frontline || sk.arbiter).range) - 12;
+  const inSpearReach = (t, sk) => spearGap(t) <= (sk.id === 'oathBasic' ? C.basicReach(G.cls, G.stats?.lvl || 1) + 12 : (sk.spear || sk.frontline || C.arbiterSpec(sk,G.skl?.sk[sk.id],C.skillRankOf(G.skl,sk.id))).range) - 12;
   const aimAtFoe = (t) => ({ a: Math.atan2(t.y - radiusOf(t) * 0.4 - (G.me.y - 18), t.x - G.me.x), tx: t.x, ty: t.y, tid: t.id });
 
   // ------------------------------------------------------------ simulation
