@@ -780,7 +780,7 @@
     else if (k === 'u') HUD.togglePk();
     else if (k === 'l') HUD.toggleChat();
     else if (k === 'v') SET.toggle();
-    else if (k === 'escape') { SET.toggle(false); INV.closeAll(); GM.toggle(false); WARP.toggle(false); BOOK.toggle(false); STATS.toggle(false); GM.users(false); BOT.toggle(false); WMAP.toggle(false); RANK.toggle(false); FUND.toggle(false); PARTY.closeMenu(); setTarget(null); }
+    else if (k === 'escape') { SET.toggle(false); NOTES.toggle(false); INV.closeAll(); GM.toggle(false); WARP.toggle(false); BOOK.toggle(false); STATS.toggle(false); GM.users(false); BOT.toggle(false); WMAP.toggle(false); RANK.toggle(false); FUND.toggle(false); PARTY.closeMenu(); setTarget(null); }
   });
   addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   addEventListener('blur', () => { keys.clear(); mouse.down = false; joyEnd({ pointerId: joy.id }); });
@@ -1837,6 +1837,40 @@
     ctx.restore();
   }
 
+  // Names are static artwork between state changes. Rasterise once at the current
+  // zoom/DPI tier, then reuse it; bound both canvas memory and entry count.
+  const labelCache = new Map(), LABEL_BYTES = 4 * 1024 * 1024;
+  let labelBytes = 0;
+  document.fonts?.addEventListener('loadingdone', () => { labelCache.clear(); labelBytes = 0; });
+  function drawLabel(text, x, y, font, color, lineWidth = 3) {
+    const scale = Math.max(1, Math.ceil(zoom * DPR * 2) / 2);
+    const key = JSON.stringify([text, font, color, lineWidth, scale]);
+    let stamp = labelCache.get(key);
+    if (!stamp) {
+      ctx.font = font;
+      const m = ctx.measureText(text), pad = lineWidth + 2;
+      const half = Math.max(m.width / 2, m.actualBoundingBoxLeft || 0, m.actualBoundingBoxRight || 0);
+      const above = Math.ceil(m.actualBoundingBoxAscent || 20) + pad;
+      const below = Math.ceil(m.actualBoundingBoxDescent || 6) + pad;
+      const cv = document.createElement('canvas');
+      cv.width = Math.ceil((half * 2 + pad * 2) * scale); cv.height = Math.ceil((above + below) * scale);
+      const g = cv.getContext('2d'); g.scale(scale, scale);
+      g.font = font; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+      g.lineWidth = lineWidth; g.strokeStyle = 'rgba(0,0,0,0.85)'; g.fillStyle = color;
+      g.strokeText(text, cv.width / scale / 2, above); g.fillText(text, cv.width / scale / 2, above);
+      stamp = { cv, w: cv.width / scale, h: cv.height / scale, above, bytes: cv.width * cv.height * 4 };
+      if (stamp.bytes <= LABEL_BYTES) {
+        while (labelCache.size && (labelCache.size >= 256 || labelBytes + stamp.bytes > LABEL_BYTES)) {
+          const oldest = labelCache.keys().next().value; labelBytes -= labelCache.get(oldest).bytes; labelCache.delete(oldest);
+        }
+        labelCache.set(key, stamp); labelBytes += stamp.bytes;
+      }
+    } else { labelCache.delete(key); labelCache.set(key, stamp); }
+    const smoothing = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(stamp.cv, x - stamp.w / 2, y - stamp.above, stamp.w, stamp.h);
+    ctx.imageSmoothingEnabled = smoothing;
+  }
+
   function drawTags(e) {
     if (e.dying && e.kind === 'm') return;
     const isMe = e === G.me;
@@ -1846,21 +1880,15 @@
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     if (e.kind === 'p') {
       const col = C.FACTIONS[e.faction].color;
-      ctx.font = '600 13px Kanit, sans-serif';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
       // ⚔ = PvP switched on · evil players: red name with their evil points after it
       const label = `${e.pk ? '⚔ ' : ''}Lv.${e.lvl} ${e.name}${e.ev < 0 ? ` (${e.ev})` : ''}`;
-      ctx.strokeText(label, x, y - 6);
-      ctx.fillStyle = e.ev < 0 ? '#ff3b3b' : isMe ? '#ffffff' : col; ctx.fillText(label, x, y - 6);
+      drawLabel(label, x, y - 6, '600 13px Kanit, sans-serif', e.ev < 0 ? '#ff3b3b' : isMe ? '#ffffff' : col);
       if (!isMe && !e.dead) hpBar(x, y - 2, 54, e.hp / e.mhp, isFoe(e) ? '#e8403a' : '#4ad06a');
     } else {
       const showBar = e.hp < e.mhp || e.aggro || e.boss;
-      ctx.font = e.boss ? '800 16px Kanit, sans-serif' : '400 12px Kanit, sans-serif';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
       const label = `Lv.${e.lvl} ${e.name}`;
-      ctx.strokeText(label, e.x, y - (showBar ? 6 : 0));
-      ctx.fillStyle = e.boss ? '#ff7a5a' : e.aggro ? '#ffb070' : '#f3efe6';
-      ctx.fillText(label, e.x, y - (showBar ? 6 : 0));
+      drawLabel(label, e.x, y - (showBar ? 6 : 0), e.boss ? '800 16px Kanit, sans-serif' : '400 12px Kanit, sans-serif',
+        e.boss ? '#ff7a5a' : e.aggro ? '#ffb070' : '#f3efe6');
       if (showBar) hpBar(e.x, y - 2, e.boss ? 140 : 46, e.hp / e.mhp, '#e8403a');
     }
   }
@@ -1888,6 +1916,8 @@
     const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
     const view = { w: VW / zoom, h: VH / zoom };
     view.x = cam.x - view.w / 2; view.y = cam.y - CY / zoom;
+    const fxPad = 16 + Math.abs(shake) / zoom;
+    const fxView = { x: view.x - fxPad, y: view.y - fxPad, w: view.w + fxPad * 2, h: view.h + fxPad * 2 };
 
     ctx.save();
     ctx.translate(VW / 2 + sx, CY + sy);
@@ -1895,7 +1925,7 @@
     ctx.translate(-cam.x, -cam.y);
 
     drawGround(view, t);
-    FX.draw(ctx, 'ground');
+    FX.draw(ctx, 'ground', fxView);
     drawTargetRings(t);
     BOT.drawWorld(ctx, t);
 
@@ -1936,17 +1966,16 @@
     }
     ctx.restore();
 
-    FX.draw(ctx, 'top');
+    FX.draw(ctx, 'top', fxView);
     for (const d of list) if (d.kind === 'p' || d.kind === 'm') drawTags(d);
     // labels on interactive props (blacksmith, teleport stone, gates)
     ctx.textAlign = 'center';
     for (const d of list) {
       if (d.kind !== 'prop' || !d.sp.label) continue;
       const y = d.y + d.sp.labelY, text = `${d.sp.icon || '⚒'} ${d.sp.label}`;
-      ctx.font = '600 14px Kanit, sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-      ctx.strokeText(text, d.x, y); ctx.fillStyle = d.sp.gate ? '#9fe8ff' : d.sp.icon ? '#bff0ff' : '#ffd98a'; ctx.fillText(text, d.x, y);
+      drawLabel(text, d.x, y, '600 14px Kanit, sans-serif', d.sp.gate ? '#9fe8ff' : d.sp.icon ? '#bff0ff' : '#ffd98a', 4);
     }
-    FX.drawTexts(ctx);
+    FX.drawTexts(ctx, fxView);
 
     // ground-aimed skills: where they land (max range, area radius) while their key is held
     const heldKey = me && !me.dead && G.skl && C.BAR_KEYS.find((k) => keys.has(k) && AIM_HINT[G.skl.bar[C.BAR_KEYS.indexOf(k)]]);

@@ -487,10 +487,16 @@
   HUD.setCd = function (id, ms) { HUD.cds[id] = { end: performance.now() + ms, dur: ms }; };
   HUD.cdLeft = function (id) { const c = HUD.cds[id]; return c ? Math.max(0, c.end - performance.now()) : 0; };
 
+  const bars = new Map();
   const setBar = (sel, v, max, label) => {
-    const b = document.querySelector(sel);
-    b.querySelector('.fill').style.width = `${Math.max(0, Math.min(1, v / max)) * 100}%`;
-    b.querySelector('span').textContent = label;
+    let b = bars.get(sel);
+    if (!b || !b.root.isConnected) {
+      const root = document.querySelector(sel);
+      b = { root, fill: root.querySelector('.fill'), text: root.querySelector('span') }; bars.set(sel, b);
+    }
+    const width = `${max > 0 ? Math.max(0, Math.min(1, v / max)) * 100 : 0}%`;
+    if (b.width !== width) { b.fill.style.width = width; b.width = width; }
+    if (b.text.textContent !== label) b.text.textContent = label;
   };
   // running buffs (st.bf = [skill id, ms left, duration]) under the player frame: the skill icon, seconds left and
   // a dark sweep for the time already used
@@ -512,7 +518,8 @@
       }
       const txt = String(Math.ceil(left / 1000));
       if (b.lastChild.textContent !== txt) b.lastChild.textContent = txt;
-      b.style.setProperty('--used', `${Math.round((1 - left / dur) * 100)}%`);
+      const used = `${Math.round((1 - left / dur) * 100)}%`;
+      if (b.style.getPropertyValue('--used') !== used) b.style.setProperty('--used', used);
     }
     for (const id of Object.keys(buffEls)) if (!seen.has(id)) { buffEls[id].remove(); delete buffEls[id]; }
   }
@@ -563,8 +570,10 @@
     setBar('#playerFrame .hp', st.hp, st.mhp, `${st.hp} / ${st.mhp}`);
     setBar('#playerFrame .mp', st.mp, st.mmp, `${st.mp} / ${st.mmp}`);
     setBar('#playerFrame .xp', st.exp, st.need, st.lvl >= C.MAX_LVL ? 'MAX' : `${((st.exp / st.need) * 100).toFixed(2)}%`);
-    $('playerFrame').title = `EXP ${st.exp} / ${st.need} · ATK ${st.atk} · DEF ${st.def} · สังหาร ${st.k} · ตาย ${st.d}`;
-    $('pfLvl').textContent = st.lvl;
+    const frame = $('playerFrame'), title = `EXP ${st.exp} / ${st.need} · ATK ${st.atk} · DEF ${st.def} · สังหาร ${st.k} · ตาย ${st.d}`;
+    if (frame.title !== title) frame.title = title;
+    const level = $('pfLvl'), levelText = String(st.lvl);
+    if (level.textContent !== levelText) level.textContent = levelText;
     const now = performance.now();
     const g = HUD.cds.gcd, gLeft = g ? Math.max(0, g.end - now) : 0;
     for (const [id, s] of Object.entries(HUD.slots)) {
@@ -805,10 +814,12 @@
 
   HUD.target = function (e) {
     const tf = $('targetFrame');
-    if (!e) { tf.classList.add('hidden'); return; }
-    tf.classList.remove('hidden');
+    if (!e) { if (!tf.classList.contains('hidden')) tf.classList.add('hidden'); return; }
+    if (tf.classList.contains('hidden')) tf.classList.remove('hidden');
     const col = e.kind === 'p' ? C.FACTIONS[e.faction].color : e.boss ? '#ff6a4a' : '#f3efe6';
-    $('tfName').innerHTML = `<span style="color:${col}">${esc(e.name)}</span> <small>Lv.${e.lvl}</small>`;
+    const name = $('tfName'), markup = `<span style="color:${col}">${esc(e.name)}</span> <small>Lv.${e.lvl}</small>`;
+    // Keep the existing DOM nodes until the displayed identity actually changes.
+    if (name._targetMarkup !== markup) { name.innerHTML = markup; name._targetMarkup = markup; }
     setBar('#targetFrame .thp', e.hp, e.mhp, `${e.hp} / ${e.mhp}`);
   };
 

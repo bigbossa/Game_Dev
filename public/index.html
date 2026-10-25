@@ -26,6 +26,7 @@
     <div class="login-panel">
       <h1 class="title"><span class="t-d">ธรรมะ</span><span class="t-x">⚔</span><span class="t-a">อธรรม</span></h1>
       <p class="subtitle">ศึกสองขั้วแห่งยุทธภพ · 2D MMORPG</p>
+      <button type="button" id="patchLink" class="patch-link hidden"><span>📢 แพทช์โน้ต</span><small id="patchWhen"></small></button>
 
       <!-- step 1: log in / sign up -->
       <form id="authStep" class="auth-step" autocomplete="on" onsubmit="return false">
@@ -107,6 +108,13 @@
       </div>
       <div id="loginMsg"></div>
     </div>
+  </div>
+
+  <!-- แพทช์โน้ต (patchnotes.js): outside the HUD so the login screen can open it too -->
+  <div id="patchPanel" class="panel hidden" role="dialog" aria-label="แพทช์โน้ต">
+    <div class="panel-head"><span>📢 แพทช์โน้ต</span><button class="close" type="button" aria-label="ปิด">✕</button></div>
+    <div class="pn-tz"><span>อัปเดตทั้งหมดของเกม ใหม่สุดอยู่บนสุด · เวลาประเทศไทย · <b id="patchCount"></b></span><button type="button" id="patchAll" class="pn-all">เปิดทั้งหมด</button></div>
+    <div id="patchList"></div>
   </div>
 
   <!-- ===================== HUD ===================== -->
@@ -199,6 +207,7 @@
     <button id="rankBtn" type="button" title="อันดับผู้เล่น (R)" data-label="อันดับ">🏆</button>
     <button id="fundBtn" type="button" title="ระดมทุน (G)" data-label="ระดมทุน">🏮</button>
     <button id="setBtn" type="button" title="ตั้งค่า · เสียง (V)" data-label="ตั้งค่า">⚙</button>
+    <button id="newsBtn" type="button" title="แพทช์โน้ต · อัปเดตล่าสุด" data-label="แพทช์โน้ต">📢</button>
     <div id="botStatus" class="hidden"></div>
     <div id="followStatus" class="hidden"></div>
     <button id="chatBtn" type="button" title="แชท" data-label="แชท">💬</button>
@@ -565,6 +574,7 @@
   <script src="js/skill-performance.js"></script>
   <script src="js/main.js"></script>
   <script src="js/sound.js"></script>
+  <script src="js/patchnotes.js"></script>
   <script src="js/touch-menu.js"></script>
 </body>
 </html>

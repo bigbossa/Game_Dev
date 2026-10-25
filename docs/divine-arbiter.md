@@ -190,3 +190,5 @@ Lv.30 ได้ตรารัศมีแบบเส้นโค้งเป�
 ไฟล์หลัก: `public/js/arbiter-look.js`, `public/js/arbiter-skill-art.js`, `public/js/ascended-skills.js` ทดสอบกฎต่อสู้ด้วย `node tools/check-arbiter.cjs` (22 กลุ่ม) และ `node tools/check-ascended.cjs` (120 combat cases) ทดสอบเบราว์เซอร์ด้วย `node tools/check-arbiter-browser.cjs <CDP-port>`: 380 ตัวอย่างเอฟเฟกต์, ท่า/ทิศ/ระดับ 1,008 ตัวอย่าง, 22 ไอคอน และดาบตก 14 กรณีทั้งสองฝ่าย รวมการยกเลิก ตาย และท่าต่อจากไม้ตาย
 
 ภาพจาก renderer อยู่ใน `artifacts/arbiter/skill-effects-dharma-v5.png`, `skill-effects-adharma-v5.png`, `ascended-arts.png`; เปิด `artifacts/arbiter/skill-effects-v5.html` เพื่อเล่น/หยุดและเลื่อนดูจังหวะโดยไม่ต้องเปิดเซิร์ฟเวอร์
+
+นำไฟล์ JavaScript ทั้ง 3 เข้าเกม Docker ที่พอร์ต 3900 แล้ว ตรวจ SHA-256 ผ่าน HTTP ตรงกับไฟล์ที่ทดสอบ บันทึกผลใน `artifacts/arbiter/deployed-v5.json` โหลดหน้าเกมใหม่เพื่อใช้เอฟเฟกต์ชุดนี้

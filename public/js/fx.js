@@ -1489,22 +1489,29 @@
 
   // ---------------------------------------------------------------- update/draw
   FX.update = function (dt) {
+    let alive = 0;
     for (const p of FX.parts) {
       p.life += dt * 1000;
       const d = Math.exp(-p.drag * dt);
       p.vx *= d; p.vy = p.vy * d + p.grav * dt;
       p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.life < p.max) FX.parts[alive++] = p;
     }
-    FX.parts = FX.parts.filter((p) => p.life < p.max);
-    for (const t of FX.texts) { t.life += dt * 1000; t.y += t.vy * dt; t.vy *= Math.exp(-1.5 * dt); }
-    FX.texts = FX.texts.filter((t) => t.life < t.max);
+    FX.parts.length = alive;
+    alive = 0;
+    const textDrag = Math.exp(-1.5 * dt);
+    for (const t of FX.texts) {
+      t.life += dt * 1000; t.y += t.vy * dt; t.vy *= textDrag;
+      if (t.life < t.max) FX.texts[alive++] = t;
+    }
+    FX.texts.length = alive;
     const n = now();
     // cues: one-shot callbacks timed with an effect (particles, shake, flash), run here instead of from timers or draws
     for (const f of FX.list) if (f.cue && !f.cued && n >= f.t0) { f.cued = true; f.cue(); }
     FX.list = FX.list.filter((f) => n - f.t0 < f.dur);
     FX.shake *= Math.exp(-10 * dt);
   };
-  FX.draw = function (g, layer) {
+  FX.draw = function (g, layer, view) {
     const n = now();
     for (const f of FX.list) {
       if (f.layer !== layer || n < f.t0) continue; // delayed effects wait for their start
@@ -1513,6 +1520,13 @@
     if (layer !== 'top') return;
     g.save(); g.globalCompositeOperation = 'lighter';
     for (const p of FX.parts) {
+      // Cull only bounded decoration. Skill callbacks (including warning zones
+      // and delayed hits) still execute, even when the caster is off screen.
+      if (view) {
+        const tx = p.spark ? p.x - p.vx * .04 : p.x, ty = p.spark ? p.y - p.vy * .04 : p.y, r = p.size + 2;
+        if (Math.max(p.x, tx) + r < view.x || Math.min(p.x, tx) - r > view.x + view.w ||
+            Math.max(p.y, ty) + r < view.y || Math.min(p.y, ty) - r > view.y + view.h) continue;
+      }
       const a = 1 - p.life / p.max;
       g.globalAlpha = a; g.fillStyle = p.color;
       if (p.spark) {
@@ -1522,9 +1536,14 @@
     }
     g.restore();
   };
-  FX.drawTexts = function (g) {
+  FX.drawTexts = function (g, view) {
     g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
     for (const t of FX.texts) {
+      // Conservative bounds include the 1.2x pop, stroke, and wide Unicode glyphs.
+      if (view) {
+        const rx = String(t.text).length * t.size * 2 + 8, ry = t.size * 2 + 8;
+        if (t.x + rx < view.x || t.x - rx > view.x + view.w || t.y + ry < view.y || t.y - ry > view.y + view.h) continue;
+      }
       const p = t.life / t.max;
       const pop = p < 0.12 ? 0.6 + (p / 0.12) * 0.6 : p < 0.2 ? 1.2 - ((p - 0.12) / 0.08) * 0.2 : 1;
       g.globalAlpha = p > 0.7 ? (1 - p) / 0.3 : 1;

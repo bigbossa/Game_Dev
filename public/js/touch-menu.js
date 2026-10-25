@@ -13,7 +13,7 @@
     mapBtn: ['🗺', 'แผนที่', () => WMAP.toggle(true)],
     charBtn: ['⇄', 'เปลี่ยนตัวละคร', () => $('switchCharBtn').click()],
   };
-  const ITEMS = ['bookBtn', 'statBtn', 'mapBtn', 'whoBtn', 'pkBtn', 'rankBtn', 'fundBtn', 'setBtn', 'helpBtn', 'fsBtn', 'charBtn'];
+  const ITEMS = ['bookBtn', 'statBtn', 'mapBtn', 'whoBtn', 'pkBtn', 'rankBtn', 'fundBtn', 'setBtn', 'newsBtn', 'helpBtn', 'fsBtn', 'charBtn'];
   for (const id of ITEMS) {
     let b = $(id);
     if (!b) {
@@ -37,14 +37,15 @@
   // an entry was used: its own handler has run (bubbling reaches the grid after it), close the menu
   grid.addEventListener('click', (e) => { if (e.target.closest('button')) toggle(false); });
 
-  // ☰ shows the unspent stat + skill points that statBtn / bookBtn carry (stats.js, skillbook.js: .has + data-n)
-  const dots = ['statBtn', 'bookBtn'].map($);
+  // ☰ shows the unspent stat + skill points that statBtn / bookBtn carry (stats.js, skillbook.js: .has + data-n),
+  // and a plain red dot for an unread update (newsBtn, patchnotes.js)
+  const dots = ['statBtn', 'bookBtn'].map($), news = $('newsBtn');
   const sync = () => {
     const n = dots.reduce((s, b) => s + (b.classList.contains('has') ? +b.dataset.n || 1 : 0), 0);
-    btn.classList.toggle('has', n > 0);
-    btn.dataset.n = n > 99 ? '99+' : n;
+    btn.classList.toggle('has', n > 0 || news.classList.contains('has'));
+    btn.dataset.n = n > 99 ? '99+' : n || '';
   };
-  for (const b of dots) new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['class', 'data-n'] });
+  for (const b of [...dots, news]) new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['class', 'data-n'] });
   sync();
 
   window.TMENU = { toggle };

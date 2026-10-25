@@ -699,6 +699,43 @@ body.touch .bag-check::after { left: 6px; top: 2px; width: 5px; height: 10px; }
 .set-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 body.touch .set-row { padding: 9px 2px; }
 body.touch .set-range input { height: 30px; }
+/* 📢 แพทช์โน้ต (patchnotes.js): a dated timeline, newest first; opens over the login screen too */
+#newsBtn { position: absolute; right: 152px; bottom: 60px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); font-size: 18px; cursor: pointer; }
+#newsBtn.has, .patch-link.has { border-color: #ffd76a; box-shadow: 0 0 10px rgba(255,215,106,0.6); }
+#newsBtn.has::after, .patch-link.has::after { content: attr(data-n); position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #e0343a; color: #fff; font-size: 10px; line-height: 16px; font-weight: 700; }
+.patch-link { position: relative; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 10px; margin: -6px auto 16px; padding: 6px 16px; border-radius: 999px;
+  border: 1px solid var(--panel-b); background: rgba(232,194,106,0.08); color: var(--gold); font: inherit; font-size: 13px; cursor: pointer; }
+.patch-link:hover { background: rgba(232,194,106,0.18); }
+.patch-link small { color: var(--muted); font-size: 12px; }
+#patchPanel { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(600px, calc(100vw - 16px)); max-height: min(84vh, 760px); z-index: 30; display: flex; flex-direction: column; background: #0f1119; }
+.pn-tz { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 8px 12px 4px 14px; color: var(--muted); font-size: 12px; }
+.pn-tz b { color: var(--text); font-weight: 600; }
+.pn-all { flex: none; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--panel-b); background: rgba(232,194,106,0.1); color: var(--gold); font: inherit; font-size: 12px; cursor: pointer; }
+.pn-all:hover { background: rgba(232,194,106,0.22); }
+#patchList { overflow-y: auto; padding: 6px 12px 14px; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; }
+.pn-note { border-radius: 12px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.03); }
+.pn-note[open] { border-color: rgba(232,194,106,0.35); background: rgba(232,194,106,0.05); }
+.pn-note summary { display: grid; grid-template-columns: 112px 1fr auto; gap: 4px 12px; align-items: center; padding: 10px 12px; cursor: pointer; list-style: none; }
+.pn-note summary::-webkit-details-marker { display: none; }
+.pn-when { display: flex; flex-direction: column; padding-right: 10px; border-right: 2px solid rgba(232,194,106,0.4); }
+.pn-when b { color: #ffe39a; font-size: 14px; font-weight: 700; }
+.pn-when small { color: var(--muted); font-size: 11px; }
+.pn-title { font-weight: 600; font-size: 15px; line-height: 1.3; min-width: 0; }
+.pn-title small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.pn-new { display: inline-block; margin-right: 6px; padding: 0 7px; border-radius: 6px; font-style: normal; font-size: 11px; font-weight: 700; color: #fff; background: #e0343a; vertical-align: 2px; }
+.pn-ago { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.pn-ago::after { content: ' ▾'; color: var(--gold); }
+.pn-note[open] .pn-ago::after { content: ' ▴'; }
+.pn-body { padding: 0 14px 12px; }
+.pn-sec h5 { margin: 8px 0 4px; font-size: 13px; }
+.pn-sec.new h5 { color: #7cff8a; } .pn-sec.improve h5 { color: #7ccfff; } .pn-sec.balance h5 { color: #ffd76a; } .pn-sec.fix h5 { color: #ff9a8a; }
+.pn-sec ul { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6; color: #e6e0d2; }
+.pn-empty { color: var(--muted); text-align: center; padding: 20px; }
+@media (max-width: 480px) {
+  .pn-note summary { grid-template-columns: 1fr auto; }
+  .pn-when { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 8px; padding: 0; border: none; }
+  .pn-title { grid-column: 1 / 2; }
+}
 #fundPanel { position: absolute; right: 14px; bottom: 108px; width: min(400px, calc(100vw - 28px)); max-height: min(72vh, 620px); }
 #fundPanel.hidden { display: none; }
 #fundBody { padding: 10px 12px 12px; font-size: 13px; }
