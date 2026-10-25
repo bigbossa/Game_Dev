@@ -5,8 +5,12 @@
 // - a window never runs off the screen: it is kept inside the window and capped to the room below its top edge,
 //   so long content scrolls inside it (style.css: .panel overflow-y) instead of being cut off
 // - long tooltips (#tooltip, .who-tip) stay on screen and scroll with the mouse wheel
+// - upright phone: every window is a sheet along the bottom (style.css "bottom sheets"), one at a time (a shop /
+//   the storage keep the bag beside them); swipe the title bar down to close it instead of dragging it around
 (function () {
   const KEY = 'panelPos', M = 6, Z0 = 21, MIN_H = 160;   // MIN_H: a moved window always shows at least this much
+  const SHEET_MQ = matchMedia('(orientation: portrait) and (max-width: 600px)');
+  const sheet = () => SHEET_MQ.matches && document.body.classList.contains('touch');
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { saved = {}; }
   const store = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) { /* private mode */ } };
@@ -59,6 +63,7 @@
   // on show / window resize: saved spot (clamped to the current screen), then the height cap
   function settle(p) {
     if (!shown(p)) return;
+    if (sheet()) { for (const k of ['left', 'top', 'right', 'bottom', 'transform', 'margin', 'maxHeight']) p.style[k] = ''; delete p.dataset.moved; return; }
     const s = p.id && saved[p.id];
     if (s) place(p, s[0], s[1]); else fit(p);
   }
@@ -70,13 +75,31 @@
     const open = (id) => { const e = document.getElementById(id); return !!e && !e.classList.contains('hidden'); };
     document.body.classList.toggle('panel-split', open('invPanel') && SPLIT.some(open));
   }
+  // sheets: a window that opens closes the other ones through their own ✕ (so each module tidies its state),
+  // except the bag next to a shop / the storage
+  const pair = (a, b) => (a === 'invPanel' && SPLIT.includes(b)) || (b === 'invPanel' && SPLIT.includes(a));
+  function closeOthers(p) {
+    if (!sheet() || !p.id || p.id === 'itemMenu') return;
+    for (const q of document.querySelectorAll('.panel, #help')) {
+      if (q === p || !q.id || q.id === 'itemMenu' || !shown(q) || pair(p.id, q.id)) continue;
+      const x = q.id === 'help' ? q.querySelector('.help-close') : q.querySelector(':scope > .panel-head .close');
+      if (x) x.click(); else q.classList.add('hidden');
+    }
+  }
   function hook(p) {
     if (p._panelHooked) return;
     p._panelHooked = true;
     // windows with a title bar take part in the front/back order; menus without one (#itemMenu) keep their CSS z-index
     const head = handleOf(p), win = !!(head && p.id);
     if (win) p.addEventListener('pointerdown', () => toFront(p), true);
-    new MutationObserver(() => { syncSplit(); if (shown(p)) { if (win) toFront(p); settle(p); } }).observe(p, { attributes: true, attributeFilter: ['class'] });
+    let wasShown = shown(p);
+    new MutationObserver(() => {
+      syncSplit();
+      const now = shown(p);
+      if (now && !wasShown) closeOthers(p);
+      wasShown = now;
+      if (now) { if (win) toFront(p); settle(p); }
+    }).observe(p, { attributes: true, attributeFilter: ['class'] });
     if (win) {
       head.classList.add('drag-handle');
       head.title = head.title || 'ลากเพื่อย้ายหน้าต่าง · ดับเบิลคลิก = กลับตำแหน่งเดิม';
@@ -84,24 +107,32 @@
       head.addEventListener('pointerdown', (e) => {
         if (e.button !== 0 || e.target.closest('button, input, select, a, label')) return;
         const r = p.getBoundingClientRect();
-        drag = { id: e.pointerId, dx: e.clientX - r.left, dy: e.clientY - r.top };
+        drag = { id: e.pointerId, dx: e.clientX - r.left, dy: e.clientY - r.top, y0: e.clientY, swipe: sheet() };
         head.setPointerCapture(e.pointerId);
-        p.classList.add('dragging');
+        if (!drag.swipe) p.classList.add('dragging');
         e.preventDefault();
       });
       head.addEventListener('pointermove', (e) => {
         if (!drag || e.pointerId !== drag.id) return;
-        place(p, e.clientX - drag.dx, e.clientY - drag.dy);
+        if (drag.swipe) p.style.translate = `0 ${Math.max(0, e.clientY - drag.y0)}px`;
+        else place(p, e.clientX - drag.dx, e.clientY - drag.dy);
       });
       const end = (e) => {
         if (!drag || e.pointerId !== drag.id) return;
+        const d = drag;
         drag = null;
+        if (d.swipe) {
+          p.style.translate = '';
+          const x = p.id === 'help' ? p.querySelector('.help-close') : head.querySelector('.close');
+          if (e.type === 'pointerup' && e.clientY - d.y0 > 70 && x) x.click();
+          return;
+        }
         p.classList.remove('dragging');
         if (p.dataset.moved) { saved[p.id] = [parseInt(p.style.left, 10), parseInt(p.style.top, 10)]; store(); }
       };
       head.addEventListener('pointerup', end);
       head.addEventListener('pointercancel', end);
-      head.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) reset(p); });
+      head.addEventListener('dblclick', (e) => { if (!sheet() && !e.target.closest('button')) reset(p); });
     }
     if (shown(p)) settle(p);
   }

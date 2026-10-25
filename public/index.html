@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -190,19 +190,21 @@
       <input id="chatInput" maxlength="140" placeholder="Enter เพื่อแชท · /f = แชทฝ่าย · /p = แชทปาร์ตี้ · Shift+คลิกไอเทม = แชร์">
     </div>
 
-    <button id="bagBtn" type="button" title="กระเป๋า (I)">🎒</button>
-    <button id="bookBtn" type="button" title="คัมภีร์วิชา (K)">📜</button>
-    <button id="botBtn" type="button" title="กล่องบอทล่าอัตโนมัติ (O)">🤖</button>
-    <button id="statBtn" type="button" title="แต้มสถานะ (C)">💪</button>
-    <button id="whoBtn" type="button" title="ผู้เล่นออนไลน์ (P)">👥</button>
-    <button id="pkBtn" type="button" title="สถานะ PvP (U)">⚔</button>
-    <button id="rankBtn" type="button" title="อันดับผู้เล่น (R)">🏆</button>
-    <button id="fundBtn" type="button" title="ระดมทุน (G)">🏮</button>
+    <button id="bagBtn" type="button" title="กระเป๋า (I)" data-label="กระเป๋า">🎒</button>
+    <button id="bookBtn" type="button" title="คัมภีร์วิชา (K)" data-label="คัมภีร์วิชา">📜</button>
+    <button id="botBtn" type="button" title="กล่องบอทล่าอัตโนมัติ (O)" data-label="บอทล่า">🤖</button>
+    <button id="statBtn" type="button" title="แต้มสถานะ (C)" data-label="แต้มสถานะ">💪</button>
+    <button id="whoBtn" type="button" title="ผู้เล่นออนไลน์ (P)" data-label="ผู้เล่น">👥</button>
+    <button id="pkBtn" type="button" title="สถานะ PvP (U)" data-label="PvP">⚔</button>
+    <button id="rankBtn" type="button" title="อันดับผู้เล่น (R)" data-label="อันดับ">🏆</button>
+    <button id="fundBtn" type="button" title="ระดมทุน (G)" data-label="ระดมทุน">🏮</button>
     <div id="botStatus" class="hidden"></div>
     <div id="followStatus" class="hidden"></div>
-    <button id="chatBtn" type="button" title="แชท">💬</button>
-    <button id="helpBtn" type="button" title="วิธีเล่น (H)">?</button>
-    <button id="fsBtn" type="button" title="เต็มจอ">⛶</button>
+    <button id="chatBtn" type="button" title="แชท" data-label="แชท">💬</button>
+    <button id="helpBtn" type="button" title="วิธีเล่น (H)" data-label="วิธีเล่น">?</button>
+    <button id="fsBtn" type="button" title="เต็มจอ" data-label="เต็มจอ">⛶</button>
+    <!-- touch screens: ☰ opens a labelled grid of the HUD buttons (touch-menu.js) -->
+    <button id="menuBtn" type="button" title="เมนู" data-label="เมนู" aria-controls="menuPanel" aria-expanded="false">☰</button>
     <div id="joy"><div id="joyKnob"></div></div>
     <div id="interactHint" class="hidden">กด <b>F</b> เพื่อเปิดร้านช่างตีดาบ</div>
 
@@ -402,6 +404,10 @@
         <div class="inv-hint">ดับเบิลคลิก/คลิกขวาไอเทมในกระเป๋า = ฝาก · ในคลัง = นำออก · ติ๊กหลายชิ้นในกระเป๋าแล้วกด "ฝาก N ชิ้น" · คลังของตัวละครนี้เท่านั้น</div>
       </div>
     </div>
+    <div id="menuPanel" class="panel hidden" role="dialog" aria-label="เมนู">
+      <div class="panel-head"><span>☰ เมนู</span><button class="close" type="button" aria-label="ปิด">✕</button></div>
+      <div id="menuGrid" class="menu-grid"></div>
+    </div>
     <div id="help" class="hidden">
       <h3>วิธีเล่น <button type="button" class="help-close" aria-label="ปิด">✕</button></h3>
       <p><b>เริ่มเล่น Lv.1–20</b> — ตัวละครใหม่ได้รับยาเลือด 12 ขวด ยาปราณ 8 ขวด ใบกลับเมือง 2 ใบ และทอง 320 เปิดกระเป๋า I เพื่อใช้ยา เริ่มล่าภูตน้ำค้าง Lv.1 แล้วเลือกมอนสเตอร์ใกล้เลเวลจากแผนที่ M</p>
@@ -420,7 +426,7 @@
         <li><b>K</b> — คัมภีร์วิชา: ได้ 1 แต้มสกิลทุกเลเวล ใช้เรียนสกิล อัปสเต็ก (สูงสุด 12) และอัพขั้นวิชาเมื่อถึงเลเวล · แบ่งสายตามเลเวล (ขั้นต้น/กลาง/สูง/ปรมาจารย์) · ลากสกิลไปวางบนปุ่ม 1–9, 0, - ตามที่ต้องการ (หรือเปิดอัปอัตโนมัติ)</li>
         <li><b>นักพรต</b> — กด 1 ปายันต์ใส่เป้าจากระยะไกล · 2 ฟ้าผ่า · 3 ฟื้นพลังตัวเอง+ปาร์ตี้ · 4 เกราะยันต์ลดดาเมจ · 5 ค่ายกลแปดทิศ · 6 กระบี่บิน · 7 โซ่ยันต์ตรึง · 8 เทพพิทักษ์ · 9 หยินหยาง</li>
         <li><b>นักธนู</b> — กด 1 ยิงศรใส่เป้าจากระยะไกล · 2 ศรกระจาย · 3 ตีลังกาถอยหลังยิงศรกระแทก · 4 ศรทะลวงเลือดไหล · 5 ฝนศร · 6 ศรสังหารระยะไกล · 7 อินทรีโฉบ · 8 ตาข่ายตรึง · 9 ศรหงส์เพลิง</li>
-        <li class="tp"><b>มือถือ</b> — จอยซ้ายล่างเดิน · แตะศัตรู = เลือกเป้า · ปุ่มใหญ่ขวาล่างโจมตีเป้า (ไม่มีเป้า = ตัวใกล้สุด) · ปุ่มกลมรอบๆ = สกิล · แตะพื้น/มอนสเตอร์ได้ · 💬 แชท</li>
+        <li class="tp"><b>มือถือ</b> — จอยซ้ายล่างเดิน · แตะศัตรู = เลือกเป้า · ปุ่มใหญ่ขวาล่างโจมตีเป้า (ไม่มีเป้า = ตัวใกล้สุด) · ปุ่มกลมรอบๆ = สกิล · ปุ่มยาอยู่เหนือจอย · แตะพื้น/มอนสเตอร์ได้ · สองนิ้วถ่าง/หุบ = ซูม · ☰ = เมนูทั้งหมด (คัมภีร์ แต้มสถานะ แผนที่ อันดับ ...) · ปัดหัวหน้าต่างลง = ปิด</li>
         <li class="kb"><b>W A S D</b> — เดินด้วยคีย์บอร์ดก็ได้</li>
         <li class="kb"><b>Q</b> ยาฟื้นพลัง · <b>E</b> ยาฟื้นปราณ</li>
         <li class="kb"><b>I</b> — กระเป๋า/อุปกรณ์ · <b>F</b> — ร้านช่างตีดาบ / ศิลาเคลื่อนย้าย (ในค่าย)</li>
@@ -514,5 +520,6 @@
   <script src="js/skill-arts.js"></script>
   <script src="js/skill-performance.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/touch-menu.js"></script>
 </body>
 </html>

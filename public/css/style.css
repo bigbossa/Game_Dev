@@ -8,6 +8,11 @@
   --panel-b: rgba(232, 194, 106, 0.35);
   --text: #f3efe6;
   --muted: #a8a294;
+  /* notch / home-bar insets (viewport-fit=cover in index.html); 0 on screens without them */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0d12; color: var(--text); font-family: 'Kanit', system-ui, sans-serif; }
@@ -273,6 +278,21 @@ body.touch #help .tp { order: -1; margin-bottom: 4px; }
   .factions { grid-template-columns: 1fr 1fr; gap: 8px; }
   .fcard img { height: 120px; }
   .classes { grid-template-columns: repeat(2, 1fr); }
+}
+/* phones: login / character screens use the whole width, the create button goes under the name at thumb size */
+@media (max-width: 480px) {
+  #login { padding: calc(10px + var(--sat)) calc(10px + var(--sar)) calc(10px + var(--sab)) calc(10px + var(--sal)); }
+  .login-panel { padding: 20px 16px 14px; border-radius: 16px; }
+  .subtitle { margin-bottom: 14px; }
+  .fcard { padding: 10px 6px; }
+  .fcard img { height: 104px; }
+  .fname { font-size: 22px; }
+  .fdesc { font-size: 12px; line-height: 1.4; }
+  .cls { padding: 10px 4px; font-size: 14px; }
+  .name-row { flex-direction: column; }
+  #playBtn { padding: 14px 22px; }
+  .char-list { grid-template-columns: 1fr; }
+  .claim-row { flex-direction: column; }
 }
 
 /* ---------------- gold / bag / interact ---------------- */
@@ -775,42 +795,51 @@ body.touch .bag-check::after { left: 6px; top: 2px; width: 5px; height: 10px; }
 /* ---------------- touch screens (phones / tablets) ---------------- */
 body.touch, body.touch * { -webkit-tap-highlight-color: transparent; }
 body.touch canvas#game, body.touch #joy, body.touch #skillbar { touch-action: none; }
-body.touch #playerFrame { width: 250px; padding: 5px 8px 5px 5px; transform: scale(0.82); transform-origin: top left; left: 6px; top: 6px; }
-body.touch #mmWrap { top: 6px; right: 6px; padding: 4px; }
+body.touch #playerFrame { width: 250px; padding: 5px 8px 5px 5px; transform: scale(0.82); transform-origin: top left; left: calc(6px + var(--sal)); top: calc(6px + var(--sat)); }
+body.touch #mmWrap { top: calc(6px + var(--sat)); right: calc(6px + var(--sar)); padding: 4px; }
 body.touch #minimap { width: 120px; height: 90px; }
 body.touch #mapLabel { font-size: 10px; margin-bottom: 2px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body.touch #areaLabel { font-size: 10px; margin-top: 2px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-body.touch #targetFrame { top: 6px; width: 190px; padding: 4px 8px; }
+body.touch #targetFrame { top: calc(56px + var(--sat)); width: 190px; padding: 4px 8px; }
+body.touch #scoreBoard:not(.hidden) ~ #targetFrame { top: calc(96px + var(--sat)); }
 body.touch #scoreBoard { top: auto; bottom: auto; top: 50px; padding: 2px 12px; transform: translateX(-50%) scale(0.8); }
 body.touch #zoneBanner { font-size: 20px; top: 18%; }
 body.touch #zoneBanner small { font-size: 12px; }
 body.touch #toasts { bottom: auto; top: 30%; }
 body.touch .toast { font-size: 12px; padding: 4px 12px; }
 body.touch #feed { top: 150px; right: 6px; }
-/* round buttons in a row left of the minimap */
-body.touch #helpBtn, body.touch #bagBtn, body.touch #bookBtn, body.touch #chatBtn { top: 8px; bottom: auto; width: 40px; height: 40px; }
-body.touch #chatBtn { display: block; position: absolute; right: 142px; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); font-size: 18px; }
-body.touch #bagBtn { right: 186px; }
-body.touch #bookBtn { right: 230px; }
-body.touch #helpBtn { right: 274px; }
-body.touch #botBtn { top: 8px; bottom: auto; width: 40px; height: 40px; right: 362px; }
-body.touch #statBtn { top: 8px; bottom: auto; width: 40px; height: 40px; right: 318px; }
-body.touch #whoBtn { top: 8px; bottom: auto; width: 40px; height: 40px; right: 406px; }
-body.touch #pkBtn { top: 8px; bottom: auto; width: 40px; height: 40px; right: 450px; }
-body.touch #rankBtn { top: 8px; bottom: auto; width: 40px; height: 40px; right: 494px; }
-body.touch #fundBtn { top: 8px; bottom: auto; width: 40px; height: 40px; right: 538px; }
-body.touch #fundBuff { top: 54px; font-size: 11px; padding: 2px 10px; }
+/* round buttons: 💬 🎒 🤖 ☰ stay on screen left of the minimap, the others are in the ☰ menu (touch-menu.js) */
+#menuBtn { display: none; }
+body.touch #chatBtn, body.touch #bagBtn, body.touch #botBtn, body.touch #menuBtn { display: flex; align-items: center; justify-content: center; position: absolute; top: calc(8px + var(--sat)); bottom: auto;
+  width: 42px; height: 42px; padding: 0; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); color: var(--gold); font-size: 19px; cursor: pointer; }
+body.touch #chatBtn { right: calc(142px + var(--sar)); }
+body.touch #bagBtn { right: calc(190px + var(--sar)); }
+body.touch #botBtn { right: calc(238px + var(--sar)); }
+body.touch #menuBtn { right: calc(286px + var(--sar)); font-size: 22px; font-weight: 700; }
+body.touch #menuBtn.on { border-color: var(--gold); background: rgba(232,194,106,0.28); }
+body.touch #menuBtn.has { border-color: #ffd76a; box-shadow: 0 0 10px rgba(255,215,106,0.7); }
+body.touch #menuBtn.has::after { content: attr(data-n); position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #e0343a; color: #fff; font-size: 10px; line-height: 16px; font-weight: 700; }
+body.touch #fundBuff { top: calc(54px + var(--sat)); font-size: 11px; padding: 2px 10px; }
+/* ☰ menu: big labelled tiles; the moved HUD buttons keep their own state looks (PvP on, bot on, red dots, fund %) */
+#menuPanel { right: calc(6px + var(--sar)); top: calc(56px + var(--sat)); width: min(372px, calc(100vw - 12px)); z-index: 24; }
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; padding: 12px; }
+body.touch #menuGrid > button { position: relative; inset: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  width: auto; height: auto; min-height: 76px; padding: 10px 4px 8px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
+  color: var(--gold); font-size: 24px; font-weight: 700; line-height: 1; cursor: pointer; transform: none; }
+body.touch #menuGrid > button::before { content: attr(data-label); order: 1; font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--text); text-align: center; }
+body.touch #menuGrid > button:active { background: rgba(232,194,106,0.22); }
+body.touch #menuGrid > button.has, body.touch #menuGrid > button.on { border-color: #ffd76a; background: rgba(232,194,106,0.14); }
+body.touch #menuGrid > #pkBtn.on { border-color: #ff5a3a; background: rgba(200,40,30,0.32); }
 /* fullscreen toggle: phones / tablets only (hidden when the browser has no Fullscreen API and the page is not a home-screen app) */
 #fsBtn { display: none; }
-body.touch #fsBtn { display: block; position: absolute; top: 8px; right: 538px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); color: var(--gold); font-size: 18px; cursor: pointer; }
 body.touch #fsBtn.on { border-color: #ffd76a; box-shadow: 0 0 10px rgba(255,215,106,0.7); }
 body.touch.standalone #fsBtn { display: none; }
 body.touch #statPanel { top: 6px; max-height: calc(100vh - 12px); z-index: 21; }
 body.touch #botStatus { bottom: auto; top: 58px; font-size: 11px; }
-body.touch #botPanel { top: 6px; bottom: auto; right: 6px; max-height: calc(100vh - 12px); }
+body.touch #botPanel { top: 6px; bottom: auto; right: calc(6px + var(--sar)); max-height: calc(100vh - 12px); }
 body.touch #help { right: 6px; top: 56px; bottom: auto; max-height: calc(100vh - 70px); overflow-y: auto; width: min(320px, calc(100vw - 12px)); }
 /* chat: last lines faded under the player frame, 💬 opens it with the input */
-body.touch #chat { left: 6px; top: 96px; bottom: auto; width: min(300px, 46vw); pointer-events: none; }
+body.touch #chat { left: calc(6px + var(--sal)); top: calc(96px + var(--sat)); bottom: auto; width: min(300px, 46vw); pointer-events: none; }
 body.touch #chatLog { max-height: 54px; font-size: 11px; background: none; padding: 2px 4px; overflow: hidden; opacity: 0.85; }
 body.touch #chatInput { display: none; }
 body.touch #chat:not(.open) #chatTabs, body.touch #chat:not(.open) #chatOpts { display: none; }
@@ -822,15 +851,16 @@ body.touch #chat.open { pointer-events: auto; width: min(380px, calc(100vw - 12p
 body.touch #chat.open #chatLog { max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.6); font-size: 12px; opacity: 1; }
 body.touch #chat.open #chatInput { display: block; font-size: 16px; padding: 9px 10px; }
 /* joystick */
-body.touch #joy { display: block; position: absolute; left: 22px; bottom: 22px; width: 132px; height: 132px; border-radius: 50%;
+body.touch #joy { display: block; position: absolute; left: calc(22px + var(--sal)); bottom: calc(22px + var(--sab)); width: 132px; height: 132px; border-radius: 50%;
   background: radial-gradient(circle, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); border: 2px solid rgba(255,255,255,0.22); }
 #joyKnob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, rgba(255,240,200,0.75), rgba(232,194,106,0.45)); border: 2px solid rgba(255,230,160,0.8); box-shadow: 0 2px 10px rgba(0,0,0,0.5); pointer-events: none; }
 /* skill buttons: big attack button in the corner, two rings of round skills around it, potions to the left */
-body.touch #skillbar { left: auto; right: 0; bottom: 0; transform: none; background: none; border: none; padding: 0; width: 340px; height: 230px; display: block; pointer-events: none; }
+body.touch #skillbar { left: auto; right: var(--sar); bottom: var(--sab); transform: none; background: none; border: none; padding: 0; width: 340px; height: 230px; display: block; pointer-events: none; }
 body.touch #skillbar .sep { display: none; }
 body.touch #skillbar .slot { position: absolute; width: 48px; height: 48px; border-radius: 50%; pointer-events: auto; border: 2px solid rgba(255,255,255,0.35); box-shadow: 0 2px 8px rgba(0,0,0,0.6); }
 body.touch #skillbar .slot.evolved { border-color: rgba(255,215,106,0.9); }
+body.touch #skillbar .slot:active { transform: scale(0.92); }
 body.touch #skillbar .slot .key { display: none; }
 body.touch #skillbar .slot .mpc { right: 50%; transform: translateX(50%); bottom: 0; font-size: 9px; }
 body.touch #skillbar .slot .rk { right: 50%; transform: translateX(50%); top: 1px; }
@@ -881,53 +911,97 @@ body.touch .inv-stats-btn { display: flex; }
 body.touch #invPanel .equip-col:not(.show-stats) #invPreview,
 body.touch #invPanel .equip-col:not(.show-stats) #statList { display: none; }
 body.touch #deathScreen .ds-title { font-size: 34px; }
-/* phones held upright (portrait): compact HUD so the play field stays open
-   top-left: player frame, chat under it · top-right: minimap, round buttons in a column under it · target in between */
+/* phones held upright (portrait), laid out for two thumbs and a one-hand glance:
+   top-left: player frame · top-right: minimap, ☰ 🎒 🤖 💬 in a column under it · top middle: target / scores
+   bottom-left: joystick with the potions above it and the newest chat lines above those · bottom-right: attack
+   button with two rings of skills · windows: sheets along the bottom edge (panels.js) */
 @media (orientation: portrait) and (max-width: 600px) {
-  body.touch #playerFrame { transform: scale(0.6); left: 4px; top: 4px; }
-  body.touch #mmWrap { transform: none; top: 4px; right: 4px; padding: 3px; border-radius: 9px; }
-  body.touch #minimap { width: 78px; height: 58px; border-radius: 6px; }
-  body.touch #mapLabel { font-size: 8px; max-width: 78px; margin-bottom: 1px; }
-  body.touch #areaLabel { font-size: 8px; max-width: 78px; margin-top: 1px; }
-  body.touch #targetFrame { top: 4px; left: auto; right: 92px; transform: none; width: 128px; padding: 3px 6px; font-size: 11px; }
-  body.touch #scoreBoard { top: 100px; transform: translateX(-50%) scale(0.68); }
-  body.touch #helpBtn, body.touch #bagBtn, body.touch #bookBtn, body.touch #chatBtn { right: 4px; width: 34px; height: 34px; font-size: 15px; }
-  body.touch #chatBtn { top: 98px; }
-  body.touch #bagBtn { top: 136px; }
-  body.touch #bookBtn { top: 174px; }
-  body.touch #helpBtn { top: 212px; }
-  body.touch #botBtn { right: 4px; top: 288px; width: 34px; height: 34px; font-size: 15px; }
-  body.touch #statBtn { right: 4px; top: 250px; width: 34px; height: 34px; font-size: 15px; }
-  body.touch #whoBtn { right: 4px; top: 326px; width: 34px; height: 34px; font-size: 15px; }
-  body.touch #pkBtn { right: 4px; top: 364px; width: 34px; height: 34px; font-size: 15px; }
-  body.touch #rankBtn { right: 4px; top: 402px; width: 34px; height: 34px; font-size: 15px; }
-  body.touch #fundBtn { right: 4px; top: 440px; width: 34px; height: 34px; font-size: 15px; }
-  body.touch #fundBuff { top: 70px; }
-  body.touch #fsBtn { right: 4px; top: 440px; width: 34px; height: 34px; font-size: 15px; }
-  body.touch #botStatus, body.touch #followStatus { top: 120px; }
-  body.touch #help { top: 4px; right: 4px; width: calc(100vw - 8px); }
+  body.touch #playerFrame { transform: none; left: calc(6px + var(--sal)); top: calc(6px + var(--sat)); width: min(214px, calc(100vw - 168px)); padding: 5px 8px 5px 5px; }
+  body.touch #playerFrame:not(.compact) { width: calc(100vw - 120px); }
+  body.touch #playerFrame.compact .bar { height: 12px; }
+  body.touch #playerFrame.compact .bar span { font-size: 9px; line-height: 11px; }
+  body.touch #mmWrap { transform: none; top: calc(6px + var(--sat)); right: calc(6px + var(--sar)); padding: 3px; border-radius: 10px; }
+  body.touch #minimap { width: 100px; height: 75px; border-radius: 7px; }
+  body.touch #mapLabel { font-size: 10px; max-width: 100px; margin-bottom: 2px; padding-right: 22px; }
+  body.touch #areaLabel { display: none; }
+  body.touch #mmWrap.folded #mapLabel { max-width: 150px; padding-right: 0; }
+  body.touch #hud .hud-fold, body.touch .pf-switch { width: 24px; height: 24px; font-size: 17px; line-height: 21px; }
+  body.touch .pf-switch { right: 32px; font-size: 13px; }
+  body.touch #pfName { padding-right: 52px; }
+  body.touch #chatBtn, body.touch #bagBtn, body.touch #botBtn, body.touch #menuBtn { right: calc(9px + var(--sar)); width: 44px; height: 44px; }
+  body.touch #menuBtn { top: calc(110px + var(--sat)); }
+  body.touch #bagBtn { top: calc(160px + var(--sat)); }
+  body.touch #botBtn { top: calc(210px + var(--sat)); }
+  body.touch #chatBtn { top: calc(260px + var(--sat)); }
+  body.touch #feed { top: calc(314px + var(--sat)); right: calc(6px + var(--sar)); }
+  body.touch .feed-item { font-size: 11px; padding: 2px 8px; }
+  /* top middle, stacked: PvP scores · server buff · target (moves right of the party list when there is one) */
+  body.touch #scoreBoard { top: calc(104px + var(--sat)); transform: translateX(-50%) scale(0.72); transform-origin: top center; }
+  body.touch #fundBuff { top: calc(104px + var(--sat)); }
+  body.touch #scoreBoard:not(.hidden) + #fundBuff { top: calc(144px + var(--sat)); }
+  body.touch #targetFrame { top: calc(104px + var(--sat)); width: min(230px, calc(100vw - 132px)); padding: 4px 8px; }
+  body.touch #scoreBoard:not(.hidden) ~ #targetFrame, body.touch #fundBuff:not(.hidden) ~ #targetFrame { top: calc(144px + var(--sat)); }
+  body.touch #scoreBoard:not(.hidden) ~ #fundBuff:not(.hidden) ~ #targetFrame { top: calc(184px + var(--sat)); }
+  body.touch #partyFrame:not(.hidden) ~ #targetFrame { left: auto; right: calc(60px + var(--sar)); transform: none; width: min(200px, calc(100vw - 214px)); }
+  body.touch #zoneBanner { font-size: 18px; top: 24%; }
+  body.touch #announce { top: calc(150px + var(--sat)); font-size: 15px; }
+  body.touch #toasts { top: 30%; }
+  body.touch #botStatus { top: auto; bottom: calc(312px + var(--sab)); }
+  body.touch #interactHint { top: auto; bottom: calc(266px + var(--sab)); }
+  /* chat: closed = the newest lines above the potions (older ones fade out at the top) · 💬 = full box at the top */
+  body.touch #chat { left: calc(8px + var(--sal)); top: auto; bottom: calc(202px + var(--sab)); width: 58vw; }
+  body.touch #chatLog { max-height: 52px; font-size: 11px; padding: 1px 6px 1px 4px; justify-content: flex-end; border-radius: 8px;
+    background: linear-gradient(90deg, rgba(0,0,0,0.5), rgba(0,0,0,0.3) 70%, transparent);
+    -webkit-mask-image: linear-gradient(transparent, #000 40%); mask-image: linear-gradient(transparent, #000 40%); }
+  body.touch #chat.open { top: calc(110px + var(--sat)); bottom: auto; left: calc(6px + var(--sal)); width: calc(100vw - 70px - var(--sal) - var(--sar)); }
+  body.touch #chat.open #chatLog { max-height: 36vh; font-size: 12px; justify-content: flex-start; -webkit-mask-image: none; mask-image: none; }
+  body.touch #chat.open #chatInput { padding: 8px 10px; }
+  /* thumb controls: 46 px skill buttons (finger size, no shrinking), 70 px attack button in the corner */
+  body.touch #joy { width: 116px; height: 116px; left: calc(14px + var(--sal)); bottom: calc(14px + var(--sab)); }
+  body.touch #skillbar { left: 0; right: 0; width: auto; height: 250px; }
+  body.touch #skillbar .slot { width: 46px; height: 46px; }
+  body.touch .slot[data-key="1"] { right: calc(12px + var(--sar)); bottom: 12px; width: 70px !important; height: 70px !important; }
+  body.touch .slot[data-key="2"] { right: calc(122px + var(--sar)); bottom: 24px; }
+  body.touch .slot[data-key="3"] { right: calc(109px + var(--sar)); bottom: 73px; }
+  body.touch .slot[data-key="4"] { right: calc(73px + var(--sar)); bottom: 109px; }
+  body.touch .slot[data-key="5"] { right: calc(24px + var(--sar)); bottom: 122px; }
+  body.touch .slot[data-key="6"] { right: calc(184px + var(--sar)); bottom: 24px; }
+  body.touch .slot[data-key="7"] { right: calc(176px + var(--sar)); bottom: 73px; }
+  body.touch .slot[data-key="8"] { right: calc(153px + var(--sar)); bottom: 118px; }
+  body.touch .slot[data-key="9"] { right: calc(118px + var(--sar)); bottom: 153px; }
+  body.touch .slot[data-key="0"] { right: calc(73px + var(--sar)); bottom: 176px; }
+  body.touch .slot[data-key="-"] { right: calc(24px + var(--sar)); bottom: 184px; }
+  body.touch .slot[data-id="pot_hp"] { right: auto; left: calc(18px + var(--sal)); bottom: 142px; }
+  body.touch .slot[data-id="pot_mp"] { right: auto; left: calc(72px + var(--sal)); bottom: 142px; }
+  /* windows: full-width sheets along the bottom edge (panels.js: one at a time, swipe the title bar down = close) */
+  body.touch .panel:not(#itemMenu), body.touch #help { left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important;
+    width: auto !important; max-width: none !important; transform: none !important; margin: 0 !important;
+    max-height: calc(100vh - 44px - var(--sat)) !important; max-height: calc(100dvh - 44px - var(--sat)) !important;
+    border-radius: 18px 18px 0 0; border-bottom: none; padding-bottom: var(--sab); animation: sheetUp 0.2s ease-out; }
+  body.touch #help { padding-top: 0; background: rgba(14,16,24,0.96); }
+  body.touch .panel:not(#itemMenu) > .panel-head { border-radius: 18px 18px 0 0; padding: 14px 8px 6px 14px; }
+  body.touch .panel:not(#itemMenu) > .panel-head::before, body.touch #help h3::before { content: ''; position: absolute; left: 50%; top: 5px; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: rgba(255,255,255,0.28); }
+  body.touch #help h3 { position: sticky; top: 0; z-index: 1; margin: 0 -16px 6px; padding: 14px 8px 6px 16px; background: #11131b; }
+  body.touch .panel-head .close, body.touch .help-close { width: 40px; height: 40px; padding: 0; font-size: 20px; }
+  body.touch #itemMenu { bottom: calc(12px + var(--sab)); }
   /* a shop / the storage with the bag: shop in the top half, bag in the bottom half */
   body.touch.panel-split #shopPanel, body.touch.panel-split #enhPanel, body.touch.panel-split #potionPanel,
-  body.touch.panel-split #storagePanel { top: 6px !important; left: 6px !important; right: 6px !important; max-height: calc(52vh - 9px) !important; }
-  body.touch.panel-split #invPanel { top: calc(52vh + 3px) !important; left: 6px !important; right: 6px !important; max-height: calc(48vh - 9px) !important; }
+  body.touch.panel-split #storagePanel { top: calc(6px + var(--sat)) !important; bottom: auto !important; left: 6px !important; right: 6px !important;
+    max-height: calc(52vh - 9px - var(--sat)) !important; max-height: calc(52dvh - 9px - var(--sat)) !important; border-radius: 18px; border-bottom: 1px solid var(--panel-b); }
+  body.touch.panel-split #invPanel { max-height: calc(48vh - 3px) !important; max-height: calc(48dvh - 3px) !important; }
   body.touch.panel-split #invPanel .equip-col { display: none; }
-  body.touch #chat { left: 4px; top: 70px; width: 54vw; }
-  /* closed: the newest lines sit at the bottom, older ones fade out at the top */
-  body.touch #chatLog { max-height: 40px; font-size: 10px; padding: 1px 3px; justify-content: flex-end;
-    -webkit-mask-image: linear-gradient(transparent, #000 40%); mask-image: linear-gradient(transparent, #000 40%); }
-  body.touch #chat.open { top: 104px; width: calc(100vw - 46px); }
-  body.touch #chat.open #chatLog { max-height: 120px; font-size: 11px; justify-content: flex-start; -webkit-mask-image: none; mask-image: none; }
-  body.touch #chat.open #chatInput { padding: 7px 9px; }
-  body.touch #feed { top: 330px; right: 4px; }
-  body.touch .feed-item { font-size: 11px; padding: 2px 8px; }
-  body.touch #zoneBanner { font-size: 18px; top: 20%; }
-  body.touch #skillbar { transform: scale(0.76); transform-origin: bottom right; }
-  body.touch #joy { width: 104px; height: 104px; left: 12px; bottom: 12px; }
+  body.touch.panel-split .panel > .panel-head::before { display: none; }
 }
-@media (orientation: portrait) and (max-width: 380px) {
-  body.touch #skillbar { transform: scale(0.7); }
-  body.touch #targetFrame { width: 112px; }
-  body.touch #joy { width: 96px; height: 96px; left: 8px; bottom: 10px; }
+@keyframes sheetUp { from { translate: 0 40px; opacity: 0.4; } }
+@media (prefers-reduced-motion: reduce) { body.touch .panel, body.touch #help { animation: none !important; } }
+@media (orientation: portrait) and (max-width: 370px) {
+  body.touch #joy { width: 104px; height: 104px; left: calc(10px + var(--sal)); bottom: calc(12px + var(--sab)); }
+  body.touch .slot[data-id="pot_hp"] { left: calc(12px + var(--sal)); bottom: 128px; }
+  body.touch .slot[data-id="pot_mp"] { left: calc(64px + var(--sal)); bottom: 128px; }
+  body.touch #chat { bottom: calc(200px + var(--sab)); width: 52vw; }
+}
+@media (orientation: portrait) and (max-width: 340px) {
+  body.touch #skillbar .slot:not([data-id^="pot_"]) { zoom: 0.88; }
 }
 @media (max-height: 420px) {
   body.touch #skillbar { transform: scale(0.86); transform-origin: bottom right; }
@@ -1095,7 +1169,8 @@ body.touch #partyInvite { top: 18%; }
 body.touch #partyFrame { top: 92px; left: 6px; transform: scale(0.85); transform-origin: top left; }
 body.touch #mapPanel { z-index: 23; }
 @media (orientation: portrait) and (max-width: 600px) {
-  body.touch #partyFrame { top: 64px; left: 4px; transform: scale(0.7); }
+  body.touch #partyFrame { left: calc(6px + var(--sal)); transform: scale(0.72); }
+  body.touch #followStatus { top: auto; bottom: calc(312px + var(--sab)); }
 }
 
 /* damage-to-monsters breakdown under the stat list (inventory.js pveRow) */

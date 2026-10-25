@@ -36,7 +36,9 @@
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const $ = (id) => document.getElementById(id);
-  let DPR = 1, VW = 0, VH = 0, zoom = 1;
+  // CY = screen row the camera centres on: a bit above the middle on an upright phone, where the thumb controls
+  // cover the bottom of the screen, so the character stands in the open part of the play field
+  let DPR = 1, VW = 0, VH = 0, CY = 0, zoom = 1;
   const cam = { x: 0, y: 0 };
   let SPR = null, TAO = null;   // TAO = นักพรต frame meta (assets/taoist.json): { walk: {faction: meta}, attack: {...} }
   // classes drawn from their own sheets (C.CLASSES[cls].sheet): frame meta by class, same shape as TAO
@@ -950,8 +952,9 @@
     const near = nearSmith() ? 'smith' : nearApothecary() ? 'apothecary' : nearEnhancer() ? 'enhancer' : nearStone() ? 'stone' : '';
     if (near !== hintShown) {
       $('interactHint').classList.toggle('hidden', !near);
-      $('interactHint').innerHTML = near === 'stone' ? 'กด <b>F</b> เพื่อใช้ศิลาเคลื่อนย้าย'
-        : near === 'apothecary' ? 'กด <b>F</b> เพื่อเปิดร้านขายยา' : near === 'enhancer' ? 'กด <b>F</b> เพื่อเปิดร้านตีบวก' : 'กด <b>F</b> เพื่อเปิดร้านช่างตีดาบ';
+      const press = G.touch ? '👆 แตะ' : 'กด <b>F</b>';            // touch: the hint itself is the button
+      $('interactHint').innerHTML = `${press} ${near === 'stone' ? 'เพื่อใช้ศิลาเคลื่อนย้าย'
+        : near === 'apothecary' ? 'เพื่อเปิดร้านขายยา' : near === 'enhancer' ? 'เพื่อเปิดร้านตีบวก' : 'เพื่อเปิดร้านช่างตีดาบ'}`;
       hintShown = near;
     }
     if (near !== 'smith' && INV.shopOpen) INV.closeShop();
@@ -974,8 +977,8 @@
   }
   $('respawnBtn').addEventListener('click', () => socket.emit('respawn'));
 
-  const mouseWorld = () => ({ x: cam.x + (mouse.x - VW / 2) / zoom, y: cam.y + (mouse.y - VH / 2) / zoom });
-  G.toScreen = (x, y) => ({ x: (x - cam.x) * zoom + VW / 2, y: (y - cam.y) * zoom + VH / 2 });
+  const mouseWorld = () => ({ x: cam.x + (mouse.x - VW / 2) / zoom, y: cam.y + (mouse.y - CY) / zoom });
+  G.toScreen = (x, y) => ({ x: (x - cam.x) * zoom + VW / 2, y: (y - cam.y) * zoom + CY });
   const aimAngle = () => { const w = mouseWorld(), me = G.me; return Math.atan2(w.y - (me.y - 30), w.x - me.x); };
 
   // ------------------------------------------------------------ click orders
@@ -1330,6 +1333,7 @@
   // ------------------------------------------------------------ rendering
   function resize() {
     VW = innerWidth; VH = innerHeight;
+    CY = Math.round(VH / 2 - (G.touch && VH > VW * 1.2 ? VH * 0.07 : 0));
     DPR = Motion.pixelRatio(window.devicePixelRatio, VW, VH);
     canvas.width = Math.round(VW * DPR); canvas.height = Math.round(VH * DPR);
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
@@ -1859,10 +1863,10 @@
     }
     const sx = (Math.random() - 0.5) * FX.shake, sy = (Math.random() - 0.5) * FX.shake;
     const view = { w: VW / zoom, h: VH / zoom };
-    view.x = cam.x - view.w / 2; view.y = cam.y - view.h / 2;
+    view.x = cam.x - view.w / 2; view.y = cam.y - CY / zoom;
 
     ctx.save();
-    ctx.translate(VW / 2 + sx, VH / 2 + sy);
+    ctx.translate(VW / 2 + sx, CY + sy);
     ctx.scale(zoom, zoom);
     ctx.translate(-cam.x, -cam.y);
 
