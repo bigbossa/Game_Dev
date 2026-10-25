@@ -105,7 +105,7 @@
           desc: 'เรียกเมฆอสนีผ่าลงจุดเป้าหมาย (ไกลสุด 380) ดาเมจรอบจุดตก',
           evo: [{ lvl: 40, name: 'อสนีเก้าชั้นฟ้า', desc: 'ฟ้าผ่า 3 ระลอกวงกว้างขึ้น ศัตรูที่โดนชาขยับไม่ได้ 0.6 วินาที' }] },
         { id: 'mercy', name: 'น้ำทิพย์ชโลมชีวา', key: '3', lvl: 2, mp: 26, cd: 15000,
-          desc: 'ฮีลหมู่ทันที: โปรยน้ำทิพย์ฟื้นพลังชีวิตเล็กน้อยให้ตัวเองและสมาชิกปาร์ตี้รอบตัว (รัศมี 480) ครั้งเดียวเมื่อกดใช้ · พาสซีฟเมื่อเรียนแล้ว: ทุก 5 วินาที ตัวเองและสมาชิกปาร์ตี้รัศมี 480 ฟื้น 2–6% ของ HP สูงสุดตามเลเวลสกิล (PvP ได้ครึ่งเดียว ไม่ซ้อนจากนักพรตหลายคน)',
+          desc: 'ฮีลหมู่ทันที: โปรยน้ำทิพย์ฟื้นพลังชีวิตเล็กน้อยให้ตัวเองและสมาชิกปาร์ตี้รอบตัว (รัศมี 480) ครั้งเดียวเมื่อกดใช้ · พาสซีฟเมื่อเรียนแล้ว: ทุก 5 วินาที ตัวเองและสมาชิกปาร์ตี้รัศมี 480 ฟื้น 2.5–7% ของ HP สูงสุดตามเลเวลสกิล (PvP ได้ครึ่งเดียว ไม่ซ้อนจากนักพรตหลายคน)',
           evo: [{ lvl: 60, name: 'บัวทิพย์ฟื้นชีวา', desc: 'บัวทิพย์บานใต้เท้าทุกคนครู่หนึ่ง ฮีลทันทีมากขึ้น 35% · พาสซีฟฟื้นเพิ่มอีก 1% ของ HP สูงสุด' }] },
         { id: 'aegis', name: 'ยันต์เกราะห้าธาตุ', key: '4', lvl: 4, mp: 24, cd: 16000,
           desc: 'บัพตัวเองและปาร์ตี้: เกราะยันต์ห้าธาตุลดความเสียหายที่ได้รับ นาน 8 วินาที',
@@ -245,7 +245,7 @@
   CLASSES.warrior = {
     id: 'warrior', name: 'นักรบแนวหน้า', weapon: 'ดาบและโล่',
     desc: 'ถือดาบกับโล่ รับความเสียหายและคุ้มกันปาร์ตี้ HP/เกราะสูง โจมตีช้า ไม่มีฮีลตนเอง ยั่วยุได้เฉพาะมอนสเตอร์ · พาสซีฟโล่รับแทน: เพื่อนในปาร์ตี้ใกล้ตัวโดนโจมตี รับดาเมจแทน 30%',
-    hp: 230, hpG: 34, mp: 85, mpG: 10, atk: 14, atkG: 3.7, def: 6, defG: 1.5,
+    hp: 280, hpG: 42, mp: 85, mpG: 10, atk: 14, atkG: 4.1, def: 6, defG: 1.5,
     speed: 195, crit: 0.05, reach: 105,
     skills: [
       { id: 'guardSlash', name: 'ดาบพิทักษ์', key: '1', lvl: 1, mp: 0, cd: 700,
@@ -355,21 +355,23 @@
   ];
   const arbiterStage = lvl => ARBITER_STAGES.filter(s => lvl >= s.lvl).length - 1;
   // Same 5% training steps / 30% evolution steps used by existing skillPower, derived without rewriting saves.
+  // The basic attack is the class's main damage: combo = the 3 melee beats, wave = the Lv.30 sword wave,
+  // train = auto training per 4 levels (at most 11 steps).
+  const ARBITER = { melee: 105, wave: 260, width: 24, waveCap: 4, stacks: 5, combo: [1, 1.1, 1.25], wavePower: .9, train: .07,
+    resonance: .3, astralChance: .35, astralCd: 2500, astralPower: .35, pvp: .85 };
   const arbiterPower = (lvl, basic = false) => (1 + .3 * Math.max(0, arbiterStage(lvl))) *
-    (basic ? 1 + .05 * Math.min(11, Math.floor((Math.max(1,lvl)-1)/4)) : 1);
-  const ARBITER = { melee: 105, wave: 260, width: 24, waveCap: 3, stacks: 5,
-    resonance: .3, astralChance: .25, astralCd: 2500, astralPower: .35, pvp: .85 };
+    (basic ? 1 + ARBITER.train * Math.min(11, Math.floor((Math.max(1,lvl)-1)/4)) : 1);
   const basicReach = (cls, lvl) => cls === 'arbiter' ? (lvl >= 30 ? 245 : 92) : (CLASSES[cls] || CLASSES.dualblade).reach;
   CLASSES.arbiter = {
     id: 'arbiter', name: 'เทวทัณฑ์', weapon: 'ดาบสัตย์',
     desc: 'Divine Arbiter · ตีธรรมดาโตตามเลเวล · 8 สกิลกดใช้ เรียน อัปแต้ม และวิวัฒนาการในคัมภีร์วิชา · รัศมีและปีกตาม Lv.30 / 70 / 110',
-    hp: 165, hpG: 26, mp: 100, mpG: 13, atk: 16, atkG: 4.5, def: 3, defG: 1.1,
+    hp: 195, hpG: 30, mp: 100, mpG: 13, atk: 20, atkG: 5.6, def: 3, defG: 1.2,
     speed: 215, crit: .09, reach: 92,
     // Cooldowns below are final milliseconds (added after the legacy cooldown conversion).
     skills: [
-      { id: 'oathBasic', name: 'คมดาบสัตย์', key: '1', lvl: 1, mp: 0, cd: 720, free: true,
+      { id: 'oathBasic', name: 'คมดาบสัตย์', key: '1', lvl: 1, mp: 0, cd: 620, free: true,
         arbiter: { kind: 'basic', range: 105, windup: 180, power: 1 }, evo: [],
-        desc: 'โจมตีธรรมดาแยกจาก 8 สกิล: ประชิด 3 จังหวะ 90/100/110% · Lv.30 คลื่นดาบระยะ 260 กว้าง 48 สูงสุด 3 เป้า ดาเมจ 75% · ฝึกอัตโนมัติ +5% ทุก 4 เลเวล สูงสุด 55% · ขั้นอาชีพ +30% ต่อขั้น · ไม่ใช้แต้ม' },
+        desc: 'โจมตีธรรมดาแยกจาก 8 สกิล: ประชิด 3 จังหวะ 100/110/125% · Lv.30 คลื่นดาบระยะ 260 กว้าง 48 สูงสุด 4 เป้า ดาเมจ 90% · ฝึกอัตโนมัติ +7% ทุก 4 เลเวล สูงสุด 77% · ขั้นอาชีพ +30% ต่อขั้น · ไม่ใช้แต้ม' },
       { id: 'oathSlash', name: 'ฟันคำสัตย์', key: '2', lvl: 1, mp: 12, cd: 4000,
         evo: [{ lvl: 40, name: 'ฟันสัตย์พิพากษา', desc: 'พลังเพิ่ม 30% ระยะฟันเพิ่มเป็น 135' }],
         arbiter: { kind: 'single', range: 115, windup: 240, power: 1.7 }, desc: 'ฟันเป้าเดียว 170% ATK ระยะ 115 · เตรียมฟัน 0.24 วิ' },
@@ -383,7 +385,7 @@
       { id: 'astralBlades', name: 'ดาบบริวาร', key: '5', lvl: 7, mp: 24, cd: 20000,
         arbiter: { kind: 'astral', duration: 10000 },
         evo: [{ lvl: 90, name: 'ดาบบริวารดารา', desc: 'ดาบเสริมแรงขึ้น 30% บัพนานขึ้น 2 วิ' }, { lvl: 130, name: 'ดาบบริวารจักรฟ้า', desc: 'ดาบเสริมแรงขึ้นรวม 60% บัพนานขึ้นรวม 4 วิ · สูงสุดหนึ่งเป้าต่อครั้ง' }],
-        desc: 'เรียกดาบ 10 วิ: ตีธรรมดาโดนมีโอกาส 25% ฟันเสริม 35% ATK หนึ่งเป้า ทุก 2.5 วิ · อัปสเต็กเพิ่มพลังดาบ 5% และเวลา 0.25 วิ/สเต็ก · ไม่กระตุ้นเอฟเฟกต์ไอเทมซ้ำ' },
+        desc: 'เรียกดาบ 10 วิ: ตีธรรมดาโดนมีโอกาส 35% ฟันเสริม 35% ATK หนึ่งเป้า ทุก 2.5 วิ · อัปสเต็กเพิ่มพลังดาบ 5% และเวลา 0.25 วิ/สเต็ก · ไม่กระตุ้นเอฟเฟกต์ไอเทมซ้ำ' },
       { id: 'oathAegis', name: 'เกราะสัตย์', key: '6', lvl: 10, mp: 26, cd: 20000,
         evo: [{ lvl: 100, name: 'เกราะสัตย์สวรรค์', desc: 'เพิ่มการลดดาเมจอีก 3 จุดเปอร์เซ็นต์ นานขึ้น 1 วิ' }],
         arbiter: { kind: 'ward', duration: 5000, guard: .2 }, desc: 'ลดดาเมจตนเอง 20% นาน 5 วิ (PvP ใช้ 75% ของเกราะ) · อัปสเต็กเพิ่ม 0.4 จุดเปอร์เซ็นต์/สเต็ก · ธรรมะเสริมแม่นยำ 3% อธรรมเสริมหลบ 3% · ใช้เกราะที่แรงที่สุด' },
@@ -421,12 +423,12 @@
   const CLASS_IDS = Object.keys(CLASSES);          // snapshot index of a class
   // Fractions, not percentages. Both factions use the same combat rules.
   const CLASS_ROLES = {
-    arbiter: { evasion: .03, evasionG: .02, accuracy: .05, resistance: 0, aspd: 0, attackMove: .65, critPower: 1.6, manaRegen: .026 },
-    warrior: { evasion: 0.02, evasionG: 0.01, accuracy: 0.04, resistance: 0.15, aspd: 0, attackMove: 0.6, critPower: 1.5, manaRegen: 0.026 },
+    arbiter: { evasion: .03, evasionG: .02, accuracy: .05, resistance: 0, aspd: 0, attackMove: .65, critPower: 1.6, manaRegen: .034 },
+    warrior: { evasion: 0.02, evasionG: 0.01, accuracy: 0.04, resistance: 0.15, aspd: 0, attackMove: 0.6, critPower: 1.5, manaRegen: 0.034 },
     spearman: { evasion: 0.01, evasionG: 0.01, accuracy: 0.04, resistance: 0, aspd: 0, attackMove: 0.55, critPower: 1.5, manaRegen: 0.022 },
     dualblade: { evasion: 0.12, evasionG: 0.08, accuracy: 0.03, resistance: 0, aspd: 0.12, attackMove: 0.8, critPower: 1.75, manaRegen: 0.02 },
     archer: { evasion: 0.04, evasionG: 0.04, accuracy: 0.12, resistance: 0, aspd: 0, attackMove: 0.9, critPower: 1.6, manaRegen: 0.02 },
-    taoist: { evasion: 0.02, evasionG: 0.02, accuracy: 0.05, resistance: 0.3, aspd: 0, attackMove: 0.65, critPower: 1.6, manaRegen: 0.03 },
+    taoist: { evasion: 0.02, evasionG: 0.02, accuracy: 0.05, resistance: 0.3, aspd: 0, attackMove: 0.65, critPower: 1.6, manaRegen: 0.04 },
   };
   const roleOf = (cls) => CLASS_ROLES[cls] || CLASS_ROLES.dualblade;
   // Expiry times use the caller's clock (server Date.now / client performance.now).
@@ -543,20 +545,20 @@
   // ทวน: single-target spear skills hit this much harder against monsters only (never PvP) — boss-killer identity
   const SPEAR_PVE_MULT = 1.25;
   // นักพรต: mercy/nirvana instant healing; party allies retain the stronger share.
-  const TAOIST_SELF_HEAL_MULT = 1.25;
-  const TAOIST_ALLY_HEAL_MULT = 1.35;
+  const TAOIST_SELF_HEAL_MULT = 1.55;
+  const TAOIST_ALLY_HEAL_MULT = 1.7;
   // นักพรต farming alone (no party member within PARTY_RANGE): hits monsters harder and takes less from them.
   // Monsters only — never PvP — and it switches off the moment a party member is near (the healer role stays).
-  const TAOIST_SOLO = { dealt: 1.65, taken: 0.85 };
+  const TAOIST_SOLO = { dealt: 2.3, taken: 0.75 };
   // นักพรต passive from น้ำทิพย์ชโลมชีวา (skill 3, once learned): every `everyMs` the caster and party members within
   // `range` heal a share of their own max HP: `min` at skill level 1 up to `max` at SKILL_MAX, +`evo` once evolved.
   // A player on the PvP map or with field PvP on gets `pvp` of it. Several นักพรต do not stack on one player.
-  const TAOIST_MERCY_AURA = { everyMs: 5000, min: 0.02, max: 0.06, evo: 0.01, pvp: 0.5, range: 480 };
+  const TAOIST_MERCY_AURA = { everyMs: 5000, min: 0.025, max: 0.07, evo: 0.01, pvp: 0.5, range: 480 };
   // นักรบแนวหน้า farming alone (no party member within PARTY_RANGE): hits monsters harder. Monsters only, never PvP.
-  const WARRIOR_SOLO = { dealt: 1.6 };
+  const WARRIOR_SOLO = { dealt: 2.3 };
   // นักรบแนวหน้า: frontline skills 2–9 (not the basic attack ดาบพิทักษ์) hit monsters this much harder, solo or in a
   // party; stacks with WARRIOR_SOLO. Monsters only, never PvP.
-  const WARRIOR_PVE_SKILL = 1.35;
+  const WARRIOR_PVE_SKILL = 1.8;
   // นักรบแนวหน้า passive โล่หนาม from ตั้งโล่เหล็ก (skill 3, once learned): a blow taken sends `base` of its damage back
   // to the attacker, `guard` while ตั้งโล่เหล็ก is up; `pvp` of that against players; at most `capAtk` × the warrior's
   // ATK per blow. DoTs and reflected damage are never reflected; the reflection skips dodge, crits and damage bonuses.

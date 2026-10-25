@@ -61,15 +61,15 @@ try{
   });
   test('basic switches to bounded forward wave at Lv.30; line width, cap, walls',()=>{
     for(const lvl of [29,30,69,70,109,110,130]){const f=fixture(lvl);f.t.x=2220;cast(f);flush(f.w);assert.equal(f.t.hp<1e8,lvl>=30);}
-    const f=fixture(70);f.t.x=2200;const near=f.enemy(2100),third=f.enemy(2150),extra=f.enemy(2250),side=f.enemy(2150,2100),behind=f.enemy(1950),far=f.enemy(2400);
-    cast(f);flush(f.w);for(const t of [f.t,near,third])assert(t.hp<1e8);for(const t of [extra,side,behind,far])assert.equal(t.hp,1e8);
+    const f=fixture(70);f.t.x=2200;const near=f.enemy(2100),third=f.enemy(2150),fourth=f.enemy(2250),extra=f.enemy(2255),side=f.enemy(2150,2100),behind=f.enemy(1950),far=f.enemy(2400);
+    assert.equal(C.ARBITER.waveCap,4);cast(f);flush(f.w);for(const t of [f.t,near,third,fourth])assert(t.hp<1e8);for(const t of [extra,side,behind,far])assert.equal(t.hp,1e8);
   });
   test('resonance counts once per landed cast, consumes on sixth, misses do not stack',()=>{
     const f=fixture(30);f.p.skl.sk.oathResonance=1;f.w.applyDamage=()=>10;
     cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);now+=800; // Learning alone grants no passive.
     cast(f,'oathResonance');f.p.arbiterCombo=0;
     for(let i=0;i<5;i++){cast(f);flush(f.w);now+=800;assert.equal(f.p.oathStacks,i+1);}
-    let power;f.w.applyDamage=(p,t,v)=>{power=v;return 10;};cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);assert(Math.abs(power-1.1*1.3*C.arbiterPower(30,true))<1e-8);
+    let power;f.w.applyDamage=(p,t,v)=>{power=v;return 10;};cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);assert(Math.abs(power-C.ARBITER.combo[2]*1.3*C.arbiterPower(30,true))<1e-8);
     now+=800;f.w.applyDamage=()=>0;cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);
     now+=800;f.w.applyDamage=()=>10;f.enemy();f.enemy();cast(f,'arcblade');flush(f.w);assert.equal(f.p.oathStacks,1);
     reset(f);cast(f);flush(f.w);assert.equal(f.p.oathStacks,0);

@@ -1263,7 +1263,7 @@ class World {
       let targets, power = plan.power;
       if (plan.kind === 'basic') {
         p.arbiterCombo = ((p.arbiterCombo || 0) + 1) % 3;
-        power = plan.wave ? .75 : [.9, 1, 1.1][(p.arbiterCombo + 2) % 3];
+        power = plan.wave ? R.wavePower : R.combo[(p.arbiterCombo + 2) % 3];
       }
       if (plan.kind === 'line' || plan.wave) {
         const range = plan.wave ? R.wave : plan.range, width = plan.width || R.width;
