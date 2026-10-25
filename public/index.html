@@ -198,6 +198,7 @@
     <button id="pkBtn" type="button" title="สถานะ PvP (U)" data-label="PvP">⚔</button>
     <button id="rankBtn" type="button" title="อันดับผู้เล่น (R)" data-label="อันดับ">🏆</button>
     <button id="fundBtn" type="button" title="ระดมทุน (G)" data-label="ระดมทุน">🏮</button>
+    <button id="setBtn" type="button" title="ตั้งค่า · เสียง (V)" data-label="ตั้งค่า">⚙</button>
     <div id="botStatus" class="hidden"></div>
     <div id="followStatus" class="hidden"></div>
     <button id="chatBtn" type="button" title="แชท" data-label="แชท">💬</button>
@@ -404,6 +405,10 @@
         <div class="inv-hint">ดับเบิลคลิก/คลิกขวาไอเทมในกระเป๋า = ฝาก · ในคลัง = นำออก · ติ๊กหลายชิ้นในกระเป๋าแล้วกด "ฝาก N ชิ้น" · คลังของตัวละครนี้เท่านั้น</div>
       </div>
     </div>
+    <div id="setPanel" class="panel hidden" role="dialog" aria-label="ตั้งค่า">
+      <div class="panel-head"><span>⚙ ตั้งค่า</span><button class="close" type="button" aria-label="ปิด">✕</button></div>
+      <div id="setBody" class="set-body"></div>
+    </div>
     <div id="menuPanel" class="panel hidden" role="dialog" aria-label="เมนู">
       <div class="panel-head"><span>☰ เมนู</span><button class="close" type="button" aria-label="ปิด">✕</button></div>
       <div id="menuGrid" class="menu-grid"></div>
@@ -435,6 +440,7 @@
         <li><b>R</b> / 🏆 — อันดับผู้เล่น: เลเวล · สังหาร PvP · เทียบสองฝ่าย (อัปเดตทุก 1 นาที)</li>
         <li><b>G</b> / 🏮 — ระดมทุน: ทุกคนร่วมลงทอง ครบ 10,000,000 = ทั้งเซิร์ฟได้ EXP ×2 · ดรอป ×2 นาน 1 ชั่วโมง แล้วเริ่มรอบใหม่</li>
         <li class="kb"><b>Enter</b> — แชท · <b>H</b> — เปิด/ปิดหน้านี้</li>
+        <li><b>V</b> / ⚙ — ตั้งค่า: เปิด/ปิดเสียง ระดับเสียงเพลง · เสียงต่อสู้ · เสียงปุ่ม ตัวเลขความเสียหาย และการสั่นหน้าจอ</li>
       </ul>
       <p><b>แผนที่ล่ามอนสเตอร์</b> (ใช้ร่วมกันทั้งสองฝ่าย ไม่มี PvP): หมู่บ้านเซียนน้อย Lv.1–20 → ด่านผาหลิว 20–40 → ป่ามารสามเศียร 40–60 → จวนแม่ทัพร้าง 60–80 → ประตูเทพยุทธ์ 80–100 → วังน้ำแข็งทะเลเหนือ 100–115 → หุบเขาเพลิงทักษิณ 115–130 · มอนสเตอร์เลเวลสูงขึ้นเรื่อยๆ ไปทางตะวันออก บอสอยู่มุมตะวันออกเฉียงเหนือ เดินเข้าประตูท้ายแผนที่เพื่อไปแผนที่ถัดไป</p>
       <p>ค่ายพักทุกแผนที่เป็นเขตปลอดภัย มีร้านช่างตีดาบและ <b>ศิลาเคลื่อนย้าย</b> (วาร์ปไปแผนที่ใดก็ได้ที่เลเวลถึง)</p>
@@ -514,12 +520,14 @@
   <script src="js/who.js"></script>
   <script src="js/rank.js"></script>
   <script src="js/fund.js"></script>
+  <script src="js/settings.js"></script>
   <script src="js/panels.js"></script>
   <script src="js/skill-designs.js"></script>
   <script src="js/skill-choreo.js"></script>
   <script src="js/skill-arts.js"></script>
   <script src="js/skill-performance.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/sound.js"></script>
   <script src="js/touch-menu.js"></script>
 </body>
 </html>

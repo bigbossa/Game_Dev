@@ -707,7 +707,7 @@
     return { text: text.replace(l.label, '{i}'), item: l.key };
   };
   // ------------------------------------------------------------ big announcement (m.big): Mythic drops, +10
-  let annTimer = 0, audio = null;
+  let annTimer = 0;
   HUD.announce = function (m) {
     const el = $('announce');
     if (!el) return;
@@ -716,25 +716,9 @@
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');      // restart the animation
     clearTimeout(annTimer);
     annTimer = setTimeout(() => el.classList.remove('show'), 5000);
-    if (chatOpts.sound) chime();
+    // a short rising arpeggio (sound.js), on the notification volume of ⚙ ตั้งค่า
+    if (chatOpts.sound && window.SFX) SFX.play('announce', { mine: true, bus: 'ui' });
   };
-  // a short rising arpeggio made on the spot (no sound file); browsers only allow it after the first click / key
-  function chime() {
-    try {
-      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-      if (audio.state === 'suspended') audio.resume();
-      const t0 = audio.currentTime + 0.02;
-      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
-        const o = audio.createOscillator(), g = audio.createGain(), t = t0 + i * 0.09;
-        o.type = 'triangle'; o.frequency.value = f;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-        o.connect(g).connect(audio.destination);
-        o.start(t); o.stop(t + 0.95);
-      });
-    } catch (e) { /* no audio */ }
-  }
   // ------------------------------------------------------------ chat box shown / hidden (button on the box, L key)
   // remembered in the browser; while hidden, new messages are counted on the button
   HUD.unread = 0;

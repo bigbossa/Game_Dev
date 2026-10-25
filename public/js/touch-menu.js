@@ -13,7 +13,7 @@
     mapBtn: ['🗺', 'แผนที่', () => WMAP.toggle(true)],
     charBtn: ['⇄', 'เปลี่ยนตัวละคร', () => $('switchCharBtn').click()],
   };
-  const ITEMS = ['bookBtn', 'statBtn', 'mapBtn', 'whoBtn', 'pkBtn', 'rankBtn', 'fundBtn', 'helpBtn', 'fsBtn', 'charBtn'];
+  const ITEMS = ['bookBtn', 'statBtn', 'mapBtn', 'whoBtn', 'pkBtn', 'rankBtn', 'fundBtn', 'setBtn', 'helpBtn', 'fsBtn', 'charBtn'];
   for (const id of ITEMS) {
     let b = $(id);
     if (!b) {

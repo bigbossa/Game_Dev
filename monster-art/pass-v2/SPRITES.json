@@ -1,0 +1,61 @@
+{
+  "generator": "built-in image_gen",
+  "reference": "monster-lineup-concept.png",
+  "layout": {
+    "columns": [
+      "S",
+      "SE",
+      "E",
+      "NE",
+      "N",
+      "NW",
+      "W",
+      "SW"
+    ],
+    "rows": [
+      "walkA",
+      "idle",
+      "walkB",
+      "attack"
+    ]
+  },
+  "prompt": "Use case: stylized-concept. Transform the specified ONE creature from the reference concept into a production transparent 2D painted chibi wuxia RPG sprite sheet. Preserve reference identity, anatomy, colors and materials. EXACTLY 8 equal columns by 4 equal rows, 32 complete separate full-body poses. Landscape 1536x1024. Columns left to right: S facing viewer, SE facing bottom-right, E right profile, NE back-right, N completely back facing away, NW back-left, W left profile, SW front-left. Rows top to bottom: walk stride A, neutral idle, walk stride B with opposite limbs, melee attack contact. Elevated orthographic game camera about 25 degrees. Every pose same body scale and design, centered in its cell, generous transparent gutters around every cell; all tails, weapons and wings fit. No overlap between cells. Clearly distinct front, side and REAR views; no face on back of head. Walking poses have visibly different limb positions, not duplicates. Transparent RGBA alpha background, no floor, no ground shadow, no scenery, text, labels, grid, border, effects clouds or detached objects. Rich precise painted shading, crisp readable silhouettes. Only the selected species, never the other creatures. Subject: ",
+  "species": [
+    {
+      "id": "scorpion",
+      "name": "แมงป่องผาทราย",
+      "subject": "The sand-bronze SCORPION at upper left of the lineup. Low real scorpion with eight slender articulated walking legs, two broad pincers and ONE continuous segmented tail curled above back, orange pointed stinger. Ochre chitin, dark brown joints, small dark eyes. Walk alternating legs, idle steady with pincers apart, attack one pincer thrust forward. Keep tail and all legs connected. Rear view shows back and rear of tail, not face. No ground flame or particles."
+    },
+    {
+      "id": "passbandit",
+      "name": "โจรคลุมหน้าด่านผา",
+      "subject": "The masked SPEAR BANDIT in top middle of lineup. Adult chibi human in charcoal-indigo hood and lower-face mask, dusty gray violet layered cloth, muted ochre trim, brown wrist wraps and shoes, small travel pouch. Exactly ONE wooden spear with silver iron tip, held in two hands; keep it diagonal and contained inside each cell. No sword or straw hat. Walk alternating feet, idle knees slightly bent, attack thrusts spear forward, rear views show hood back and no face. Spear stays connected to hands."
+    },
+    {
+      "id": "golem",
+      "name": "ยักษ์หินผาหลิว",
+      "subject": "The broad LIMESTONE GOLEM at top right of normal monsters. Squat blocky humanoid with two massive rock arms, two short thick rock legs, small recessed stone head and two tiny cyan eyes. Warm gray and cream layered limestone chipped edges, sparse moss and attached short willow roots in crevices. Walk heavy opposing arms/legs, idle both fists low, attack extends ONE stone fist. All rock blocks connected, no floating boulders or particles. Rear views have no eyes."
+    },
+    {
+      "id": "ironeagle",
+      "name": "อินทรีปีกเหล็ก",
+      "subject": "The IRONWING EAGLE at bottom left of lineup. Dark charcoal slate feathered eagle with white-silver crest, gold hooked beak and talons, outer flight feathers silver steel-like but anatomical feathers. TWO wings, two feet, short tail. Compact wings half-folded in idle; walk rows are two different restrained flapping phases, attack leans forward and extends talons. Keep entire wings inside every cell using bent-wing compact poses; do not stretch wide horizontally. Rear shows back feathers and crest back, no face on back. No robot parts, perch, rock or equipment."
+    },
+    {
+      "id": "fireleopard",
+      "name": "เสือดาวลายเพลิง",
+      "subject": "The FIRE-SPOTTED LEOPARD in bottom middle. Four-legged lean orange-amber leopard with cream belly/muzzle, dark brown ROSETTE SPOTS (not tiger stripes), long spotted tail with a small ember-orange tip and a few warm orange accents inside rosettes. No detached fire or glow clouds. Walk opposite diagonal pairs of four paws, idle low predatory stance, attack reaches ONE front paw forward in claw swipe, remain quadrupedal. Rear view shows hindquarters and tail, no face on rump."
+    },
+    {
+      "id": "sandnaga",
+      "name": "นาคาผาทรายทอง",
+      "subject": "The GOLDEN SAND NAGA in bottom right normal creature cell. One continuous thick golden-ochre cobra snake coiled on ground, ivory segmented belly, wide hood with dark bronze chevrons, TWO SHORT backward ivory horns on head, narrow amber-red eyes. No arms, legs, wings, clothing or human torso. Walk rows are opposite left/right slithering coil positions, idle compact upright neck, attack neck extended forward with small open fanged mouth. Rear view shows back of hood with gold scales and dark chevrons, no belly or face on back. Keep continuous complete body coils."
+    },
+    {
+      "id": "banditlord",
+      "name": "ขุนโจรดาบโลหิต",
+      "reference": "banditlord-concept.png",
+      "subject": "The HUMAN BLOODBLADE BANDIT LORD shown in the boss reference. Compact chibi adult male, broad shoulders, tan stern face, black moustache and short beard. Low blue-black iron helmet with brass trim and short burgundy crest. Oxblood robe, dark burgundy split cape, blue-black lamellar shoulder/waist plates with muted brass cloud edges, wrapped dark boots, small jade seal at waist. ONE large curved silver single-edged DAO with dark red blade inset and small red hilt tassel, held consistently in RIGHT hand. No demon traits or additional swords. Walk opposite feet and subtle cape sway; idle dao down/outward; attack low compact diagonal slash with bent knees, full sword inside cell. Back views show cape and helmet rear, no face. Preserve outfit across all 32 poses, no detached particles or blood."
+    }
+  ]
+}

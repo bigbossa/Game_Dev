@@ -623,6 +623,31 @@ body.touch .bag-check::after { left: 6px; top: 2px; width: 5px; height: 10px; }
 #fundBtn { position: absolute; right: 60px; bottom: 60px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); font-size: 18px; cursor: pointer; }
 #fundBtn.on { border-color: #ff9a3a; box-shadow: 0 0 10px rgba(255,140,40,0.7); }
 #fundBtn[data-pct]:not([data-pct=""])::after { content: attr(data-pct); position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); padding: 0 4px; border-radius: 6px; background: #3a2408; border: 1px solid var(--gold); color: #ffe39a; font-size: 9px; line-height: 13px; white-space: nowrap; }
+/* ⚙ ตั้งค่า (settings.js): sound volumes and switches, display options */
+#setBtn { position: absolute; right: 106px; bottom: 60px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); color: var(--gold); font-size: 19px; cursor: pointer; }
+#setPanel { left: 50%; top: 70px; transform: translateX(-50%); width: 400px; max-width: calc(100vw - 16px); max-height: calc(100vh - 160px); z-index: 22; }
+.set-body { padding: 4px 14px 14px; font-size: 13px; }
+.set-body section { padding: 6px 0 10px; border-bottom: 1px solid rgba(232,194,106,0.15); }
+.set-body h4 { margin: 6px 0 8px; color: var(--gold); font-size: 14px; }
+.set-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; cursor: pointer; }
+.set-row input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: var(--gold); flex: none; }
+.set-range { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; }
+.set-range b { color: #ffe39a; font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
+.set-range input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--gold); height: 22px; }
+.set-range small { grid-column: 1 / -1; color: var(--muted); font-size: 11px; }
+.set-body.muted .set-range, .set-body.muted .set-check:not(.set-switch) { opacity: 0.4; }
+/* the main sound switch: a pill toggle */
+.set-switch { justify-content: space-between; flex-direction: row-reverse; font-weight: 600; font-size: 14px; }
+.set-switch input { appearance: none; -webkit-appearance: none; position: relative; width: 44px !important; height: 24px !important; border-radius: 12px; background: rgba(255,255,255,0.18); transition: background .15s; cursor: pointer; }
+.set-switch input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.set-switch input:checked { background: linear-gradient(180deg, #ffe39a, #d9a640); }
+.set-switch input:checked::after { transform: translateX(20px); }
+.set-foot { display: flex; gap: 8px; margin-top: 12px; }
+.set-foot button { flex: 1; padding: 9px 8px; border-radius: 9px; border: none; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; color: #1a1206; background: linear-gradient(180deg, #ffe39a, #d9a640); }
+.set-foot button.ghost { color: var(--text); background: rgba(255,255,255,0.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); font-weight: 600; }
+.set-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+body.touch .set-row { padding: 9px 2px; }
+body.touch .set-range input { height: 30px; }
 #fundPanel { position: absolute; right: 14px; bottom: 108px; width: min(400px, calc(100vw - 28px)); max-height: min(72vh, 620px); }
 #fundPanel.hidden { display: none; }
 #fundBody { padding: 10px 12px 12px; font-size: 13px; }

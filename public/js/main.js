@@ -318,7 +318,7 @@
     else if (d.k === 1) { color = '#ff6a8a'; size = 15; }
     else if (d.c) { color = '#ffd33a'; size = 28; text = `${d.v}!`; }
     if (d.k === 2) { color = '#ff9a3a'; size = 16; }
-    FX.text(e.x, yy - 20, text, color, size);
+    if (SET.get('dmgNums')) FX.text(e.x, yy - 20, text, color, size);
     if (!mine && G.me && Math.hypot(e.x - G.me.x, e.y - G.me.y) < 500) G.lastTarget = { id: d.id, t: performance.now() };
   });
   socket.on('healed', (d) => {
@@ -766,7 +766,8 @@
     else if (k === 'g') FUND.toggle();
     else if (k === 'u') HUD.togglePk();
     else if (k === 'l') HUD.toggleChat();
-    else if (k === 'escape') { INV.closeAll(); GM.toggle(false); WARP.toggle(false); BOOK.toggle(false); STATS.toggle(false); GM.users(false); BOT.toggle(false); WMAP.toggle(false); RANK.toggle(false); FUND.toggle(false); PARTY.closeMenu(); setTarget(null); }
+    else if (k === 'v') SET.toggle();
+    else if (k === 'escape') { SET.toggle(false); INV.closeAll(); GM.toggle(false); WARP.toggle(false); BOOK.toggle(false); STATS.toggle(false); GM.users(false); BOT.toggle(false); WMAP.toggle(false); RANK.toggle(false); FUND.toggle(false); PARTY.closeMenu(); setTarget(null); }
   });
   addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
   addEventListener('blur', () => { keys.clear(); mouse.down = false; joyEnd({ pointerId: joy.id }); });
@@ -1861,7 +1862,8 @@
       cam.x = (G.map.w * TILE) / 2 + Math.sin(t * 0.07) * 1600;
       cam.y = (G.map.h * TILE) / 2 + Math.sin(t * 0.05) * 500;
     }
-    const sx = (Math.random() - 0.5) * FX.shake, sy = (Math.random() - 0.5) * FX.shake;
+    const shake = SET.get('shake') ? FX.shake : 0;               // ⚙ ตั้งค่า: สั่นหน้าจอ
+    const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
     const view = { w: VW / zoom, h: VH / zoom };
     view.x = cam.x - view.w / 2; view.y = cam.y - CY / zoom;
 
