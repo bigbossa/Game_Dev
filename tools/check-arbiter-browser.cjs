@@ -110,7 +110,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
           g.restore();g.fillStyle='#dceafa';g.font='17px sans-serif';g.fillText(sk.key+' · '+sk.name,x+20,y+310);
         });}finally{Object.assign(G.me,original);FX.list=[];}return c.toDataURL();
       })()`);
-      fs.writeFileSync(path.join(out,'skill-effects-'+faction+'-v4.png'),Buffer.from(effects.split(',')[1],'base64'));
+      fs.writeFileSync(path.join(out,'skill-effects-'+faction+'-v5.png'),Buffer.from(effects.split(',')[1],'base64'));
     }
     // Self-contained flipbook from the real renderer: no preview server needed to review it later.
     const flipbook=await run(`(()=>{
@@ -119,24 +119,25 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       try{for(const faction of ['dharma','adharma'])for(let frame=0;frame<32;frame++){
         Object.assign(G.me,{x:0,y:0,faction,dead:false});const ms=frame*62.5;
         g.fillStyle='#101c2b';g.fillRect(0,0,c.width,c.height);g.fillStyle='#efd8a8';g.font='22px sans-serif';
-        g.fillText('เทวทัณฑ์ · เอฟเฟกต์ใหม่ V4 · '+(faction==='dharma'?'ธรรมะ':'อธรรม'),24,32);
+        g.fillText('เทวทัณฑ์ · เอฟเฟกต์ใหม่ V5 · '+(faction==='dharma'?'ธรรมะ':'อธรรม'),24,32);
         C.CLASSES.arbiter.skills.filter(s=>s.arbiter).forEach((sk,i)=>{
           const s=C.arbiterSpec(sk,12,sk.evo.length),x=i%3*380,y=50+Math.floor(i/3)*300;
           const buff=({resonance:'resonance',astral:'blades',ward:'ward',form:'form'})[s.kind];
           const wind=s.windup||0,phase=buff||(ms<wind?'windup':'release');
           const dur=buff?(buff==='ward'||buff==='form'?s.duration:700):phase==='windup'?wind:400;
-          FX.list=[];ArbiterLook.play({id:G.me.id,skill:sk.id,token:i,r:sk.evo.length,f:faction,x:0,y:0,a:0,
+          FX.list=[];G.me.atk=null;ArbiterLook.play({id:G.me.id,skill:sk.id,token:i,r:sk.evo.length,f:faction,x:0,y:0,a:0,
             phase,dur,radius:s.radius||s.range||80,width:s.width||24,combo:1});
+          if(G.me.atk?.arbiter)G.me.atk.t0=1000+(phase==='release'?wind:0);
           g.save();g.beginPath();g.rect(x+4,y,372,264);g.clip();g.translate(x+180,y+184);g.scale(.7,.7);
           const elapsed=buff||phase==='windup'?ms:ms-wind;
           for(const fx of FX.list.filter(f=>f.layer==='ground'))fx.draw(g,Math.min(1,elapsed/fx.dur));
-          ArbiterLook.draw(g,{...G.me,lvl:1,wt:0},{dir:0,frame:1,atk:phase==='release'&&elapsed<350},0,0,.55,1000+ms);
+          ArbiterLook.draw(g,{...G.me,lvl:1,wt:0},ArbiterLook.frame(G.me,1000+ms),0,0,.55,1000+ms);
           for(const fx of FX.list.filter(f=>f.layer!=='ground'))fx.draw(g,Math.min(1,elapsed/fx.dur));
           g.restore();g.font='16px sans-serif';g.fillStyle='#dceafa';g.fillText(sk.key+' · '+sk.name,x+20,y+285);
         });frames[faction].push(c.toDataURL());
       }}finally{Object.assign(G.me,saved);FX.list=[];}return frames;
     })()`);
-    fs.writeFileSync(path.join(out,'skill-effects-v4.html'),`<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>เทวทัณฑ์ · เอฟเฟกต์ V4</title>
+    fs.writeFileSync(path.join(out,'skill-effects-v5.html'),`<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>เทวทัณฑ์ · เอฟเฟกต์ V5</title>
       <style>body{margin:0;background:#101c2b;color:#e4eaf2;font:16px system-ui;text-align:center}nav{padding:12px;position:sticky;top:0;background:#101c2bee}button,select{font:inherit;padding:8px 16px;margin:4px;border:1px solid #6c92ac;border-radius:8px;background:#20364a;color:inherit}img{width:min(100%,1140px);display:block;margin:auto}input{width:200px;vertical-align:middle}</style>
       <nav><select id="faction" aria-label="ฝ่าย"><option value="dharma">ธรรมะ</option><option value="adharma">อธรรม</option></select><button id="play">หยุดภาพ</button><input id="time" aria-label="จังหวะเอฟเฟกต์" type="range" min="0" max="31" value="0"><span>วงเตือน → ออกท่า → แสงจาง</span></nav><img id="view" alt="ตัวอย่างเอฟเฟกต์สกิลเทวทัณฑ์จากตัวเกม">
       <script>const frames=${JSON.stringify(flipbook)};let playing=true,index=0;const view=document.getElementById('view'),time=document.getElementById('time'),faction=document.getElementById('faction'),play=document.getElementById('play');function show(){view.src=frames[faction.value][index];time.value=index}play.onclick=()=>{playing=!playing;play.textContent=playing?'หยุดภาพ':'เล่นภาพ'};time.oninput=()=>{index=Number(time.value);playing=false;play.textContent='เล่นภาพ';show()};faction.onchange=show;setInterval(()=>{if(playing){index=(index+1)%32;show()}},62.5);show();</script></html>`);
@@ -165,6 +166,50 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       }finally{Object.assign(G.me,saved);FX.list=[];}return n;
     })()`);
     assert.equal(samples,380);console.log('PASS: '+samples+' FX samples, canvas state, icon uniqueness, FX budget, warning cancellation and buff death cleanup.');
+    const timing=await run(`(()=>{
+      const saved={...G.me},g=document.createElement('canvas').getContext('2d');
+      let swords=0;const originalBlade=ArbiterLook.drawJudgmentBlade;
+      try{
+        Object.assign(G.me,{x:0,y:0,dead:false,ritual:null,atk:null});
+        const cast={id:G.me.id,skill:'finalVerdict',token:701,x:0,y:0,a:0,dur:1200,phase:'windup'};
+        ArbiterLook.play(cast);let a=G.me.atk;
+        if(ArbiterLook.frame(G.me,a.t0+1100).frame!==0)throw Error('Anticipation must hold until release');
+        ArbiterLook.play({...cast,phase:'release'});a=G.me.atk;
+        if(ArbiterLook.frame(G.me,a.t0).frame!==1||ArbiterLook.frame(G.me,a.t0+180).frame!==2)throw Error('Release / recovery pose');
+        if(ArbiterLook.skillPose(G.me,a.t0+250).dx!==0)throw Error('Pose survived recovery');
+        ArbiterLook.play({...cast,token:702});ArbiterLook.play({id:G.me.id,token:701,phase:'cancel'});
+        if(G.me.atk?.arbiter?.token!==702)throw Error('Stale cancel erased new cast');
+        ArbiterLook.play({id:G.me.id,token:702,phase:'cancel'});if(G.me.atk)throw Error('Cast pose not cancelled');
+        ArbiterLook.play(cast);G.me.dead=true;ArbiterLook.frame(G.me);G.me.dead=false;
+        if(G.me.atk||ArbiterLook.skillPose(G.me,performance.now()).lean!==0)throw Error('Pose revived after death');
+        G.me.ritual={until:performance.now()-1};ArbiterLook.play({...cast,phase:'release'});
+        if(!G.me.atk?.arbiter||ArbiterLook.skillPose(G.me,G.me.atk.t0).dx===0)throw Error('Expired ultimate blocked normal pose');
+        const oldAttack=G.me.atk;G.me.ritual={until:performance.now()+10000};ArbiterLook.play(cast);
+        if(G.me.atk!==oldAttack||ArbiterLook.skillPose(G.me,performance.now()).dx!==0)throw Error('Normal pose overlaps active ultimate');
+        G.me.ritual=null;
+        for(const faction of ['dharma','adharma']){
+          FX.list=[];G.me.ritual=null;
+          const sk=C.ALL_SKILLS.oathGenesis;
+          AscendedSkills.play({t:'ritualStart',id:G.me.id,skill:sk.id,cls:'arbiter',f:faction,x:100,y:50,a:0,radius:sk.ritual.radius,cast:sk.ritual.cast});
+          const nodes=FX.list.filter(n=>n.arbiterSword);
+          if(nodes.length!==7)throw Error('Seven judgment swords required');
+          for(const [i,n]of nodes.entries()){
+            const positions=[];ArbiterLook.drawJudgmentBlade=(ctx,x,y)=>positions.push({x,y});
+            for(const elapsed of [0,70,140,210]){
+              g.setTransform(1,0,0,1,60,80);g.globalAlpha=.63;n.draw(g,elapsed/n.dur);
+              const tr=g.getTransform();if(tr.e!==60||tr.f!==80||Math.abs(g.globalAlpha-.63)>.001||g.globalCompositeOperation!=='source-over')throw Error('Sword canvas state');
+            }
+            const ground=50+Math.sin(-Math.PI/2+i*Math.PI*2/7)*sk.ritual.radius*.82*.55;
+            if(Math.abs(positions[0].y-(ground-260))>.01||positions[1].y<=positions[0].y||positions[1].y>=ground||Math.abs(positions[2].y-ground)>.01||positions[3].y!==positions[2].y)throw Error('Sword lands before its server hit '+i);
+            swords++;
+          }
+          AscendedSkills.play({t:'ritualCancel',id:G.me.id,skill:sk.id});
+          if(FX.list.some(n=>n.arbiterSword))throw Error('Cancelled swords survived');
+        }
+      }finally{ArbiterLook.drawJudgmentBlade=originalBlade;Object.assign(G.me,saved);G.me.atk=null;G.me.ritual=null;FX.list=[];}
+      return swords;
+    })()`);
+    assert.equal(timing,14);console.log('PASS: 14 sword falls land on their own hit, cast anticipation/release/recovery, stale cancellation and death cleanup.');
     // ฟันคำสัตย์'s dash trail keeps the canvas state, and the dash glides my own character to the server's spot
     assert(await run(`(()=>{
       const c=document.createElement('canvas');c.width=400;c.height=400;const g=c.getContext('2d');FX.list=[];
@@ -244,5 +289,5 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
     console.log('PASS: evolution milestones, ordinary levels, no duplicate wing/aura layers, level FX state and death cleanup.');
     await pause(150);assert.equal(errors.length,0,JSON.stringify(errors));
     console.log('PASS: browser boot, class selection, 1,008 directional/level/pose renders, 22 skill icons, live FX, the dash trail, both Lv.120/130 arts and eight active skill evolution cards. '+out);
-  }finally{if(ws)ws.close();preview.kill();}
+  }finally{if(ws)ws.terminate();preview.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

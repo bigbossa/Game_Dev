@@ -1,4 +1,4 @@
-// Divine Arbiter: shared visual language for nine readable icons and authoritative skill FX.
+// Divine Arbiter: eleven icons, sword heraldry and server-timed skill FX.
 (function () {
   const A = window.ArbiterLook, TAU = Math.PI * 2, cache = new Map();
   const clamp = v => Math.max(0, Math.min(1, v));
@@ -127,7 +127,7 @@
     const c=document.createElement('canvas');c.width=c.height=112;c.getContext('2d').drawImage(cache.get(key),0,0);return c;
   };
 
-  // Combat V4: tapered silk-light trails, prismatic petals and restrained bloom.
+  // Combat V5: sword heraldry, tapered trails and restrained bloom.
   // No random values per frame: strands stay attached to the motion instead of flickering.
   function ribbon(g,p,r,start,sweep,width,flatten=1) {
     const point=(u,inner)=>{
@@ -164,17 +164,41 @@
       if(i%4===0)star(g,x,y,3+i%3,p,a);else petal(g,p,x,y,a+t,6+i%5);g.restore();
     }
   }
-  function lance(g,p,height,width) {
-    const grad=g.createLinearGradient(0,-height,0,0);grad.addColorStop(0,p.main+'00');grad.addColorStop(.4,p.main+'60');grad.addColorStop(.88,p.core);grad.addColorStop(1,p.edge);
-    shape(g,[[-width,-height],[width,-height],[width*.55,-height*.2],[0,0],[-width*.55,-height*.2]],grad);
-    line(g,[[0,-height*.86],[0,-height*.1]],p.core,1.8);
-    for(const s of [-1,1])line(g,[[s*width*2.3,-height*.88],[s*width*1.5,-height*.35]],p.main+'90',.8);
+  // An open heraldic seal; the centre stays clear enough to see the fighter.
+  function edict(g,p,r,turn=0,marks=6) {
+    g.save();g.rotate(turn);g.lineWidth=1;
+    for(let i=0;i<marks;i++){
+      const a=i*TAU/marks;
+      g.strokeStyle=i%2?p.main+'aa':p.edge+'cc';g.beginPath();
+      g.arc(0,0,r,a+.09,a+TAU/marks-.09);g.stroke();
+      g.save();g.rotate(a);shape(g,[[r-7,0],[r-14,-3],[r-19,0],[r-14,3]],null,p.edge,1);g.restore();
+    }g.restore();
   }
+  function fallingSword(g,p,height,opacity=1) {
+    g.save();g.globalAlpha*=opacity;
+    const scale=height/82;
+    // sword() points up; rotate it and place its tip at the impact origin.
+    sword(g,0,-62*scale,Math.PI,scale,p);
+    g.restore();
+  }
+  A.drawJudgmentBlade=(g,x,y,height,faction,opacity=1)=>{
+    g.save();g.translate(x,y);fallingSword(g,palette(faction),height,opacity);g.restore();
+  };
 
   A.play = d => {
     const key=d.id+':'+d.token,sk=C.ALL_SKILLS[d.skill],spec=sk?.arbiter;
+    const caster=window.G?.ents?.get(d.id);
+    if(d.phase==='cancel'&&caster?.atk?.arbiter?.token===d.token)caster.atk=null;
     if(d.phase==='cancel'||d.phase==='release')FX.list=FX.list.filter(f=>f.arbiterToken!==key);
     if(d.phase==='cancel'||!spec||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;
+    if(caster&&!caster.dead&&!window.AscendedSkills?.active(caster)&&(d.phase==='windup'||d.phase==='release')){
+      // Do not let an older cast's release erase the newer anticipation pose.
+      if(d.phase==='windup'||!caster.atk?.arbiter||caster.atk.arbiter.token===d.token){
+        caster.atk={kind:d.skill,t0:performance.now(),dir:C.dirFromAngle(d.a||0),a:d.a||0,
+          dur:d.phase==='windup'?Math.max(1,d.dur||spec.windup||180):220,
+          arbiter:{token:d.token,phase:d.phase}};
+      }
+    }
     const p=palette(d.f),rank=Math.max(0,Math.min(2,d.r||0));
     const warning=d.phase==='windup'&&spec.kind==='verdict',windup=d.phase==='windup';
     const follow=['ward','form','resonance','blades'].includes(d.phase),persistent=['ward','form'].includes(d.phase);
@@ -203,27 +227,42 @@
           g.strokeStyle=p.edge;g.lineWidth=1.5;g.stroke();g.strokeStyle=p.core;g.lineWidth=2.5;
           g.beginPath();g.arc(0,0,radius-4,-Math.PI/2,-Math.PI/2+TAU*t);g.stroke();
           for(let i=0;i<6;i++){const a=i*TAU/6;const x=Math.cos(a)*radius*.83,y=Math.sin(a)*radius*.83;
-            petal(g,p,x,y,a-Math.PI/2,18+18*t,.4+.5*t);}
+            g.save();g.translate(x,y);g.rotate(a+Math.PI/2);diamond(g,0,0,5+5*t,p);g.restore();}
+          edict(g,p,radius*.65,-t*.12);
           g.save();g.rotate(t*.25);shape(g,[[0,-30],[26,15],[-26,15]],null,p.main+'99');
           shape(g,[[0,30],[26,-15],[-26,-15]],null,p.edge+'99');g.restore();star(g,0,0,9+9*t,p);
           g.restore();return;
         }
         g.globalAlpha*=persistent?Math.min(1,t*20,out*8)*.65:windup?.3+.6*t:Math.min(1,out*3);
         if(windup){
+          if(spec.kind==='circle'){
+            edict(g,p,radius*.72,-t*.4);
+            for(let i=0;i<4;i++){const a=i*TAU/4+t*.6;
+              sword(g,Math.cos(a)*radius*.62,Math.sin(a)*radius*.62,a+Math.PI/2,.32,p);}
+            g.restore();return;
+          }
           g.translate(0,-18);g.rotate(d.a||0);
-          ribbon(g,p,40+22*(1-t),-1.6+t*.5,1.8,3+5*t,.65);
-          for(let i=0;i<5;i++){const a=i*2.39996,r=65*(1-t)+12;star(g,Math.cos(a)*r,Math.sin(a)*r*.6,1+2*t,p);}
+          if(spec.kind==='line'||d.wave){
+            // Thin channel reads the aim without implying damage before release.
+            const len=Math.min(radius,50+radius*t);
+            for(const side of [-1,1])line(g,[[12,side*9],[len,side*3]],p.main+'75',1);
+            diamond(g,26,0,6+7*t,p);
+          }else{
+            ribbon(g,p,40+22*(1-t),-1.6+t*.5,1.8,spec.kind==='basic'?3:6,.65);
+            if(spec.kind!=='basic')for(let i=0;i<3;i++){const a=i*2.39996,r=50*(1-t)+12;star(g,Math.cos(a)*r,Math.sin(a)*r*.6,1+2*t,p);}
+          }
           g.restore();return;
         }
         if(follow){
           const seconds=t*duration/1000;
           if(d.phase==='ward'){
-            // A translucent lotus shell: open at the face, strongest along the silhouette.
+            // Three faceted shields rotate at the sides, leaving the face visible.
             g.save();g.translate(0,-39);
-            for(let i=0;i<7;i++){const a=i*TAU/7+seconds*.22,x=Math.cos(a)*43,y=Math.sin(a)*17+35;
-              petal(g,p,x,y,Math.cos(a)*.5,66+Math.sin(a)*12,.55+.3*Math.sin(a));}
+            for(let i=0;i<3;i++){const a=i*TAU/3+seconds*.65;
+              g.save();g.translate(Math.cos(a)*51,Math.sin(a)*13+12);g.scale(.65,1);
+              g.globalAlpha*=.42+.26*(Math.sin(a)+1)/2;shield(g,p,.7);g.restore();}
             ribbon(g,p,53,seconds*.4,Math.PI*1.45,4,.36);g.restore();
-            star(g,0,-104,8,p,Math.sin(seconds)*.1);
+            diamond(g,0,-104,7,p);g.save();g.scale(1,.4);edict(g,p,55,-seconds*.2);g.restore();
           }else if(d.phase==='form'){
             // The model owns its wings. Ascending silk and a crown frame them without covering the torso.
             for(const side of [-1,1]){
@@ -237,11 +276,11 @@
             const pts=[];for(let i=0;i<5;i++){const a=i*TAU/5-Math.PI/2+t*.3;pts.push([Math.cos(a)*(28+ease*16),Math.sin(a)*(28+ease*16)]);}
             line(g,[pts[0],pts[2],pts[4],pts[1],pts[3],pts[0]],p.edge+'80',.8);
             for(const [x,y]of pts)star(g,x,y,6+Math.sin(t*Math.PI)*3,p);
-            ribbon(g,p,54,-t*2,Math.PI*1.25,7,.7);motes(g,p,t,75,10,20);
+            edict(g,p,52,-t*.4,5);ribbon(g,p,54,-t*2,Math.PI*1.25,5,.7);motes(g,p,t,75,6,20);
           }else{
-            // Summoning: three descending needles assemble into the model's orbiting blades.
+            // Three heraldic swords assemble into the model's orbiting blades.
             for(let i=0;i<3;i++){g.save();g.translate((i-1)*37,-45-Math.sin(i+1)*15);g.rotate((i-1)*.3);
-              lance(g,p,65,5);star(g,0,0,9,p);g.restore();}
+              fallingSword(g,p,65);star(g,0,0,6,p);g.restore();}
             ribbon(g,p,64,t*1.2,Math.PI*1.7,6,.3);motes(g,p,t,80,10,35);
           }
         }else if(d.phase==='step'){
@@ -251,26 +290,31 @@
           g.globalAlpha*=out;shape(g,[[0,-2],[L*ease,-9],[L*ease+14,0],[L*ease,9],[0,2]],trail);
           for(let i=1;i<5;i++)star(g,L*ease*i/5,Math.sin(i*2.1)*7,3,p);
         }else if(d.phase==='astral'){
-          g.translate(0,-8);g.rotate(-.45);lance(g,p,90*(1-t*.4),7);star(g,0,0,18*out+4,p);motes(g,p,t,47,8);
+          g.translate(0,-8);g.rotate(-.45);fallingSword(g,p,90*(1-t*.2),out);star(g,0,0,18*out+4,p);motes(g,p,t,47,6);
         }else if(d.phase==='release'){
           if(spec.kind==='verdict'){
-            // Damage lands on release: the lance is already touching the ground at t=0.
+            // Damage lands on release: the sword is already touching the ground at t=0.
             halo(g,0,-8,radius*.62,p,out*.65);
-            g.save();g.globalAlpha*=out;lance(g,p,240+rank*25,15+rank*3);
-            g.translate(0,-120);line(g,[[-41,-12],[-23,0],[23,0],[41,-12]],p.edge,2);
-            star(g,0,0,13,p);g.restore();
+            g.save();g.globalAlpha*=out;fallingSword(g,p,240+rank*25);
+            g.translate(0,-180);edict(g,p,40,t*.3);g.restore();
             star(g,0,-3,36*out+9,p,Math.PI/2);
             for(let i=0;i<3;i++)ribbon(g,p,radius*(.38+.58*ease)-i*10,i*TAU/3+t*.2,1.8,12*out+2,.42);
             for(let i=0;i<8;i++){const a=i*TAU/8;petal(g,p,Math.cos(a)*radius*.72*ease,Math.sin(a)*radius*.3*ease,a+Math.PI/2,36*out+12);}
             motes(g,p,t,radius,22,30);
           }else if(spec.kind==='circle'){
+            g.save();g.globalAlpha*=out*.6;edict(g,p,radius*.94,-t*.3);g.restore();
+            for(let i=0;i<6;i++){const a=i*TAU/6+ease*1.4,r=radius*(.55+.28*ease);
+              sword(g,Math.cos(a)*r,Math.sin(a)*r,a+Math.PI/2,.28+rank*.04,p);}
             for(let i=0;i<3;i++){
               const a=i*TAU/3+ease*2.5,r=radius*(.65+.3*ease);
               ribbon(g,p,r,a,1.8,15+rank*3,.66);
               star(g,Math.cos(a+1.8)*r,Math.sin(a+1.8)*r*.66,7,p,a);
-            }motes(g,p,t,radius,18);
+            }motes(g,p,t,radius,10);
           }else if(spec.kind==='line'||d.wave){
             g.rotate(d.a||0);const width=Math.max(8,d.width||24),x=radius*ease;
+            // The server hits the whole lane on release; show its core immediately.
+            g.save();g.globalAlpha*=Math.pow(out,4);line(g,[[0,0],[radius,0]],p.main+'88',width*.45);
+            line(g,[[0,0],[radius,0]],p.core,2);g.restore();
             for(const side of [-1,1]){
               const trail=g.createLinearGradient(0,0,Math.max(1,x),0);trail.addColorStop(0,p.main+'00');trail.addColorStop(.8,p.main+'65');trail.addColorStop(1,p.core);
               g.beginPath();g.moveTo(0,side*width*.2);g.bezierCurveTo(x*.4,side*width*.1,x*.8,side*width,x,0);
@@ -283,10 +327,11 @@
             g.translate(0,-14);g.scale(1,flip);
             const a=-1.75+ease*.7;
             ribbon(g,p,r,a,2.2,basic?12:23,.74);
-            if(basic&&(d.combo||0)===0){g.save();g.globalAlpha*=.45;ribbon(g,p,r*.82,-a-2.2,2.2,8,.74);g.restore();}
+            if(basic&&(d.combo||0)===0){g.save();g.globalAlpha*=.7;ribbon(g,p,r*.82,-a-2.2,2.2,10,.74);g.restore();
+              diamond(g,r*.7,0,10*out+3,p);}
             if(!basic){g.save();g.globalAlpha*=.55;ribbon(g,p,r*.83,a-.35,2.5,9,.74);g.restore();}
             star(g,Math.cos(a+2.2)*r,Math.sin(a+2.2)*r*.74,basic?7:12,p);
-            g.translate(r*.68,0);motes(g,p,t,basic?35:54,basic?7:13);
+            g.translate(r*.68,0);motes(g,p,t,basic?35:54,basic?3:9);
           }
         }
         g.restore();

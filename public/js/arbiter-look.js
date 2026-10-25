@@ -15,8 +15,23 @@
     A.ready = true;
   };
   A.frame = (e,now=performance.now()) => {
-    const a=e.atk,active=!!a&&now-a.t0<a.dur,progress=active?(now-a.t0)/a.dur:0;
+    if(e.dead && e.atk?.arbiter)e.atk=null;
+    const a=e.atk,active=!!a&&now>=a.t0&&now-a.t0<a.dur,progress=active?(now-a.t0)/a.dur:0;
+    if(active&&a.arbiter)return {atk:true,dir:a.dir,
+      frame:a.arbiter.phase==='windup'?0:progress<.55?1:2};
     return {atk:active,dir:active?a.dir:e.dir,frame:active?(progress<.28?0:progress<.84?1:2):CharacterMotion.walkFrame(e,1)};
+  };
+  // Render-only weight transfer. The server still owns feet, reach and damage.
+  A.skillPose = (e,now) => {
+    const a=e.atk,cast=a?.arbiter;
+    if(!cast||e.dead||window.AscendedSkills?.active(e,now)||now<a.t0||now>=a.t0+a.dur)return {dx:0,dy:0,lean:0};
+    const t=Math.max(0,Math.min(1,(now-a.t0)/a.dur)),windup=cast.phase==='windup';
+    const kind=C.ALL_SKILLS[a.kind]?.arbiter?.kind;
+    const weight=kind==='single'?1.3:kind==='basic'?.6:1;
+    const pulse=windup?Math.sin(t*Math.PI/2):Math.pow(1-t,2);
+    const step=(windup?-5:12)*weight*pulse,side=Math.cos(a.a||0);
+    return {dx:side*step,dy:Math.sin(a.a||0)*step*.4+(windup?3:0)*pulse,
+      lean:side*(windup?-.045:.07)*weight*pulse};
   };
   const palette = faction => faction === 'adharma'
     ? { plate: '#252039', light: '#645178', edge: '#ec647b', glow: '#bd79ff', cloth: '#380f2b', skin: '#d9acb1', hair: '#201c32' }
@@ -70,6 +85,8 @@
     const side=Math.cos(facing), attack=!!e.atk || F.atk;
     const swing=attack?Math.sin(Math.min(1,(now-(e.atk?.t0??now))/(e.atk?.dur||400))*Math.PI):0;
     g.save();g.translate(x,y);g.scale(scale,scale);
+    const skillPose=A.skillPose(e,now);
+    g.translate(skillPose.dx,skillPose.dy-70);g.rotate(skillPose.lean);g.translate(0,70);
     if(e.dead){g.globalAlpha=.35;g.rotate(-1.2);} else if(e.flash>0)g.filter=`brightness(${1+e.flash})`;
     const geometry=ModelTiers.info(ModelTiers.key(e.faction,F.atk,'arbiter'))?.frames[F.frame*8+C.DIR_COL[F.dir]];
     const orbit=pass=>{

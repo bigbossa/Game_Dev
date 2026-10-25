@@ -346,11 +346,11 @@
       for(let i=0;i<r.hits;i++){
         const hit=first+i*r.gap,[x,y]=Q(i);
         add(d,'move',hit-140,r.cast+600-(hit-140),'top',(g,p)=>{   // it drops from the sky, then stands until the finale fades
-          const el=hit-140+p*(r.cast+600-(hit-140)),fall=easeIn(clamp(el/140)),yy=y-30-(1-fall)*260;
+          const elapsed=p*(r.cast+600-(hit-140)),el=hit-140+elapsed,fall=easeIn(clamp(elapsed/140)),yy=y-30-(1-fall)*260;
           g.save();g.globalCompositeOperation='lighter';if(el>r.cast)g.globalAlpha*=1-(el-r.cast)/600;
           if(fall<1){const gr=g.createLinearGradient(x,yy-120,x,yy);gr.addColorStop(0,P[0]+'00');gr.addColorStop(1,P[1]+'aa');line(g,[[x,yy-120],[x,yy]],gr,8);}
-          glow(g,x,yy,34,P,.6);blade(g,x,yy-34,Math.PI,62,P);g.restore();
-        });
+          glow(g,x,yy,34,P,.45);ArbiterLook.drawJudgmentBlade(g,x,yy+30,94,d.f);g.restore();
+        },{arbiterSword:true,hitAt:hit,fallDuration:140});
         spark(d,x,y,hit,P,10,{up:60,grav:300,shake:3});
         add(d,'move',hit,500,'ground',(g,p)=>{g.save();g.globalAlpha*=1-p;g.translate(x,y);g.scale(1,.5);ring(g,0,0,10+p*40,P[1],3*(1-p)+.5);g.restore();});
       }
@@ -582,11 +582,13 @@
       glow(g,d.x,d.y-30,r.R*.5,P,.8);shield(g,d.x,d.y-40-ease(p)*30,0,90+40*ease(p),P);g.restore();});},
     judgment(d,r,P){shock(d,r,P);add(d,'impact',0,1000,'top',(g,p)=>{   // the oath sword stands planted in the heart
       g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=1-p*p;glow(g,d.x,d.y-40,r.R*.5,P,.8);
-      blade(g,d.x,d.y-10-(1-ease(p*4))*60,Math.PI,110,P);sparkle(g,d.x,d.y-20,40*(1-p*.5),P,p*2);g.restore();});},
+      ArbiterLook.drawJudgmentBlade(g,d.x,d.y,180,d.f);sparkle(g,d.x,d.y-20,28*(1-p*.5),P,p*2);g.restore();});},
     tribunal(d,r,P){shock(d,r,P,1300);add(d,'impact',0,1200,'top',(g,p)=>{   // a pillar of judgement and the wings spread wide
       g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=1-p;const W=36+18*(1-p);
-      const gr=g.createLinearGradient(d.x-W,0,d.x+W,0);gr.addColorStop(0,P[0]+'00');gr.addColorStop(.5,P[1]);gr.addColorStop(1,P[0]+'00');
-      g.fillStyle=gr;g.fillRect(d.x-W,d.y-420,W*2,420);for(const side of [-1,1])featherWing(g,d.x,d.y-60,side,130+70*ease(p),P,1);g.restore();});},
+      const gr=g.createLinearGradient(d.x-W,0,d.x+W,0);gr.addColorStop(0,P[0]+'00');gr.addColorStop(.5,P[1]+'70');gr.addColorStop(1,P[0]+'00');
+      g.fillStyle=gr;g.fillRect(d.x-W,d.y-360,W*2,360);
+      ArbiterLook.drawJudgmentBlade(g,d.x,d.y,300,d.f);
+      for(const side of [-1,1]){g.save();g.globalAlpha*=.45;featherWing(g,d.x+side*26,d.y-100,side,90+45*ease(p),P,1);g.restore();}g.restore();});},
     bastion(d,r,P){shock(d,r,P,1300);add(d,'impact',0,1200,'top',(g,p)=>{   // a dome of light closes over the fortress
       const R=r.R*(.6+.4*ease(p));g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=1-p;g.translate(d.x,d.y);
       g.beginPath();g.ellipse(0,0,R,R*.8,0,Math.PI,TAU);g.fillStyle=P[0]+'30';g.fill();g.strokeStyle=P[1];g.lineWidth=3;g.stroke();

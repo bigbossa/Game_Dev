@@ -458,8 +458,45 @@
     </div>
   </div>
 
-  <div id="loading" class="screen"><div class="spinner"></div><div>กำลังโหลดยุทธภพ...</div></div>
+  <!-- ===================== LOADING (loader.js; main.js boot reports each step) ===================== -->
+  <div id="loading" class="screen">
+    <div class="ld-sky"></div>
+    <div class="ld-mist m1"></div><div class="ld-mist m2"></div>
+    <svg class="ld-hills" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
+      <path class="h1" d="M0 300V170C80 140 140 90 220 120S340 60 430 80S560 150 650 130S790 40 880 70S1030 150 1110 120S1180 110 1200 115V300Z"/>
+      <path class="h2" d="M0 300V220C100 190 160 170 260 195S420 150 520 170S680 230 780 205S940 140 1040 175S1170 190 1200 195V300Z"/>
+      <path class="h3" d="M0 300V260C120 240 220 250 330 262S520 230 640 245S840 275 960 255S1140 250 1200 258V300Z"/>
+    </svg>
+    <svg class="ld-pagoda" viewBox="0 0 100 132" aria-hidden="true">
+      <path d="M49 2h2v12h-2zM26 24q6-2 10-6l14-6 14 6q4 4 10 6zM38 24h24v20H38zM16 54q8-2 12-6l22-8 22 8q4 4 12 6zM31 54h38v24H31zM6 88q8-2 12-6l32-10 32 10q4 4 12 6zM24 88h52v30H24zM14 118h72v8H14zM8 126h84v6H8z"/>
+      <circle cx="50" cy="4" r="2.6"/>
+      <g class="lamp"><rect x="47" y="28" width="6" height="9" rx="1"/><rect x="46" y="60" width="8" height="11" rx="1"/><rect x="45" y="96" width="10" height="15" rx="1"/></g>
+    </svg>
+    <div class="ld-embers" aria-hidden="true"></div>
+    <div class="ld-center">
+      <svg class="ld-taiji" viewBox="-50 -50 100 100" aria-hidden="true">
+        <g class="ld-ring"><circle r="47" /><path d="M0-47v6M33.2-33.2l-4.2 4.2M47 0h-6M33.2 33.2l-4.2-4.2M0 47v-6M-33.2 33.2l4.2-4.2M-47 0h6M-33.2-33.2l4.2 4.2"/></g>
+        <g class="ld-yy">
+          <circle r="38" fill="#c3262c"/>
+          <path d="M0-38A38 38 0 0 1 0 38A19 19 0 0 1 0 0A19 19 0 0 0 0-38Z" fill="#6cc4ff"/>
+          <circle cy="-19" r="5.5" fill="#6cc4ff"/><circle cy="19" r="5.5" fill="#c3262c"/>
+        </g>
+        <defs>
+          <radialGradient id="ldShade" cx="-14" cy="-16" r="60" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0.32"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.45"/></radialGradient>
+        </defs>
+        <circle r="38" fill="url(#ldShade)"/>
+        <circle r="38" fill="none" stroke="#e8c26a" stroke-width="1.2" stroke-opacity="0.7"/>
+      </svg>
+      <h1 class="title"><span class="t-d">ธรรมะ</span><span class="t-x">⚔</span><span class="t-a">อธรรม</span></h1>
+      <p class="ld-sub">ศึกสองขั้วแห่งยุทธภพ</p>
+      <div class="ld-bar" role="progressbar" aria-label="กำลังโหลดเกม" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div>
+      <div class="ld-status"><span id="ldText" aria-live="polite">กำลังโหลดไฟล์เกม</span><b id="ldPct">0%</b></div>
+      <div id="ldFail" class="ld-fail hidden"><p id="ldFailMsg"></p><button type="button" class="gold-btn" id="ldRetry">ลองใหม่</button></div>
+    </div>
+    <p class="ld-tip"><b>💡 เคล็ดลับ</b><span id="ldTip"></span></p>
+  </div>
 
+  <script src="js/loader.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/shared/common.js"></script>
   <script src="/shared/village-map.js"></script>

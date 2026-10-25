@@ -48,15 +48,23 @@
 
   // ------------------------------------------------------------ boot
   const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  // each step tells the loading screen (loader.js) how far along it is and what it is doing
+  const step = (p, text) => LOADER.step(p, text);
   async function boot() {
     resize();
+    step(0.34, 'กำลังเตรียมยุทธภพ');
     SPR = await fetch('assets/sprites.json').then((r) => r.json());
+    step(0.38, 'กำลังปลุกสัตว์อสูร');
     // AI-drawn monster sheets (optional, tools/build-monsters.js)
     MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=pass-monsters-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
     // Load the replacement model directly; old bodies/masks must never re-enter this renderer.
+    step(0.44, 'จอมยุทธ์ดาบคู่กำลังลับดาบ');
     const weapMeta = await DualbladeModel.load(loadImg, IMG, SPR);
+    step(0.52, 'นักรบแนวหน้ากำลังยกโล่');
     await WarriorLook.load(loadImg);
+    step(0.57, 'เทวทัณฑ์กำลังจุติ');
     await ArbiterLook.load(loadImg);
+    step(0.61, 'กำลังจารึกอักษร');
     if (document.fonts && document.fonts.load) { try { await document.fonts.load('600 16px Kanit'); } catch (e) { /* font optional */ } }
     // level looks (hair / crown / wings / halo / horns) are measured on the ธรรมะ sheets; the อธรรม walk is its own
     // drawing (แผ่นออกแบบตัวละครฝ่ายอธรรม.png) and gets its own analysis
@@ -65,6 +73,7 @@
     if (SPR.attack) ModelTiers.analyse('attack', IMG['dharma-attack'], SPR.attack);
     DualbladeModel.register();
     // นักพรต: own sheets per faction, analysed for the level looks (hair, crowns, wings, halo / horns)
+    step(0.64, 'นักพรตกำลังเขียนยันต์');
     try {
       TAO = await fetch('assets/taoist-v2/taoist.json').then((r) => r.json());
       TaoistGear.register(TAO);
@@ -85,6 +94,7 @@
     // นักธนู (and any later class with its own sheets): walk + attack sheets per faction, analysed for the level looks
     for (const c of Object.values(C.CLASSES)) {
       if (!c.sheet || c.id === 'taoist') continue;
+      step(c.id === 'archer' ? 0.68 : 0.75, { archer: 'นักธนูกำลังขึงสายธนู', spearman: 'จอมทวนกำลังรำทวน' }[c.id] || `กำลังเตรียม${c.name}`);
       try {
         if(c.id==='archer'){
           const M=await ArcherModel.load(loadImg,IMG);
@@ -124,14 +134,17 @@
         OWN[c.id] = M;
       } catch (e) { console.warn(`ไม่พบสไปรต์${c.name} (npm run ${c.sheet})`, e); }
     }
+    step(0.88, 'กำลังตีอาวุธและชุดเกราะ');
     WeaponLook.init(IMG, SPR);
     for (const [cls, M] of Object.entries(OWN)) WeaponLook.setClassPoints(cls, M);   // where the weapon sparks come from
     if (weapMeta) WeaponLook.initArt(weapMeta);
     ArmorLook.init(IMG);
     Art.buildProps();
+    step(0.89, 'กำลังสร้างหมู่บ้านเซียนน้อย');
     await Promise.all([VillageArt.load(loadImg),PassArt.load(loadImg)]);
+    step(0.96, 'กำลังวาดแผนที่');
     await loadMap(C.START_MAP);                    // login backdrop; the character's own map loads on join
-    $('loading').classList.add('hidden');
+    LOADER.done();
     initLogin();
     requestAnimationFrame(frame);
   }
@@ -2028,6 +2041,6 @@
 
   boot().catch((err) => {
     console.error(err);
-    document.querySelector('#loading div:last-child').textContent = 'โหลดเกมไม่สำเร็จ: ' + err.message;
+    LOADER.fail(err.message);
   });
 })();
