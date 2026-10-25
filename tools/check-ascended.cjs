@@ -17,7 +17,7 @@ function fixture(cls,sk){
 try{
   assert.equal(C.BAR_KEYS.length,11);
   for(const cls of C.CLASS_IDS){
-    if(cls==='arbiter'){assert.equal(C.CLASSES[cls].skills.length,9);assert.equal(C.ALL_SKILLS.finalVerdict.lvl,70);continue;}
+    if(cls==='arbiter'){assert.equal(C.CLASSES[cls].skills.length,11);assert.equal(C.ALL_SKILLS.finalVerdict.lvl,70);}
     const endgame=C.CLASSES[cls].skills.filter(s=>['0','-'].includes(s.key));assert.equal(endgame.length,2);
     const arts=endgame.filter(s=>s.ritual);
     for(const lvl of [119,120,129,130]){

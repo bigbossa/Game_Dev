@@ -105,6 +105,15 @@
           g.save();g.translate(0,28);g.scale(1,.35);ring(g,41,p,0,12);g.restore();
           line(g,[[-16,-48],[-16,15]],p.main+'80',3);line(g,[[17,-48],[17,15]],p.edge+'80',2);
           sword(g,0,-19,Math.PI,1,p);halo(g,0,31,24,p);sparks(g,p,.7,43,8);break;
+        case 'oathFirmament': {
+          const pts=Array.from({length:6},(_,i)=>{const a=-Math.PI/2+i*TAU/6;return [Math.cos(a)*36,Math.sin(a)*36];});
+          for(const k of [0,1])line(g,[pts[k],pts[k+2],pts[k+4],pts[k]],k?p.edge:p.main,2);
+          sword(g,0,-24,Math.PI,.95,p);for(const [x,y] of pts)diamond(g,x,y,4,p);break;
+        }
+        case 'oathGenesis':
+          wings(g,p,1.2,.1);halo(g,0,-4,40,p);
+          for(let i=-1;i<=1;i++)sword(g,i*24,-30+Math.abs(i)*12,Math.PI,.5,p);
+          sword(g,0,-14,Math.PI,1.05,p);g.save();g.translate(0,32);g.scale(1,.3);ring(g,34,p,0,10);g.restore();break;
       }
       g.restore();g.shadowBlur=0;
       const border=g.createLinearGradient(0,0,112,112);border.addColorStop(0,p.edge);border.addColorStop(.45,p.metal);border.addColorStop(.7,p.deep);border.addColorStop(1,p.edge);
@@ -235,6 +244,12 @@
               lance(g,p,65,5);star(g,0,0,9,p);g.restore();}
             ribbon(g,p,64,t*1.2,Math.PI*1.7,6,.3);motes(g,p,t,80,10,35);
           }
+        }else if(d.phase==='step'){
+          // ฟันคำสัตย์'s dash: a ribbon of light from the old spot to the new one
+          const dx=(d.x1??d.x)-d.x,dy=(d.y1??d.y)-d.y,L=Math.hypot(dx,dy);g.translate(0,-26);g.rotate(Math.atan2(dy,dx));
+          const trail=g.createLinearGradient(0,0,Math.max(1,L),0);trail.addColorStop(0,p.main+'00');trail.addColorStop(.7,p.main+'90');trail.addColorStop(1,p.core);
+          g.globalAlpha*=out;shape(g,[[0,-2],[L*ease,-9],[L*ease+14,0],[L*ease,9],[0,2]],trail);
+          for(let i=1;i<5;i++)star(g,L*ease*i/5,Math.sin(i*2.1)*7,3,p);
         }else if(d.phase==='astral'){
           g.translate(0,-8);g.rotate(-.45);lance(g,p,90*(1-t*.4),7);star(g,0,0,18*out+4,p);motes(g,p,t,47,8);
         }else if(d.phase==='release'){

@@ -790,6 +790,11 @@ class World {
         p.ritual = null;
         fx({ t: 'ritualRelease', skill: sk.id, cls: p.cls, a, x, y, radius: spec.radius, recovery: spec.recovery });
         this.hitCircle(p, x, y, spec.radius, spec.damage * (1 - spec.share) * mult, { defK: 1 - spec.share });
+        if (spec.edict) {
+          // เทวทัณฑ์: the basic attack hits harder for a while; the newest art replaces the other one's edict
+          for (const o of C.CLASSES[p.cls].skills) if (o.ritual?.edict && o.id !== sk.id) delete p.buffs[o.id];
+          this.addBuff(p, sk.id, spec.edict.ms, { arbiterBasic: spec.edict.bonus }, spec.edict.bonus);
+        }
       });
       return;
     }
@@ -1203,13 +1208,19 @@ class World {
     if (Date.now() < (p.rootUntil || 0)) return null;
     if (C.safeAt(this.defOf(p), p.x, p.y)) return null;
     if (s.kind === 'basic' || s.kind === 'single') {
-      const range = s.kind === 'basic' && p.lvl >= 30 ? R.wave : s.range;
+      const range = s.kind === 'basic' && p.lvl >= 30 ? R.wave : s.range + (s.dash || 0);
       const target = this.slashTarget(p, a, range, Math.PI, d.tid);
       if (!target || (d.tid && target.id !== d.tid) || !this.arbiterClear(p, target)) return null;
       plan.target = target;
-      plan.range = range;
+      plan.range = s.kind === 'basic' ? range : s.range;
       plan.a = Math.atan2(target.y - p.y, target.x - p.x);
       plan.wave = s.kind === 'basic' && dist(p, target) > R.melee + radiusOf(target);
+      // ฟันคำสัตย์: a target out of reach is closed in on first (the dash stops at walls; the slash still needs reach)
+      if (s.dash && dist(p, target) > s.range + radiusOf(target)) {
+        const stop = dist(p, target) - radiusOf(target) - 60, [x, y] = this.dashEnd(p, plan.a, Math.min(s.dash, stop));
+        if (Math.hypot(target.x - x, target.y - y) > s.range + radiusOf(target)) return null;
+        plan.step = { x, y };
+      }
     }
     if (s.kind === 'verdict') {
       const x = Number(d.tx), y = Number(d.ty);
@@ -1226,18 +1237,25 @@ class World {
   }
   castArbiter(p, sk, plan, mult, now) {
     p.dir = C.dirFromAngle(plan.a);
+    const from = plan.step && { x: p.x, y: p.y };
+    if (from) {
+      // the dash: a swing still winding up from the old spot never lands
+      p.x = plan.step.x; p.y = plan.step.y; plan.x = p.x; plan.y = p.y; p.lastInput = now + 200;
+      p.arbiterTravel = (p.arbiterTravel || 0) + 1;
+    }
     const R = C.ARBITER, mapId = p.mapId, epoch = p.controlEpoch || 0, travel = p.arbiterTravel || 0;
     const token = p.arbiterSeq = (p.arbiterSeq || 0) + 1;
     const valid = () => this.alive(p) && p.mapId === mapId && (p.arbiterTravel || 0) === travel &&
       (p.controlEpoch || 0) === epoch && Date.now() >= (p.stunUntil || 0) && Date.now() >= (p.rootUntil || 0);
     const fx = data => this.fx(p, { t: 'arbiter', id: p.id, skill: sk.id, r: C.skillRankOf(p.skl, sk.id), token, mapId, a: plan.a, ...data });
+    if (from) fx({ phase: 'step', x: Math.round(from.x), y: Math.round(from.y), x1: Math.round(p.x), y1: Math.round(p.y), dur: 150 });
     if (plan.kind === 'ward') {
       this.addBuff(p, sk.id, plan.duration, { arbiterGuard: plan.guard,
         accuracy: p.faction === 'dharma' ? .03 : 0, evasion: p.faction === 'adharma' ? .03 : 0 }, plan.guard);
       fx({ phase: 'ward', x: p.x, y: p.y, dur: plan.duration }); return;
     }
     if (plan.kind === 'form') {
-      this.addBuff(p, sk.id, plan.duration, { arbiterForm: 1, arbiterDamage: plan.damage, aspd: plan.aspd }, plan.damage);
+      this.addBuff(p, sk.id, plan.duration, { arbiterForm: 1, arbiterDamage: plan.damage, aspd: plan.aspd, arbiterLeech: plan.leech }, plan.damage);
       fx({ phase: 'form', x: p.x, y: p.y, dur: plan.duration }); return;
     }
     if (plan.kind === 'resonance' || plan.kind === 'astral') {
@@ -1261,9 +1279,12 @@ class World {
       if (C.safeAt(this.defOf(p), p.x, p.y)) return;
       if (plan.target && !legal(plan.target, plan.wave ? R.wave : plan.kind === 'basic' ? R.melee : plan.range)) return;
       let targets, power = plan.power;
+      // ฟันคำสัตย์'s follow-up charges and the arts' edict add to the basic attack only
+      const edge = plan.kind === 'basic' && p.buffs?.oathSlash, edged = edge && Date.now() < edge.until && edge.charges > 0;
       if (plan.kind === 'basic') {
         p.arbiterCombo = ((p.arbiterCombo || 0) + 1) % 3;
-        power = plan.wave ? R.wavePower : R.combo[(p.arbiterCombo + 2) % 3];
+        power = (plan.wave ? R.wavePower : R.combo[(p.arbiterCombo + 2) % 3]) *
+          (1 + this.buffVal(p, 'arbiterBasic') + (edged ? edge.arbiterEdge : 0));
       }
       if (plan.kind === 'line' || plan.wave) {
         const range = plan.wave ? R.wave : plan.range, width = plan.width || R.width;
@@ -1278,13 +1299,22 @@ class World {
       const resonance = this.buffVal(p, 'oathResonance');
       if (!resonance) p.oathStacks = 0;
       const empowered = resonance && (p.oathStacks || 0) >= R.stacks;
-      let landed = null;
+      let landed = null, heal = 0;
+      const leech = plan.kind === 'basic' ? this.buffVal(p, 'arbiterLeech') : 0;
+      const opts = { onHitWeight: 1 / Math.max(1, targets.length) };
+      if (plan.slow) opts.slow = plan.slow;
+      if (plan.stun) opts.stun = plan.stun;
       for (const t of targets) {
-        const dealt = this.applyDamage(p, t, power * mult * (empowered ? 1 + resonance : 1),
-          { onHitWeight: 1 / Math.max(1, targets.length) });
+        const dealt = this.applyDamage(p, t, power * mult * (empowered ? 1 + resonance : 1), { ...opts });
         if (dealt > 0 && !landed) landed = t;
+        if (dealt > 0) heal += dealt * leech * (isPlayer(t) ? R.pvpLeech : 1);
       }
+      if (heal >= 1) this.healPlayer(p, Math.round(heal));
       if (landed && resonance) p.oathStacks = empowered ? 0 : Math.min(R.stacks, (p.oathStacks || 0) + 1);
+      if (landed && edged && --edge.charges <= 0) delete p.buffs.oathSlash;
+      if (landed && sk.id === 'oathSlash')
+        this.addBuff(p, sk.id, R.edge.ms, { arbiterEdge: R.edge.bonus, charges: R.edge.hits }, R.edge.bonus);
+      if (plan.kind === 'circle') p.arbiterCombo = 2;     // the next basic attack is the heavy third beat
       // One proc per basic cast, with its own clock; never recursively generates stacks or gear procs.
       const astral = this.buffVal(p, 'astralPower');
       if (landed && plan.kind === 'basic' && astral && Date.now() >= (p.astralAt || 0) && Math.random() < R.astralChance) {

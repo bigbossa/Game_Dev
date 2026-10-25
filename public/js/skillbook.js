@@ -58,7 +58,7 @@
     $('bookPanel').querySelector('.panel-head span').textContent = `📜 คัมภีร์วิชา${cls.name}`;
     const evolution = G.cls === 'arbiter' ? C.ARBITER_STAGES[C.arbiterStage(lvl)].name : '';
     let html = `<div class="bk-now">แต้มสกิลคงเหลือ <b class="sk-free">${S.free}</b> <small>(ได้ 1 แต้มทุกเลเวล)</small>` +
-      (evolution ? ` · <b>${esc(evolution)}</b> · ตีธรรมดาโตตาม Lv ×${C.arbiterPower(lvl,true).toFixed(2)} · 8 สกิลใช้แต้มเรียนและอัพขั้น` : ` · ขั้นวิชา <b>${st}</b>/13 ${esc(C.STANCES[st] || '')}`) +
+      (evolution ? ` · <b>${esc(evolution)}</b> · ตีธรรมดาโตตาม Lv ×${C.arbiterPower(lvl,true).toFixed(2)} · 8 สกิลและท่าไม้ตาย Lv.120/130 ใช้แต้มเรียนและอัพขั้น` : ` · ขั้นวิชา <b>${st}</b>/13 ${esc(C.STANCES[st] || '')}`) +
       `<div class="sk-tools"><label><input type="checkbox" id="skAuto"${S.auto ? ' checked' : ''}> อัปสกิลอัตโนมัติเมื่อเลเวลอัป</label>` +
       `<button type="button" class="sk-reset">รีเซ็ตสกิล${cost ? ` (${fmt(cost)} ทอง)` : ' (ฟรีก่อน Lv.30)'}</button></div>` +
       `<small class="sk-hint">เรียนสกิล → อัปสเต็ก (สูงสุด ${C.SKILL_MAX}) → อัพขั้นวิชาเมื่อถึงเลเวล · ลากการ์ดไปวางบนแถบสกิล หรือเลือก "ปุ่ม" เพื่อจัดตำแหน่ง</small></div>`;

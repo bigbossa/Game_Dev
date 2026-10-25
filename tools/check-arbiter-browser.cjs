@@ -32,7 +32,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       G.skl=C.cleanSkills('arbiter',null,130);G.skl.free=C.skillPtsFree(G.skl,130);HUD.init(e);HUD.cds={};
       window.arbiterFx=G.socket.listeners('fx')[0];BOOK.toggle(true);
     })()`);
-    assert(await run("[...document.querySelectorAll('select[data-bar]')].length===9 && [...document.querySelectorAll('select[data-bar]')].every(x=>!x.disabled)"));
+    assert(await run("[...document.querySelectorAll('select[data-bar]')].length===11 && [...document.querySelectorAll('select[data-bar]')].every(x=>!x.disabled)"));
     assert(await run("document.querySelector('.sk-card[data-id=\"oathResonance\"] .sk-pips').children.length===12"));
     assert(await run("document.querySelectorAll('.sk-card .sk-evos').length===8 && document.querySelectorAll('.sk-card[data-id=\"oathBasic\"] .sk-evos').length===0"));
     assert(await run("C.CLASSES.arbiter.skills.slice(1).every(s=>G.skl.bar.includes(s.id))"));
@@ -82,14 +82,14 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
     })()`);
     fs.writeFileSync(path.join(out,'directions.png'),Buffer.from(directions.split(',')[1],'base64'));
     const icons=await run(`(()=>{
-      const c=document.createElement('canvas');c.width=1360;c.height=390;const g=c.getContext('2d');g.fillStyle='#0b1422';g.fillRect(0,0,c.width,c.height);
+      const c=document.createElement('canvas');c.width=1680;c.height=390;const g=c.getContext('2d');g.fillStyle='#0b1422';g.fillRect(0,0,c.width,c.height);
       g.font='bold 24px sans-serif';g.fillStyle='#efca78';g.fillText('เทวทัณฑ์ · ไอคอนสกิลใหม่ / ธรรมะ & อธรรม',24,34);
       const seen=new Set();
       for(const [row,faction] of ['dharma','adharma'].entries())C.CLASSES.arbiter.skills.forEach((sk,i)=>{
         const im=ArbiterLook.icon(sk.id,faction),x=24+i*148,y=58+row*162;seen.add(im.toDataURL());g.drawImage(im,x,y);
         if(im===ArbiterLook.icon(sk.id,faction))throw Error('Shared DOM canvas');
         g.font='12px sans-serif';g.fillStyle='#d7e4f1';g.fillText(sk.key+' · '+sk.name,x,y+133);
-      });if(seen.size!==18)throw Error('Icons must be visually distinct');return c.toDataURL();
+      });if(seen.size!==22)throw Error('Icons must be visually distinct');return c.toDataURL();
     })()`);
     fs.writeFileSync(path.join(out,'skill-icons-v2.png'),Buffer.from(icons.split(',')[1],'base64'));
     for(const faction of ['dharma','adharma']){
@@ -97,7 +97,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
         const c=document.createElement('canvas');c.width=1200;c.height=1090;const g=c.getContext('2d');g.fillStyle='#101c2b';g.fillRect(0,0,c.width,c.height);
         g.font='bold 24px sans-serif';g.fillStyle='#efca78';g.fillText('เทวทัณฑ์ · เอฟเฟกต์สกิล · ${faction}',24,35);
         const original={x:G.me.x,y:G.me.y,faction:G.me.faction};Object.assign(G.me,{x:0,y:0,faction:'${faction}'});
-        try{C.CLASSES.arbiter.skills.forEach((sk,i)=>{
+        try{C.CLASSES.arbiter.skills.filter(s=>s.arbiter).forEach((sk,i)=>{
           const x=i%3*400,y=55+Math.floor(i/3)*340,s=C.arbiterSpec(sk,12,sk.evo.length);
           g.save();g.beginPath();g.rect(x+4,y,392,302);g.clip();g.translate(x+200,y+162);
           g.strokeStyle='#273b50';g.lineWidth=1;g.beginPath();g.ellipse(0,0,130,45,0,0,Math.PI*2);g.stroke();
@@ -120,7 +120,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
         Object.assign(G.me,{x:0,y:0,faction,dead:false});const ms=frame*62.5;
         g.fillStyle='#101c2b';g.fillRect(0,0,c.width,c.height);g.fillStyle='#efd8a8';g.font='22px sans-serif';
         g.fillText('เทวทัณฑ์ · เอฟเฟกต์ใหม่ V4 · '+(faction==='dharma'?'ธรรมะ':'อธรรม'),24,32);
-        C.CLASSES.arbiter.skills.forEach((sk,i)=>{
+        C.CLASSES.arbiter.skills.filter(s=>s.arbiter).forEach((sk,i)=>{
           const s=C.arbiterSpec(sk,12,sk.evo.length),x=i%3*380,y=50+Math.floor(i/3)*300;
           const buff=({resonance:'resonance',astral:'blades',ward:'ward',form:'form'})[s.kind];
           const wind=s.windup||0,phase=buff||(ms<wind?'windup':'release');
@@ -143,7 +143,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
     const samples=await run(`(()=>{
       const c=document.createElement('canvas');c.width=800;c.height=800;const g=c.getContext('2d');let n=0;
       const saved={x:G.me.x,y:G.me.y,dead:G.me.dead};Object.assign(G.me,{x:0,y:0,dead:false});
-      try{for(const faction of ['dharma','adharma'])for(const sk of C.CLASSES.arbiter.skills)for(let rank=0;rank<=sk.evo.length;rank++){
+      try{for(const faction of ['dharma','adharma'])for(const sk of C.CLASSES.arbiter.skills.filter(s=>s.arbiter))for(let rank=0;rank<=sk.evo.length;rank++){
         const s=C.arbiterSpec(sk,12,rank),phase=({resonance:'resonance',astral:'blades',ward:'ward',form:'form'})[s.kind]||'release';
         for(const mode of [phase,'windup',...(s.kind==='basic'?['wave','astral']:[])]){
           FX.list=[];ArbiterLook.play({id:G.me.id,skill:sk.id,token:1,r:rank,f:faction,x:0,y:0,a:.4,
@@ -165,6 +165,36 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       }finally{Object.assign(G.me,saved);FX.list=[];}return n;
     })()`);
     assert.equal(samples,380);console.log('PASS: '+samples+' FX samples, canvas state, icon uniqueness, FX budget, warning cancellation and buff death cleanup.');
+    // ฟันคำสัตย์'s dash trail keeps the canvas state, and the dash glides my own character to the server's spot
+    assert(await run(`(()=>{
+      const c=document.createElement('canvas');c.width=400;c.height=400;const g=c.getContext('2d');FX.list=[];
+      ArbiterLook.play({id:G.me.id,skill:'oathSlash',token:7,x:0,y:0,x1:220,y1:40,phase:'step',dur:150,a:0});
+      for(const t of [0,.5,1]){g.setTransform(1,0,0,1,50,200);FX.list[0].draw(g,t);const m=g.getTransform();if(m.e!==50||m.f!==200)throw Error('step leak');}
+      const lit=g.getImageData(0,0,400,400).data.some(v=>v);FX.list=[];return lit;
+    })()`),'dash trail drawn');
+    // the Lv.120 / 130 arts from the real renderer: route pose, ground marks, falling swords and the finishing blow
+    const arts=await run(`(()=>{
+      const c=document.createElement('canvas');c.width=1200;c.height=1460;const g=c.getContext('2d');g.fillStyle='#101c2b';g.fillRect(0,0,c.width,c.height);
+      g.font='bold 22px sans-serif';g.fillStyle='#efca78';g.fillText('เทวทัณฑ์ · ท่าไม้ตาย Lv.120 / 130 · ธรรมะ & อธรรม',24,32);
+      const saved={...G.me};let drawn=0;
+      try{['dharma','adharma'].forEach((f,fi)=>['oathFirmament','oathGenesis'].forEach((id,ri)=>{const sk=C.ALL_SKILLS[id],spec=sk.ritual,row=fi*2+ri;
+        [.2,.5,.8,1.25].forEach((k,col)=>{
+          Object.assign(G.me,{x:0,y:0,faction:f,dead:false,ritual:null});FX.list=[];
+          const base={id:G.me.id,skill:id,cls:'arbiter',f,a:0,x:150,y:0,radius:spec.radius};
+          AscendedSkills.play({...base,t:'ritualStart',cast:spec.cast});let at=G.me.ritual.t0+spec.cast*k;
+          if(k>1){AscendedSkills.play({...base,t:'ritualRelease',recovery:650});at=performance.now()+180;}
+          const ox=col*300,oy=50+row*350;g.save();g.beginPath();g.rect(ox+2,oy,296,320);g.clip();g.translate(ox+80,oy+210);g.scale(.5,.5);
+          const draw=layer=>{for(const n of FX.list.filter(n=>n.layer===layer)){const p=(at-n.t0)/n.dur;if(p>=0&&p<=1){n.draw(g,p);drawn++;}}};
+          draw('ground');
+          const o=AscendedSkills.active(G.me,at)?AscendedSkills.pose(G.me,at,{dx:0,dy:0,lift:0}):{dx:0,dy:0,lift:0};
+          ArbiterLook.draw(g,{...G.me,lvl:130,wt:0},AscendedSkills.frame(G.me,at)||{dir:0,frame:1},o.dx,o.dy-o.lift,.46,at);
+          draw('top');g.restore();
+          g.fillStyle='#dceafa';g.font='15px sans-serif';g.fillText(sk.key+' · '+sk.name+' · '+(k>1?'ปิดท้าย':Math.round(k*100)+'%'),ox+12,oy+340);
+        });}));
+      }finally{Object.assign(G.me,saved);G.me.ritual=null;FX.list=[];}
+      if(drawn<60)throw Error('arts drew too little: '+drawn);return c.toDataURL();
+    })()`);
+    fs.writeFileSync(path.join(out,'ascended-arts.png'),Buffer.from(arts.split(',')[1],'base64'));
     const rooted=await run(`(()=>{
       const sent=[],emit=G.socket.emit,control=G.control;G.socket.emit=(event,d)=>{if(event==='skill')sent.push(d.id);};
       G.control={rootUntil:performance.now()+10000};HUD.cds={};G.spearWait={};
@@ -213,6 +243,6 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
     fs.writeFileSync(path.join(out,'wing-directions-v3.png'),Buffer.from(wingViews.split(',')[1],'base64'));
     console.log('PASS: evolution milestones, ordinary levels, no duplicate wing/aura layers, level FX state and death cleanup.');
     await pause(150);assert.equal(errors.length,0,JSON.stringify(errors));
-    console.log('PASS: browser boot, class selection, 1,008 directional/level/pose renders, 18 skill icons, live FX and eight active skill evolution cards. '+out);
+    console.log('PASS: browser boot, class selection, 1,008 directional/level/pose renders, 22 skill icons, live FX, the dash trail, both Lv.120/130 arts and eight active skill evolution cards. '+out);
   }finally{if(ws)ws.close();preview.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

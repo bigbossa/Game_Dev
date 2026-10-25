@@ -296,6 +296,8 @@
     spearman: [['spearFirmament','ทวนมังกรถล่มปฐพี',11,200,190],['spearGenesis','ทวนมหาเทพดับพิภพ',17,250,220]],
     // the tank hits softest of all five (its worth is the HP / armour / taunt / cover it brings)
     warrior: [['guardFirmament','โล่พิทักษ์ทลายแนว',7,200,200],['guardGenesis','ป้อมปราการถล่มฟ้า',11,240,240]],
+    // the basic-attack class: mid-table burst; its arts also empower the basic attack afterwards (edict)
+    arbiter: [['oathFirmament','พันคมพิพากษา',9,200,220],['oathGenesis','ตุลาการสามภพ',14,250,240]],
   };
   // Each class has its own pair of moves (times in ms from the cast; cast = the finishing blow, then `recovery`).
   // The hits land at first + i × gap and share `share` of the damage; the finishing blow deals the rest.
@@ -320,6 +322,10 @@
     // leap high over the spot, six giant spirit shields fall round it into a fortress, dive shield-first into its heart
     warrior: [{ move: 'charge', windup: 180, first: 300, hits: 4, gap: 90, cast: 900, share: 0.5 },
       { move: 'bastion', windup: 160, first: 480, hits: 6, gap: 70, cast: 1050, share: 0.45 }],
+    // เทวทัณฑ์: dash in and cut 6 lines crossing the heart of the spot, leap and plant the sword /
+    // soar with the wings open, 7 swords of light fall round the spot one by one, dive with a giant sword
+    arbiter: [{ move: 'judgment', windup: 140, first: 240, hits: 6, gap: 85, cast: 880, share: 0.5, edict: { bonus: 0.2, ms: 6000 } },
+      { move: 'tribunal', windup: 150, first: 440, hits: 7, gap: 60, cast: 1020, share: 0.45, edict: { bonus: 0.3, ms: 8000 } }],
   };
   const MOVE_TEXT = {
     star: 'พุ่งเข้าจุดเป้าหมายแล้วลากเส้นดาวห้าแฉกผ่านกลางวง ฟัน 5 ครั้ง แล้วกระโดดลงกลางดาวระเบิดปิดท้าย',
@@ -332,13 +338,18 @@
     spiral: 'วิ่งวนเป็นเกลียวมังกรรอบเป้า แทง 4 ครั้ง แล้วพุ่งทวนจากที่สูงลงกลางวงดั่งหอกเทพ',
     charge: 'ยกโล่พุ่งชาร์จทะลุแนวศัตรู กระแทก 4 ครั้งตลอดทาง แล้วกระโดดกลับกลางวงทุบโล่ลงพื้นปิดท้าย',
     bastion: 'กระโดดสูงเหนือจุดเป้าหมาย โล่ยักษ์ 6 บานตกล้อมเป็นป้อมปราการทีละบาน แล้วดิ่งโล่ลงกลางป้อม',
+    judgment: 'พุ่งเข้าจุดเป้าหมาย ฟันไขว้เป็นดาวหกแฉก 6 ครั้ง แล้วกระโดดปักดาบสัตย์ลงกลางวง',
+    tribunal: 'ทะยานขึ้นฟ้ากางปีก ดาบแสง 7 เล่มตกล้อมวงทีละเล่ม แล้วดิ่งลงพร้อมดาบตุลาการยักษ์',
   };
-  for(const [cls,arts]of Object.entries(ASCENDED_ARTS))arts.forEach(([id,name,damage,radius,range],i)=>{
-    const mv=ASCENDED_MOVES[cls][i];
+  // edict (เทวทัณฑ์ only): after the finishing blow the basic attack deals `bonus` more for `ms` (the newest art wins).
+  // เทวทัณฑ์ is defined after this loop and adds its own pair right after its class.
+  const addAscended=cls=>ASCENDED_ARTS[cls].forEach(([id,name,damage,radius,range],i)=>{
+    const mv=ASCENDED_MOVES[cls][i],edict=mv.edict?` · หลังจบท่า ตีธรรมดาแรงขึ้น ${mv.edict.bonus*100}% นาน ${mv.edict.ms/1000} วินาที`:'';
     CLASSES[cls].skills.push({id,name,key:i?'-':'0',lvl:i?130:120,mp:i?180:120,cd:i?70000:45000,evo:[],
       ritual:{...mv,damage,radius,range,recovery:650},
-      desc:`${MOVE_TEXT[mv.move]} รวม ${damage*100}% รัศมี ${radius} · ไม่ต้องยืนร่าย (ท่าทั้งหมด ${(mv.cast/1000).toFixed(2)} วินาที) · ถูกควบคุม/ตาย/ย้ายแผนที่ระหว่างท่าจะหยุดทันที`});
+      desc:`${MOVE_TEXT[mv.move]} รวม ${damage*100}% รัศมี ${radius}${edict} · ไม่ต้องยืนร่าย (ท่าทั้งหมด ${(mv.cast/1000).toFixed(2)} วินาที) · ถูกควบคุม/ตาย/ย้ายแผนที่ระหว่างท่าจะหยุดทันที`});
   });
+  for(const cls of Object.keys(ASCENDED_ARTS))if(CLASSES[cls])addAscended(cls);
   // skill cooldowns ×SKILL_CD_MUL (rounded to 0.5 s); not the ascended arts. The basic attack (key 1) starts
   // BASIC_CD_MUL slower: attack speed now comes mostly from stat points (STAT_POINTS.aspd), not from the class.
   const SKILL_CD_MUL = 1.3, BASIC_CD_MUL = 1.5;
@@ -357,8 +368,11 @@
   // Same 5% training steps / 30% evolution steps used by existing skillPower, derived without rewriting saves.
   // The basic attack is the class's main damage: combo = the 3 melee beats, wave = the Lv.30 sword wave,
   // train = auto training per 4 levels (at most 11 steps).
+  // edge = ฟันคำสัตย์'s follow-up (the next `hits` basic attacks deal `bonus` more within `ms`); leech = share of the
+  // basic attack's damage healed during จุติผู้พิพากษา [base, evolved], `pvpLeech` of that against players.
   const ARBITER = { melee: 105, wave: 260, width: 24, waveCap: 4, stacks: 5, combo: [1, 1.1, 1.25], wavePower: .9, train: .07,
-    resonance: .3, astralChance: .35, astralCd: 2500, astralPower: .35, pvp: .85 };
+    resonance: .3, astralChance: .35, astralCd: 2500, astralPower: .35, pvp: .85,
+    edge: { hits: 3, bonus: .2, ms: 6000 }, leech: [.04, .06], pvpLeech: .5 };
   const arbiterPower = (lvl, basic = false) => (1 + .3 * Math.max(0, arbiterStage(lvl))) *
     (basic ? 1 + ARBITER.train * Math.min(11, Math.floor((Math.max(1,lvl)-1)/4)) : 1);
   const basicReach = (cls, lvl) => cls === 'arbiter' ? (lvl >= 30 ? 245 : 92) : (CLASSES[cls] || CLASSES.dualblade).reach;
@@ -372,16 +386,17 @@
       { id: 'oathBasic', name: 'คมดาบสัตย์', key: '1', lvl: 1, mp: 0, cd: 620, free: true,
         arbiter: { kind: 'basic', range: 105, windup: 180, power: 1 }, evo: [],
         desc: 'โจมตีธรรมดาแยกจาก 8 สกิล: ประชิด 3 จังหวะ 100/110/125% · Lv.30 คลื่นดาบระยะ 260 กว้าง 48 สูงสุด 4 เป้า ดาเมจ 90% · ฝึกอัตโนมัติ +7% ทุก 4 เลเวล สูงสุด 77% · ขั้นอาชีพ +30% ต่อขั้น · ไม่ใช้แต้ม' },
-      { id: 'oathSlash', name: 'ฟันคำสัตย์', key: '2', lvl: 1, mp: 12, cd: 4000,
+      { id: 'oathSlash', name: 'ฟันคำสัตย์', key: '2', lvl: 1, mp: 12, cd: 5500,
         evo: [{ lvl: 40, name: 'ฟันสัตย์พิพากษา', desc: 'พลังเพิ่ม 30% ระยะฟันเพิ่มเป็น 135' }],
-        arbiter: { kind: 'single', range: 115, windup: 240, power: 1.7 }, desc: 'ฟันเป้าเดียว 170% ATK ระยะ 115 · เตรียมฟัน 0.24 วิ' },
+        arbiter: { kind: 'single', range: 115, dash: 240, windup: 240, power: 2 },
+        desc: 'ฟันเป้าเดียว 200% ATK ระยะ 115 · เป้าอยู่ไกลกว่านั้น พุ่งเข้าหาก่อน (ระยะพุ่ง 240 ไม่ทะลุกำแพง) · เตรียมฟัน 0.24 วิ · ฟันโดนแล้ว ตีธรรมดา 3 ครั้งถัดไปแรงขึ้น 20% (ภายใน 6 วิ)' },
       { id: 'oathResonance', name: 'สะสมสัตย์', key: '3', lvl: 2, mp: 14, cd: 18000,
         arbiter: { kind: 'resonance', duration: 12000 },
         evo: [{ lvl: 60, name: 'สัตย์สวรรค์', desc: 'โบนัสสะสมสัตย์แรงขึ้น 30% และบัพนานขึ้น 2 วิ · อัปสเต็กเพิ่มโบนัสและระยะเวลา' }],
         desc: 'บัพ 12 วิ: โจมตีโดนสะสม 1 ชั้นต่อท่า ครบ 5 ชั้น การโจมตีถัดไปแรงขึ้น 30% แล้วเริ่มใหม่ · อัปสเต็กเพิ่มโบนัส 5% และเวลา 0.25 วิ/สเต็ก · หมดบัพล้างชั้น · ดาบบริวารไม่สะสม' },
       { id: 'arcblade', name: 'คมอาคม', key: '4', lvl: 4, mp: 20, cd: 6500,
         evo: [{ lvl: 80, name: 'คมอาคมผ่าสวรรค์', desc: 'พลังเพิ่ม 30% ระยะ 310 กว้าง 64 สูงสุด 4 เป้า' }],
-        arbiter: { kind: 'line', range: 280, width: 28, cap: 4, windup: 350, power: 1.8 }, desc: 'คลื่นเส้นตรง 180% ATK ระยะ 280 กว้าง 56 สูงสุด 4 เป้า · เตรียม 0.35 วิ' },
+        arbiter: { kind: 'line', range: 280, width: 28, cap: 4, windup: 350, power: 2.1 }, desc: 'คลื่นเส้นตรง 210% ATK ระยะ 280 กว้าง 56 สูงสุด 4 เป้า · เตรียม 0.35 วิ' },
       { id: 'astralBlades', name: 'ดาบบริวาร', key: '5', lvl: 7, mp: 24, cd: 20000,
         arbiter: { kind: 'astral', duration: 10000 },
         evo: [{ lvl: 90, name: 'ดาบบริวารดารา', desc: 'ดาบเสริมแรงขึ้น 30% บัพนานขึ้น 2 วิ' }, { lvl: 130, name: 'ดาบบริวารจักรฟ้า', desc: 'ดาบเสริมแรงขึ้นรวม 60% บัพนานขึ้นรวม 4 วิ · สูงสุดหนึ่งเป้าต่อครั้ง' }],
@@ -390,24 +405,27 @@
         evo: [{ lvl: 100, name: 'เกราะสัตย์สวรรค์', desc: 'เพิ่มการลดดาเมจอีก 3 จุดเปอร์เซ็นต์ นานขึ้น 1 วิ' }],
         arbiter: { kind: 'ward', duration: 5000, guard: .2 }, desc: 'ลดดาเมจตนเอง 20% นาน 5 วิ (PvP ใช้ 75% ของเกราะ) · อัปสเต็กเพิ่ม 0.4 จุดเปอร์เซ็นต์/สเต็ก · ธรรมะเสริมแม่นยำ 3% อธรรมเสริมหลบ 3% · ใช้เกราะที่แรงที่สุด' },
       { id: 'bladeOrbit', name: 'วงแหวนคมดาบ', key: '7', lvl: 30, mp: 38, cd: 12000,
-        evo: [{ lvl: 110, name: 'วงแหวนพิพากษา', desc: 'พลังเพิ่ม 30% รัศมีเพิ่มเป็น 180 สูงสุด 5 เป้า' }],
-        arbiter: { kind: 'circle', range: 155, cap: 5, windup: 450, power: 2.4 }, desc: 'กวาดรอบตัว 240% ATK รัศมี 155 สูงสุด 5 เป้า · เตรียม 0.45 วิ' },
+        evo: [{ lvl: 110, name: 'วงแหวนพิพากษา', desc: 'พลังเพิ่ม 30% รัศมีเพิ่มเป็น 180 สูงสุด 5 เป้า ทำให้ช้า 1.5 วิ' }],
+        arbiter: { kind: 'circle', range: 155, cap: 5, windup: 450, power: 2.8, slow: 1000 },
+        desc: 'กวาดรอบตัว 280% ATK รัศมี 155 สูงสุด 5 เป้า ทำให้ช้า 1 วิ · เตรียม 0.45 วิ · ตีธรรมดาครั้งถัดไปเริ่มที่จังหวะ 3 (125%)' },
       { id: 'ascendantForm', name: 'จุติผู้พิพากษา', key: '8', lvl: 50, mp: 55, cd: 60000,
-        evo: [{ lvl: 120, name: 'จุติมหาตุลาการ', desc: 'เพิ่มดาเมจอีก 4 จุดเปอร์เซ็นต์ ตีเร็วอีก 3 จุดเปอร์เซ็นต์ นานขึ้น 2 วิ · PvP ได้โบนัสดาเมจสองในสาม' }],
-        arbiter: { kind: 'form', duration: 10000 }, desc: 'จุติ 10 วิ เพิ่มดาเมจ 12% (PvP 8%) ตีเร็ว 10% · อัปสเต็กเพิ่มดาเมจและตีเร็วอย่างละ 0.3 จุดเปอร์เซ็นต์/สเต็ก · ระยะและจำนวนเป้าเท่าเดิม' },
+        evo: [{ lvl: 120, name: 'จุติมหาตุลาการ', desc: 'เพิ่มดาเมจอีก 4 จุดเปอร์เซ็นต์ ตีเร็วอีก 3 จุดเปอร์เซ็นต์ นานขึ้น 2 วิ ดูดเลือด 6% · PvP ได้โบนัสดาเมจสองในสาม' }],
+        arbiter: { kind: 'form', duration: 10000 }, desc: 'จุติ 10 วิ เพิ่มดาเมจ 12% (PvP 8%) ตีเร็ว 10% · ตีธรรมดาโดนฟื้น HP 4% ของดาเมจ (ตีผู้เล่นได้ครึ่งเดียว) · อัปสเต็กเพิ่มดาเมจและตีเร็วอย่างละ 0.3 จุดเปอร์เซ็นต์/สเต็ก · ระยะและจำนวนเป้าเท่าเดิม' },
       { id: 'finalVerdict', name: 'มหาพิพากษา', key: '9', lvl: 70, mp: 65, cd: 35000,
-        evo: [{ lvl: 130, name: 'มหาพิพากษาสามภพ', desc: 'พลังเพิ่ม 30% รัศมีเพิ่มเป็น 170 · ระยะวาง 280 สูงสุด 5 เป้า วงเตือน 1.2 วิเท่าเดิม' }],
-        arbiter: { kind: 'verdict', range: 280, radius: 145, cap: 5, windup: 1200, power: 4.2 }, desc: 'เลือกพื้นที่ระยะ 280 รัศมี 145 สูงสุด 5 เป้า 420% ATK · วงเตือน 1.2 วิ หลบออกได้ · ถูกควบคุมหรือตายยกเลิก' },
+        evo: [{ lvl: 130, name: 'มหาพิพากษาสามภพ', desc: 'พลังเพิ่ม 30% รัศมีเพิ่มเป็น 170 สตัน 0.8 วิ · ระยะวาง 280 สูงสุด 5 เป้า วงเตือน 1.2 วิเท่าเดิม' }],
+        arbiter: { kind: 'verdict', range: 280, radius: 145, cap: 5, windup: 1200, power: 4.8, stun: 600 },
+        desc: 'เลือกพื้นที่ระยะ 280 รัศมี 145 สูงสุด 5 เป้า 480% ATK สตัน 0.6 วิ (บอสช้าแทน) · วงเตือน 1.2 วิ หลบออกได้ · ถูกควบคุมหรือตายยกเลิก' },
     ],
   };
+  addAscended('arbiter');
   // Shared learned parameters: active skills grow only through invested points/evolutions.
   // Character-level evolution power belongs exclusively to the free basic attack.
   function arbiterSpec(sk, sl = 1, rank = 0) {
     const s = { ...sk.arbiter }, trained = Math.max(0, Math.min(11, sl - 1));
     if (s.kind === 'single' && rank) s.range = 135;
     if (s.kind === 'line' && rank) { s.range = 310; s.width = 32; }
-    if (s.kind === 'circle' && rank) s.range = 180;
-    if (s.kind === 'verdict' && rank) s.radius = 170;
+    if (s.kind === 'circle' && rank) { s.range = 180; s.slow = 1500; }
+    if (s.kind === 'verdict' && rank) { s.radius = 170; s.stun = 800; }
     if (s.kind === 'resonance' || s.kind === 'astral') {
       s.duration += trained * 250 + rank * 2000;
       s.bonus = (s.kind === 'resonance' ? ARBITER.resonance : ARBITER.astralPower) * skillPower(sl, rank);
@@ -417,6 +435,7 @@
       s.damage = .12 + trained * .003 + rank * .04;
       s.aspd = .1 + trained * .003 + rank * .03;
       s.duration += rank * 2000;
+      s.leech = ARBITER.leech[rank ? 1 : 0];
     }
     return s;
   }
@@ -671,7 +690,7 @@
   function cleanSkills(cls, saved, lvl) {
     const list = (CLASSES[cls] || CLASSES.dualblade).skills, basic = basicOf(cls);
     const d = { v: SKILL_VER, sk: {}, ev: {}, bar: [], auto: !!(saved && saved.auto) };
-    if (cls === 'arbiter') d.av = 1;
+    if (cls === 'arbiter') d.av = 2;
     if (saved && saved.v !== SKILL_VER) saved = { auto: saved.auto };
     const old = !saved || !saved.sk;
     for (const sk of list) {
@@ -697,6 +716,13 @@
       for (const id of ['oathResonance', 'astralBlades']) if (!used.has(id)) {
         const i = d.bar.findIndex((value, index) => index < 9 && !value);
         if (i >= 0) { d.bar[i] = id; used.add(id); }
+      }
+    }
+    // av 2 added the Lv.120 / 130 arts: older เทวทัณฑ์ bars get them on keys 0 / - when those are free.
+    if (cls === 'arbiter' && saved?.sk && (saved.av || 0) < 2) {
+      for (const sk of list.filter(s => s.ritual)) {
+        const i = BAR_KEYS.indexOf(sk.key);
+        if (!d.bar[i] && !used.has(sk.id)) { d.bar[i] = sk.id; used.add(sk.id); }
       }
     }
     return d;

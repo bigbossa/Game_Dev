@@ -344,6 +344,10 @@
     if (d.t === 'arbiter') {
       if (d.mapId !== G.mapId) return;
       if (e && d.phase === 'windup') { startAtk(e, d.skill, d.a); e.atk.dur = d.dur + 200; }
+      if (d.phase === 'step') {   // ฟันคำสัตย์ closes in: my client glides there, everyone else jumps to the spot
+        if (d.id === G.myId && G.me) G.me.dash = { x0: G.me.x, y0: G.me.y, x1: d.x1, y1: d.y1, t0: performance.now(), dur: d.dur };
+        else if (e) { e.x = e.tx = d.x1; e.y = e.ty = d.y1; }
+      }
       ArbiterLook.play(d); return;
     }
     SkillPerformance.play(d);
@@ -1449,9 +1453,9 @@
   }
   G.skillFrame=playerFrame;
   function basePlayerFrame(e, now) {
-    if (e.cls === 'arbiter') return ArbiterLook.frame(e, now);
     const ritual = AscendedSkills.frame(e, now);
     if (ritual) return ritual;
+    if (e.cls === 'arbiter') return ArbiterLook.frame(e, now);
     if (e.cls === 'warrior') return WarriorLook.frame(e, now);
     if (e.cls === 'spearman') return SpearmanLook.frame(e, now);
     const OM = e.cls !== 'taoist' && C.CLASSES[e.cls] && C.CLASSES[e.cls].sheet && ownMeta(e.cls);

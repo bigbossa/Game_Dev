@@ -30,14 +30,15 @@ function reset(f){now+=70000;f.p.mp=f.p.stats.maxMp;}
 function test(name,fn){fn();checks++;console.log('PASS '+name);}
 try{
   Date.now=()=>now;Math.random=()=>.5;
-  test('stable class indices; basic + exactly eight skills; all levels load without overspending',()=>{
+  test('stable class indices; basic + eight skills + two Lv.120/130 arts; all levels load without overspending',()=>{
     assert.deepEqual(C.CLASS_IDS,['dualblade','taoist','archer','spearman','warrior','arbiter']);
-    assert.equal(C.CLASSES.arbiter.skills.length,9);
+    assert.equal(C.CLASSES.arbiter.skills.length,11);
+    assert.deepEqual(C.CLASSES.arbiter.skills.slice(9).map(s=>[s.id,s.key,s.lvl,!!s.ritual]),[['oathFirmament','0',120,true],['oathGenesis','-',130,true]]);
     for(let lvl=1;lvl<=130;lvl++)for(const cls of C.CLASS_IDS){const d=C.cleanSkills(cls,null,lvl);assert(C.skillPtsFree(d,lvl)>=0);assert.deepEqual(C.cleanSkills(cls,copy(d),lvl),d);}
     assert(C.cleanSkills('arbiter',null,1).sk.oathSlash);assert.equal(C.skillPtsFree(C.cleanSkills('arbiter',null,1),1),0);
   });
   for(const faction of ['dharma','adharma'])for(const pvp of [false,true]){
-    test(`${faction} ${pvp?'PvP':'PvE'} basic and all eight active skills`,()=>{
+    test(`${faction} ${pvp?'PvP':'PvE'} basic, all eight active skills and both arts`,()=>{
       for(const sk of C.CLASSES.arbiter.skills){const f=fixture(130,pvp,faction),hp=f.t.hp,mp=f.p.mp;cast(f,sk.id);flush(f.w);
         assert(!sk.passive);
         if(C.BUFF_SKILLS.includes(sk.id)){assert(f.p.buffs[sk.id]);assert.equal(f.t.hp,hp);}else assert(f.t.hp<hp,sk.id);
@@ -132,7 +133,7 @@ try{
     assert(f.p.skl.bar.includes('oathResonance'));assert(f.p.skl.bar.includes('astralBlades'));
   });
   test('eight learned skills have standard unlocks, spend points, and evolve only on request',()=>{
-    const list=C.CLASSES.arbiter.skills.slice(1);
+    const list=C.CLASSES.arbiter.skills.slice(1,9);
     assert.deepEqual(list.map(s=>s.key),['2','3','4','5','6','7','8','9']);
     assert.deepEqual(list.map(s=>s.lvl),[1,2,4,7,10,30,50,70]);
     for(const sk of list){
@@ -162,7 +163,7 @@ try{
       assert(Math.abs(power(130,id,12)/power(130,id)-1.55)<1e-8);
       assert(Math.abs(power(130,id,12,1)/power(130,id,12)-1.3)<1e-8);
     }
-    for(const [id,x,y] of [['oathSlash',2148,2000],['arcblade',2300,2000],['bladeOrbit',2185,2000],['finalVerdict',2080,2168]]){
+    for(const [id,x,y] of [['arcblade',2300,2000],['bladeOrbit',2185,2000],['finalVerdict',2080,2168]]){
       for(const rank of [0,1]){const f=fixture();f.p.skl.ev[id]=rank;f.t.x=x;f.t.y=y;
         cast(f,id,id==='finalVerdict'?{tx:2080,ty:2000}:{});flush(f.w);assert.equal(f.t.hp<1e8,!!rank,id);}
     }
@@ -189,6 +190,54 @@ try{
     const f=fixture();f.p.skl=d;f.w.save(f.p);const saved=copy(f.w.store.get(f.p.name));
     assert.deepEqual(C.cleanSkills('arbiter',saved.skl,130),d);
     for(const cls of C.CLASS_IDS.filter(c=>c!=='arbiter')){const s=C.cleanSkills(cls,null,130);assert(!('av' in s));assert.deepEqual(C.cleanSkills(cls,copy(s),130),s);}
+  });
+  test('ฟันคำสัตย์ dashes to a far target, never through walls, then empowers three basic attacks',()=>{
+    for(const pvp of [false,true]){
+      const f=fixture(130,pvp);f.t.x=2300;f.p.skl.ev.oathSlash=0;const mp=f.p.mp;cast(f,'oathSlash');
+      assert(f.p.mp<mp);assert(f.p.x>2150&&f.p.x<2300,'dashed in front of the target');assert(f.w.events.some(a=>a[4]?.phase==='step'));
+      flush(f.w);assert(f.t.hp<1e8);const edge=f.p.buffs.oathSlash;assert.equal(edge.charges,C.ARBITER.edge.hits);
+      const powers=[];f.w.applyDamage=(p,t,v)=>{powers.push(v);return 10;};
+      for(let i=0;i<4;i++){now+=800;f.p.arbiterCombo=2;cast(f);flush(f.w);}
+      const plain=C.ARBITER.combo[2]*C.arbiterPower(130,true);
+      for(let i=0;i<3;i++)assert(Math.abs(powers[i]-plain*(1+C.ARBITER.edge.bonus))<1e-8,'empowered '+i);
+      assert(Math.abs(powers[3]-plain)<1e-8);assert.equal(f.p.buffs.oathSlash,undefined);
+    }
+    const g=fixture();g.t.x=2400;const mp=g.p.mp;cast(g,'oathSlash');assert.equal(g.p.mp,mp,'beyond dash reach');assert.equal(g.p.x,2000);
+    const h=fixture();h.t.x=2300;for(let y=0;y<200;y++)h.w.maps.lab.map.solid[y*200+44]=1;
+    const mp2=h.p.mp;cast(h,'oathSlash');assert.equal(h.p.mp,mp2,'a wall blocks the dash');assert.equal(h.p.x,2000);
+    const k=fixture();cast(k,'oathSlash');k.w.changeMapOne(k.p,'other',{x:2000,y:2000});flush(k.w);assert.equal(k.t.hp,1e8,'warp cancels');
+  });
+  test('control: วงแหวนคมดาบ slows and sets up the third beat; มหาพิพากษา stuns (bosses slow)',()=>{
+    for(const rank of [0,1]){const f=fixture();f.p.skl.ev.bladeOrbit=rank;cast(f,'bladeOrbit');flush(f.w);
+      assert.equal(f.t.slowUntil,now+(rank?1500:1000));assert.equal(f.p.arbiterCombo,2);
+      let power;f.w.applyDamage=(p,t,v)=>{power=v;return 1;};now+=800;cast(f);flush(f.w);
+      assert(Math.abs(power-C.ARBITER.combo[2]*C.arbiterPower(130,true))<1e-8);}
+    for(const rank of [0,1]){const f=fixture();f.p.skl.ev.finalVerdict=rank;cast(f,'finalVerdict');flush(f.w);
+      assert.equal(f.t.stunUntil,now+(rank?800:600));}
+    const b=fixture();b.t.def.boss=true;cast(b,'finalVerdict');flush(b.w);assert(!b.t.stunUntil);assert(b.t.slowUntil>now);
+  });
+  test('จุติผู้พิพากษา: basic attacks heal a share of their damage, half against players, never other skills',()=>{
+    const heal={};
+    for(const pvp of [false,true])for(const rank of [0,1]){
+      const f=fixture(130,pvp);f.p.skl.ev.ascendantForm=rank;cast(f,'ascendantForm');f.p.hp=100;
+      f.w.applyDamage=()=>1000;now+=800;cast(f);flush(f.w);heal[pvp+':'+rank]=f.p.hp-100;
+      f.p.hp=100;now+=6000;cast(f,'arcblade');flush(f.w);assert.equal(f.p.hp,100,'skills do not leech');
+    }
+    assert.equal(heal['false:0'],1000*C.ARBITER.leech[0]);assert.equal(heal['false:1'],1000*C.ARBITER.leech[1]);
+    assert.equal(heal['true:0'],1000*C.ARBITER.leech[0]*C.ARBITER.pvpLeech);
+    const f=fixture();f.p.hp=100;f.w.applyDamage=()=>1000;cast(f);flush(f.w);assert.equal(f.p.hp,100,'no leech without the form');
+  });
+  test('Lv.120/130 arts empower the basic attack afterwards; the newest edict replaces the other',()=>{
+    const f=fixture();for(const id of ['oathFirmament','oathGenesis'])assert(f.p.skl.sk[id]>=1,id+' auto-learned');
+    cast(f,'oathFirmament');flush(f.w);assert(f.t.hp<1e8);assert.equal(f.w.buffVal(f.p,'arbiterBasic'),.2);
+    let power;f.w.applyDamage=(p,t,v)=>{power=v;return 1;};now+=800;f.p.arbiterCombo=2;cast(f);flush(f.w);
+    assert(Math.abs(power-C.ARBITER.combo[2]*C.arbiterPower(130,true)*1.2)<1e-8);
+    now+=1000;cast(f,'oathGenesis');flush(f.w);assert.equal(f.p.buffs.oathFirmament,undefined);assert.equal(f.w.buffVal(f.p,'arbiterBasic'),.3);
+    now=f.p.buffs.oathGenesis.until+1;assert.equal(f.w.buffVal(f.p,'arbiterBasic'),0);
+    // an av 1 bar (from before the arts) gets them on its free keys 0 / -, a custom key is kept
+    const old=copy(C.cleanSkills('arbiter',null,130));old.av=1;old.bar[9]=old.bar[10]=null;
+    assert.deepEqual(C.cleanSkills('arbiter',copy(old),130).bar.slice(9),['oathFirmament','oathGenesis']);
+    old.bar[9]='finalVerdict';old.bar[8]=null;assert.deepEqual(C.cleanSkills('arbiter',copy(old),130).bar.slice(8),[null,'finalVerdict','oathGenesis']);
   });
   console.log(`PASS: ${checks} Divine Arbiter test groups.`);
 }finally{Date.now=originalNow;Math.random=originalRandom;}
