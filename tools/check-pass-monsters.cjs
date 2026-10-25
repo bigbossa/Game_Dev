@@ -12,6 +12,7 @@ const reports = [];
 for (const { id } of spec.species) {
   const m = index[id], p = PNG.sync.read(fs.readFileSync(path.join(dir, m.file)));
   assert.equal(m.managedBy, 'build-pass-monsters');
+  assert.equal(m.height, undefined, `${id} overrides original world scale`);
   assert.equal(m.cols, 8); assert.equal(m.rows, 4);
   assert.equal(m.idleRow, 1); assert.equal(m.attackRow, 3);
   assert.deepEqual(m.walkRows, [0, 1, 2, 1]);
@@ -37,4 +38,4 @@ for (const { id } of spec.species) {
   reports.push({ id, frames: 32, transparentBorders: true, stableAnchors: true });
 }
 assert.equal(index.kingboar.managedBy, 'build-kingboar');
-console.log(JSON.stringify({ species: reports, totalFrames: 224, bossPreserved: true }, null, 2));
+console.log(JSON.stringify({ species: reports, totalFrames: 224, villageBossPreserved: true }, null, 2));

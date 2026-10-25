@@ -159,5 +159,145 @@
     ],
     "attackRow": 3,
     "managedBy": "build-village-monsters"
+  },
+  "scorpion": {
+    "file": "scorpion-v2.png",
+    "version": "a3570d859357",
+    "fw": 229,
+    "fh": 217,
+    "cols": 8,
+    "rows": 4,
+    "ax": 114.5,
+    "ay": 209,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-pass-monsters"
+  },
+  "passbandit": {
+    "file": "passbandit-v2.png",
+    "version": "bd1fbf7d796c",
+    "fw": 219,
+    "fh": 200,
+    "cols": 8,
+    "rows": 4,
+    "ax": 109.5,
+    "ay": 192,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-pass-monsters"
+  },
+  "golem": {
+    "file": "golem-v2.png",
+    "version": "2a2730342f23",
+    "fw": 208,
+    "fh": 203,
+    "cols": 8,
+    "rows": 4,
+    "ax": 104,
+    "ay": 195,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-pass-monsters"
+  },
+  "ironeagle": {
+    "file": "ironeagle-v2.png",
+    "version": "2bb16e09c0a9",
+    "fw": 207,
+    "fh": 248,
+    "cols": 8,
+    "rows": 4,
+    "ax": 103.5,
+    "ay": 240,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-pass-monsters"
+  },
+  "fireleopard": {
+    "file": "fireleopard-v2.png",
+    "version": "f71b7941c578",
+    "fw": 296,
+    "fh": 254,
+    "cols": 8,
+    "rows": 4,
+    "ax": 148,
+    "ay": 246,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-pass-monsters"
+  },
+  "sandnaga": {
+    "file": "sandnaga-v2.png",
+    "version": "39ff78cd4b05",
+    "fw": 176,
+    "fh": 192,
+    "cols": 8,
+    "rows": 4,
+    "ax": 88,
+    "ay": 184,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-pass-monsters"
+  },
+  "banditlord": {
+    "file": "banditlord-v2.png",
+    "version": "16b53004c63f",
+    "fw": 206,
+    "fh": 193,
+    "cols": 8,
+    "rows": 4,
+    "ax": 103,
+    "ay": 185,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-pass-monsters"
   }
 }

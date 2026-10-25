@@ -2498,7 +2498,8 @@ class World {
       if (d > range + radiusOf(e)) continue;
       if (d > 28 && angDiff(Math.atan2(ey - (p.y - 18), e.x - p.x), a) > half) continue;
       if (tid && e.id === tid) return e;
-      if (d < bd) { bd = d; best = e; }
+      const gap = d - radiusOf(e);                   // nearest by body edge, the same as the client's gapTo
+      if (gap < bd) { bd = gap; best = e; }
     }
     return best;
   }

@@ -55,7 +55,32 @@
       "id": "banditlord",
       "name": "ขุนโจรดาบโลหิต",
       "reference": "banditlord-concept.png",
-      "subject": "The HUMAN BLOODBLADE BANDIT LORD shown in the boss reference. Compact chibi adult male, broad shoulders, tan stern face, black moustache and short beard. Low blue-black iron helmet with brass trim and short burgundy crest. Oxblood robe, dark burgundy split cape, blue-black lamellar shoulder/waist plates with muted brass cloud edges, wrapped dark boots, small jade seal at waist. ONE large curved silver single-edged DAO with dark red blade inset and small red hilt tassel, held consistently in RIGHT hand. No demon traits or additional swords. Walk opposite feet and subtle cape sway; idle dao down/outward; attack low compact diagonal slash with bent knees, full sword inside cell. Back views show cape and helmet rear, no face. Preserve outfit across all 32 poses, no detached particles or blood."
+      "subject": "The HUMAN BLOODBLADE BANDIT LORD shown in the boss reference. Compact chibi adult male, broad shoulders, tan stern face, black moustache and short beard. Low blue-black iron helmet with brass trim and short burgundy crest. Oxblood robe, dark burgundy split cape, blue-black lamellar shoulder/waist plates with muted brass cloud edges, wrapped dark boots, small jade seal at waist. ONE large curved silver single-edged DAO with dark red blade inset and small red hilt tassel, held consistently in RIGHT hand. No demon traits or additional swords. Walk opposite feet and subtle cape sway; idle dao down/outward; attack low compact diagonal slash with bent knees, full sword inside cell. Back views show cape and helmet rear, no face. Preserve outfit across all 32 poses, no detached particles or blood.",
+      "sources": [
+        {
+          "file": "banditlord-south-source.png",
+          "cols": 4,
+          "rows": 4,
+          "includeRows": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "file": "banditlord-north-source.png",
+          "cols": 4,
+          "rows": 4,
+          "colOffset": 4
+        },
+        {
+          "file": "banditlord-attack-source.png",
+          "cols": 4,
+          "rows": 1,
+          "rowOffset": 3,
+          "scale": 0.56
+        }
+      ]
     }
   ]
 }

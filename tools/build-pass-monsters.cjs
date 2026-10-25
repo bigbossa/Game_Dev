@@ -9,7 +9,9 @@ const source = path.join(root, 'monster-art/pass-v2');
 const output = path.join(root, 'public/assets/monsters');
 const spec = require('../monster-art/pass-v2/SPRITES.json');
 
-function extract(file) {
+function extract(file, options = {}) {
+  const { cols = 8, rows = 4, colOffset = 0, rowOffset = 0, scale = 1 } = options;
+  const includeRows = options.includeRows || Array.from({ length: rows }, (_, i) => i);
   const p = L.readPng(file), { width: w, height: h, data } = p;
   const seen = new Uint8Array(w * h), parts = [];
   for (let start = 0; start < seen.length; start++) {
@@ -28,7 +30,8 @@ function extract(file) {
       }
     }
     if (pixels.length < 1000) continue; // omit isolated alpha dust
-    const col = Math.floor((x0 + x1) / 2 / w * 8), row = Math.floor((y0 + y1) / 2 / h * 4);
+    const col = Math.floor((x0 + x1) / 2 / w * cols), row = Math.floor((y0 + y1) / 2 / h * rows);
+    if (!includeRows.includes(row)) continue;
     assert(x0 > 0 && y0 > 0 && x1 < w - 1 && y1 < h - 1, `${file}: clipped pose ${row}/${col}`);
     const iw = x1 - x0 + 1, ih = y1 - y0 + 1, d = new Uint8ClampedArray(iw * ih * 4);
     for (const i of pixels) d.set(data.subarray(i * 4, i * 4 + 4), ((Math.floor(i / w) - y0) * iw + i % w - x0) * 4);
@@ -40,21 +43,31 @@ function extract(file) {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(part);
   }
-  assert.equal(groups.size, 32, `${file}: overlapping or missing cells (${groups.size}/32)`);
+  assert.equal(groups.size, cols * includeRows.length, `${file}: overlapping or missing cells`);
   // Leaves and the dew pearl can be separate islands. Preserve their relative
   // placement with the body instead of treating every alpha island as a pose.
   return [...groups.values()].map(group => {
     const x0 = Math.min(...group.map(p => p.x0)), y0 = Math.min(...group.map(p => p.y0));
     const iw = Math.max(...group.map(p => p.x1)) - x0 + 1, ih = Math.max(...group.map(p => p.y1)) - y0 + 1;
-    assert(iw < w / 8 * 1.35 && ih < h / 4 * 1.2, `${file}: merged neighboring poses`);
+    assert(iw < w / cols * 1.35 && ih < h / rows * 1.2, `${file}: merged neighboring poses`);
     const d = new Uint8ClampedArray(iw * ih * 4);
     for (const p of group) L.blit(d, iw, ih, p.img, p.x0 - x0, p.y0 - y0);
-    return { row: group[0].row, col: group[0].col, img: { w: iw, h: ih, d } };
+    return { row: group[0].row + rowOffset, col: group[0].col + colOffset,
+      img: L.scaleImg({ w: iw, h: ih, d }, scale) };
   });
 }
 
 // Validate every source before replacing any runtime assets.
-const sheets = spec.species.map(s => ({ ...s, cells: extract(path.join(source, `${s.id}-source.png`)) }));
+const C = require('../shared/world-data');
+assert.deepEqual(spec.species.map(s => s.id), [...C.MAPS.pass.mons, C.MAPS.pass.boss]);
+const sheets = spec.species.map(s => {
+  const sources = s.sources || [{ file: `${s.id}-source.png` }];
+  const cells = sources.flatMap(src => extract(path.join(source, src.file), src));
+  assert.equal(cells.length, 32, `${s.id}: expected 32 poses`);
+  assert.equal(new Set(cells.map(c => `${c.row}/${c.col}`)).size, 32, `${s.id}: duplicate pose`);
+  for (const c of cells) assert(c.row >= 0 && c.row < 4 && c.col >= 0 && c.col < 8);
+  return { ...s, cells };
+});
 fs.mkdirSync(output, { recursive: true });
 const indexPath = path.join(output, 'index.json');
 const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));

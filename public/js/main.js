@@ -52,7 +52,7 @@
     resize();
     SPR = await fetch('assets/sprites.json').then((r) => r.json());
     // AI-drawn monster sheets (optional, tools/build-monsters.js)
-    MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=village-monsters-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
+    MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=pass-monsters-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
     // Load the replacement model directly; old bodies/masks must never re-enter this renderer.
     const weapMeta = await DualbladeModel.load(loadImg, IMG, SPR);
     await WarriorLook.load(loadImg);
@@ -819,7 +819,7 @@
     const me = G.me;
     if (!me || me.dead) return;
     const foe = enemyUnderMouse();
-    if (foe) { mouse.down = false; setTarget(foe); return; }
+    if (foe) { mouse.down = false; setTarget(foe, false, true); return; }
     const ally = allyUnderMouse();
     if (ally) { mouse.down = false; PARTY.menu(ally, e.clientX, e.clientY); return; }
     BOT.manual(3000);                                       // walking by hand: the bot waits
@@ -987,6 +987,9 @@
   // PvP on the hunting maps (my PvP switched on, or hitting back at someone who attacked me)
   const isFoe = (e) => e && !e.dead && !e.dying && e !== G.me && (e.kind === 'm' || !!e.hs);
   const radiusOf = (e) => (e.kind === 'm' ? C.MONSTERS[e.type].radius : 16);
+  // how far an enemy really is: from my body to the edge of its body (same test as the server's slashTarget), so a
+  // big monster standing against me counts as near even though its centre is further away
+  const gapTo = (e) => { const r = radiusOf(e); return Math.hypot(e.x - G.me.x, e.y - r * 0.4 - (G.me.y - 18)) - r; };
   // ------------------------------------------------------------ selected target (click / Tab), attacked with the number slots
   const SLOT_KEYS = Object.fromEntries(C.CLASSES.dualblade.skills.map((s) => [s.key, s.id]));   // replaced at login (G.cls)
   // keys 1-9 follow the player's own skill-bar layout (G.skl.bar), else each skill's default key
@@ -998,18 +1001,33 @@
   };
   G.target = null;
   const targetEnt = () => { const t = G.target && G.ents.get(G.target); return isFoe(t) ? t : null; };
-  function setTarget(e, quiet) {
+  // manual = the player picked it (click / tap on the enemy, Tab); automatic picks are re-checked on every attack
+  function setTarget(e, quiet, manual) {
     const id = e ? e.id : null;
     if (id !== G.target && G.order && G.order.type === 'attack' && G.order.id !== id) G.order = null;   // stop hitting the old one
     G.target = id;
+    G.targetManual = !!(e && manual);
     if (e) { if (!quiet) FX.clickMark(e.x, e.y, '#ff4a3a'); G.lastTarget = { id, t: performance.now() }; }
   }
-  // basic attack (slot 1 / Space): walk to the selected target and keep slashing it; no target = the nearest enemy
+  // the enemy to fight: always the nearest one (gapTo), except an enemy the player picked by hand while it is still
+  // close by. Only while I am already hitting my target is it kept against one a little nearer (NEAR_SLACK), so
+  // pressing the attack button again and again mid-fight does not flip between two enemies standing side by side.
+  const AUTO_RANGE = () => (G.touch ? 520 : 460), MANUAL_KEEP = 650, NEAR_SLACK = 40;
+  function pickTarget() {
+    const o = G.order;
+    const cur = targetEnt() || (o && o.type === 'attack' && isFoe(G.ents.get(o.id)) ? G.ents.get(o.id) : null);
+    if (cur && G.targetManual && cur.id === G.target && gapTo(cur) < MANUAL_KEEP) return cur;
+    const near = nearestFoe(AUTO_RANGE());
+    const fighting = cur && o && o.type === 'attack' && o.id === cur.id;
+    if (cur && (!near || gapTo(cur) <= gapTo(near) + (fighting ? NEAR_SLACK : 0))) return cur;
+    if (near) setTarget(near);
+    return near;
+  }
+  // basic attack (slot 1 / Space): walk to the nearest enemy (or the one picked by hand) and keep slashing it
   function attackTarget() {
     const me = G.me;
     if (!me || me.dead) return;
-    let t = targetEnt();
-    if (!t) { t = nearestFoe(G.touch ? 520 : 460); if (t) setTarget(t); }
+    const t = pickTarget();
     if (t) { if (!G.order || G.order.type !== 'attack' || G.order.id !== t.id) G.order = { type: 'attack', id: t.id }; return; }
     if (!G.touch) { const w = mouseWorld(); G.useSlot(basicId(), { a: aimAngle(), tx: w.x, ty: w.y }); }   // nothing near: slash toward the cursor
     else G.useSlot(basicId());
@@ -1018,11 +1036,10 @@
   function cycleTarget() {
     const me = G.me;
     if (!me) return;
-    const list = [...G.ents.values()].filter((e) => isFoe(e) && Math.hypot(e.x - me.x, e.y - me.y) < 700)
-      .sort((a, b) => Math.hypot(a.x - me.x, a.y - me.y) - Math.hypot(b.x - me.x, b.y - me.y));
+    const list = [...G.ents.values()].filter((e) => isFoe(e) && gapTo(e) < 700).sort((a, b) => gapTo(a) - gapTo(b));
     if (!list.length) return;
     const i = list.findIndex((e) => e.id === G.target);
-    setTarget(list[(i + 1) % list.length]);
+    setTarget(list[(i + 1) % list.length], false, true);
   }
   function enemyUnderMouse() {
     const w = mouseWorld();
@@ -1065,7 +1082,7 @@
     return s && Math.abs(w.x - s.x) < 40 && w.y < s.y + 30 && w.y > s.y - 110;
   }
   // helpers for the auto-hunt bot (bot.js)
-  BOT.api = { isFoe, radiusOf, targetEnt: () => targetEnt(), setTarget: (e, q) => setTarget(e, q), orderMove: (x, y, type) => orderMove(x, y, type) };
+  BOT.api = { isFoe, radiusOf, gapTo, targetEnt: () => targetEnt(), setTarget: (e, q) => setTarget(e, q), orderMove: (x, y, type) => orderMove(x, y, type) };
   function orderMove(x, y, type) {
     const me = G.me;
     const path = PF.find(G.map, me.x, me.y, x, y);
@@ -1162,17 +1179,17 @@
     let best = null, bd = range;
     for (const e of G.ents.values()) {
       if (!isFoe(e)) continue;
-      const d = Math.hypot(e.x - G.me.x, e.y - G.me.y);
+      const d = gapTo(e);
       if (d < bd) { bd = d; best = e; }
     }
     return best;
   }
-  // skills aim at the attack target when there is one, otherwise at the cursor
-  // (touch: the nearest enemy, or straight ahead)
+  // skills aim at the enemy pickTarget gives (the nearest, or the one picked by hand); with no target on a computer
+  // they aim at the cursor (touch: straight ahead when nothing is near)
   function aimFor() {
     const me = G.me, o = G.order;
     let t = targetEnt() || (o && o.type === 'attack' ? G.ents.get(o.id) : null);
-    if (!isFoe(t) && G.touch) t = nearestFoe(460);
+    if (isFoe(t) || G.touch) t = pickTarget();
     if (isFoe(t)) return { a: Math.atan2(t.y - radiusOf(t) * 0.4 - (me.y - 18), t.x - me.x), tx: t.x, ty: t.y, tid: t.id };
     if (G.touch) { const a = (me.dir * Math.PI) / 4; return { a, tx: me.x + Math.cos(a) * 200, ty: me.y + Math.sin(a) * 200 }; }
     const w = mouseWorld();
@@ -1224,18 +1241,10 @@
     }
     HUD.flashSlot(id);
   };
-  // the enemy a spear art goes for: the selected one, the one being attacked, else the nearest (which becomes selected)
-  function spearTargetFor() {
-    const o = G.order;
-    let t = targetEnt() || (o && o.type === 'attack' ? G.ents.get(o.id) : null);
-    if (isFoe(t)) return t;
-    t = nearestFoe(G.touch ? 520 : 460);
-    if (t) setTarget(t);
-    return t;
-  }
-  // same distance test as the server's slashTarget, a little short of it for movement between updates
-  const spearGap = (t) => { const r = radiusOf(t); return Math.hypot(t.x - G.me.x, t.y - r * 0.4 - (G.me.y - 18)) - r; };
-  const inSpearReach = (t, sk) => spearGap(t) <= (sk.id === 'oathBasic' ? C.basicReach(G.cls, G.stats?.lvl || 1) + 12 : (sk.spear || sk.frontline || C.arbiterSpec(sk,G.skl?.sk[sk.id],C.skillRankOf(G.skl,sk.id))).range) - 12;
+  // the enemy a spear / shield / arbiter art goes for: the same pick as the attack button
+  const spearTargetFor = () => pickTarget();
+  // gapTo is the server's slashTarget distance; the reach is a little short of the server's for movement between updates
+  const inSpearReach = (t, sk) => gapTo(t) <= (sk.id === 'oathBasic' ? C.basicReach(G.cls, G.stats?.lvl || 1) + 12 : (sk.spear || sk.frontline || C.arbiterSpec(sk,G.skl?.sk[sk.id],C.skillRankOf(G.skl,sk.id))).range) - 12;
   const aimAtFoe = (t) => ({ a: Math.atan2(t.y - radiusOf(t) * 0.4 - (G.me.y - 18), t.x - G.me.x), tx: t.x, ty: t.y, tid: t.id });
 
   // ------------------------------------------------------------ simulation

@@ -131,14 +131,15 @@
     nextThink = now + 110;
     const R = cfg.radius, an = BOT.anchor;
     const inArea = (e, pad = 0) => Math.hypot(e.x - an.x, e.y - an.y) <= R + pad;
-    // keep the current target while it stays in the area; otherwise monsters hitting me first, then the nearest
+    // keep the current target while it stays in the area; otherwise the nearest (edge to edge, A.gapTo), a monster
+    // already hitting me winning only against one about as near (within 150)
     let t = A.targetEnt();
     if (t && (t.kind !== 'm' || !inArea(t, 80))) t = null;
     if (!t) {
       let best = null, bd = Infinity;
       for (const e of G.ents.values()) {
         if (e.kind !== 'm' || !A.isFoe(e) || !inArea(e)) continue;
-        const d = Math.hypot(e.x - me.x, e.y - me.y) - (e.aggro ? 400 : 0);
+        const d = A.gapTo(e) - (e.aggro ? 150 : 0);
         if (d < bd) { bd = d; best = e; }
       }
       t = best;

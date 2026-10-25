@@ -66,7 +66,7 @@
   }
   select.addEventListener('change', build);
   document.getElementById('motion').addEventListener('click', () => { moving = !moving; buttonLabel(); draw(); });
-  const spriteIndex = await fetch('assets/monsters/index.json?v=village-monsters-v2').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  const spriteIndex = await fetch('assets/monsters/index.json?v=pass-monsters-v2').then(r => r.ok ? r.json() : {}).catch(() => ({}));
   MonsterArt.setSprites(spriteIndex);
   select.value = 'village'; build(); buttonLabel();
   // Refresh once after lazy sprite loading even when motion is paused or reduced.

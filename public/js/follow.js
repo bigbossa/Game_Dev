@@ -69,7 +69,7 @@
       let bd = DEFEND;
       for (const e of G.ents.values()) {
         if (e.kind !== 'm' || !e.ours || !A.isFoe(e) || fromLeader(e) > LEASH) continue;
-        const d = Math.hypot(e.x - me.x, e.y - me.y);
+        const d = A.gapTo(e);
         if (d < bd) { bd = d; t = e; }
       }
     }
