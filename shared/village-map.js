@@ -45,11 +45,13 @@
   V.generate=function(def,seed){
     const w=128,h=96,tiles=new Uint8Array(w*h),solid=new Uint8Array(w*h),objects=[],reserved=new Uint8Array(w*h);
     const random=C.mulberry32(seed),id=(x,y)=>y*w+x,inside=(x,y)=>x>=0&&y>=0&&x<w&&y<h;
+    const spacing=C.propSpacing(),radii=asset=>['tree','peach','bamboo'].includes(asset)?[2,1.5]:asset==='rocks'?[1.25,.9]:asset==='shrub'?[1,.7]:['pavilion','house','smith','apothecary','enhancer'].includes(asset)?[4,2]:[.7,.7];
     const camp=(x,y,pad=0)=>x>=44-pad&&x<=85+pad&&y>=31-pad&&y<=68+pad;
     const bridge=(x,y)=>x>=V.bridge.x0&&x<=V.bridge.x1&&y>=V.bridge.y0&&y<=V.bridge.y1;
     const block=(x0,y0,x1,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(inside(x,y))solid[id(x,y)]=reserved[id(x,y)]=1;};
     const prop=(asset,x,y,blocking=false)=>{
       objects.push(['village',asset,Math.round(x*TILE),Math.round(y*TILE)]);
+      spacing.add(x,y,...radii(asset));
       const tx=Math.floor(x),ty=Math.floor(y-.15);
       if(inside(tx,ty)){reserved[id(tx,ty)]=1;if(blocking)solid[id(tx,ty)]=1;}
     };
@@ -83,14 +85,14 @@
       const lair=Math.hypot(x-61,y-11);if(lair<8)continue;
       const pack=Math.min(...V.template.slots.map(([sx,sy])=>Math.hypot(x-sx,y-sy)));
       const r=random(),density=pack<5?.035:.35;
-      if(r<density){const asset=x>87&&y>25&&y<75?'bamboo':random()<.12?'peach':'tree';prop(asset,x+.5,y+.8,true);}
-      else if(r>.92&&pack>3)prop('rocks',x+.5,y+.8,true);
-      else if(r>.84)prop('shrub',x+.5,y+.8);
+      const asset=r<density?(x>87&&y>25&&y<75?'bamboo':random()<.12?'peach':'tree'):r>.92&&pack>3?'rocks':r>.84?'shrub':null;
+      if(asset){const xx=x+.5+(random()-.5)*.4,yy=y+.8+(random()-.5)*.2;
+        if(spacing.fits(xx,yy,...radii(asset)))prop(asset,xx,yy,asset!=='shrub');}
     }
     // Rocks mark the lair, but the southern entrance and combat centre stay clear.
     for(let n=0;n<9;n++){const a=Math.PI+n*Math.PI/8,x=61.5+Math.cos(a)*7.5,y=11.5+Math.sin(a)*6;
       if(V.roadDistance(x,y)>1.5)prop('rocks',x,y,true);}
-    return {id:'village',version:V.version,w,h,seed,tiles,solid,objects};
+    return {id:'village',version:V.version,placementVersion:1,w,h,seed,tiles,solid,objects};
   };
   return V;
 });

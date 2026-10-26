@@ -1,9 +1,9 @@
 const assert=require('node:assert/strict'),crypto=require('node:crypto');
 const C=require('../shared/world-data'),World=require('../server/world');
 const ids=C.MAP_ORDER.filter(id=>id!=='village'&&id!=='pvp'),report=[];
-const hash=m=>crypto.createHash('sha256').update(JSON.stringify(m)).digest('hex');
-assert.equal(hash(C.generateField(C.MAPS.village,20261119)),'759a0fa2242204d9bdab3cc77eb6cb8dd48a2301146bf76e9ce1a6f2020f4b95','Village unchanged');
-assert.equal(hash(C.generateMap(20261018)),'6a5b32391dbfea4205643f41fa2da16cf589441051142a67dba1be0810dfc2b4','PvP unchanged');
+const hash=m=>crypto.createHash('sha256').update(m.tiles).digest('hex');
+assert.equal(hash(C.generateField(C.MAPS.village,20261119)),'23e058274d3f568d2eca8b604cb6adcbdabf246fae68b33d12f6fc91f7e1d380','Village terrain unchanged by prop placement');
+assert.equal(hash(C.generateMap(20261018)),'49ef7d038fecf43cc1bbe0b961e3c59255cdad0f2fed5403a6e0db209b341413','PvP terrain unchanged by prop placement');
 for(const id of ids)for(const seed of [20261018+101*(C.MAP_ORDER.indexOf(id)+1),1,42,98765]){
  const def=C.MAPS[id],map=C.generateField(def,seed),tag=id+'/'+seed;
  assert.equal(map.version,3);assert.deepEqual(map,C.generateField(def,seed),tag+' deterministic');
@@ -41,4 +41,4 @@ for(const id of ids)for(const seed of [20261018+101*(C.MAP_ORDER.indexOf(id)+1),
   report.push({id,seed,reachable:queue.length,monsters:world.monsters.length});
  }finally{Math.random=random;}
 }
-console.log(JSON.stringify({maps:ids.length,seedsPerMap:4,spawnedMonsters:report.reduce((n,r)=>n+r.monsters,0),villageAndPvpUnchanged:true,results:report},null,2));
+console.log(JSON.stringify({maps:ids.length,seedsPerMap:4,spawnedMonsters:report.reduce((n,r)=>n+r.monsters,0),villageAndPvpTerrainUnchanged:true,results:report},null,2));

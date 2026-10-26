@@ -267,15 +267,15 @@
     const x1 = x0 + 18, y1 = y0 + 20, mx = x0 + 9, my = y0 + 10, main = open[0];
     const L = { camp: { x0, y0, x1, y1, open }, mx, my };
     L.spawn = ctr({ tx: mx, ty: my + 1 });
-    L.smith = open.includes('N') ? { tx: x0 + 3, ty: my } : { tx: mx - 1, ty: y0 + 2 };
+    L.smith = { tx: x0 + 4, ty: y0 + 6 };
     L.smith.x = (L.smith.tx + 1) * TILE; L.smith.y = (L.smith.ty + 1) * TILE - 4;
     // second shop building (ร้านขายยา), same look as the smith's — a few tiles over so it never overlaps
-    L.apothecary = open.includes('N') ? { tx: x0 + 3, ty: my + 4 } : { tx: mx + 1, ty: y0 + 2 };
+    L.apothecary = { tx: x0 + 13, ty: y0 + 6 };
     L.apothecary.x = (L.apothecary.tx + 1) * TILE; L.apothecary.y = (L.apothecary.ty + 1) * TILE - 4;
     // ร้านตีบวก (enhancement shop): a third building, clear of the houses, the stone and the other two shops
-    L.enhancer = { tx: x1 - 6, ty: y1 - 5 };
+    L.enhancer = { tx: x0 + 13, ty: y0 + 15 };
     L.enhancer.x = (L.enhancer.tx + 1) * TILE; L.enhancer.y = (L.enhancer.ty + 1) * TILE - 4;
-    L.stone = ctr(open.includes('N') ? { tx: x1 - 5, ty: my } : { tx: x0 + 5, ty: y1 - 5 });
+    L.stone = ctr({ tx: x0 + 4, ty: y0 + 12 });
     L.backGate = main === 'E' ? { tx: x0 + 2, ty: my } : main === 'W' ? { tx: x1 - 2, ty: my } : { tx: mx, ty: y1 - 2 };
     L.lanterns = [];
     for (const s of open) {
@@ -534,18 +534,19 @@
     // 6. camp: fence with gaps on its open sides, houses, smith, teleport stone, lanterns
     for (let x = cp.x0; x <= cp.x1; x++) for (const y of [cp.y0, cp.y1]) if (!inGap(cp, x, y)) addObj('fence', th.fence, x, y, true);
     for (let y = cp.y0 + 1; y < cp.y1; y++) for (const x of [cp.x0, cp.x1]) if (!inGap(cp, x, y)) addObj('fence', th.fence, x, y, true);
-    for (const [hx, hy] of [[cp.x0 + 3, cp.y0 + 3], [cp.x1 - 3, cp.y0 + 3], [cp.x0 + 3, cp.y1 - 2], [cp.x1 - 3, cp.y1 - 2]]) {
+    // One residence behind the services; leave the north entrance and central plaza open.
+    for (const [hx, hy] of [[cp.x0 + 4, cp.y0 + 19]]) {
       block(hx - 1, hy - 1, hx + 1, hy);
       objects.push(['house', th.house, px(hx), (hy + 1) * TILE - 2]);
     }
     const sm = def.smith;
-    block(sm.tx, sm.ty, sm.tx + 1, sm.ty);
+    block(sm.tx - 1, sm.ty - 1, sm.tx + 2, sm.ty);
     objects.push(['smith', 0, sm.x, sm.y]);
     const ap = def.apothecary;
-    block(ap.tx, ap.ty, ap.tx + 1, ap.ty);
+    block(ap.tx - 1, ap.ty - 1, ap.tx + 2, ap.ty);
     objects.push(['apothecary', 0, ap.x, ap.y]);   // ร้านขายยา: a second building, same look as the blacksmith
     const en = def.enhancer;
-    block(en.tx, en.ty, en.tx + 1, en.ty);
+    block(en.tx - 1, en.ty - 1, en.tx + 2, en.ty);
     objects.push(['enhancer', 0, en.x, en.y]);     // ร้านตีบวก
     block(def.stone.tx, def.stone.ty, def.stone.tx, def.stone.ty);
     objects.push(['stone', 0, def.stone.x, (def.stone.ty + 1) * TILE - 6]);
@@ -557,6 +558,7 @@
       const tx = Math.round(lair.tx + Math.cos(a) * (lair.r + 0.8)), ty = Math.round(lair.ty + Math.sin(a) * (lair.r + 0.8));
       const t = get(tx, ty);
       if (onRoad(tx, ty, 1) || t === T.PATH || t === T.BRIDGE || t === T.WATER || t === T.CLIFF) continue;
+      if ((tp.landmarks || []).some(m => Math.abs(tx - m.x) <= m.rx + 1 && ty >= m.y - m.depth - 1 && ty <= m.y + 2)) continue;
       addObj(def.theme === 'ice' ? 'crystal' : 'pillar', def.theme === 'ice' ? i % 3 : i % 3, tx, ty, true);
     }
 
@@ -613,27 +615,35 @@
       return th.deco[0];
     };
     const dense = (th.dense || 1) * (tp.trees ?? 1);
+    const spacing = C.propSpacing();
+    for (const o of objects) spacing.add(o[2] / TILE, o[3] / TILE, o[0] === 'landmark' ? 3 : ['house','smith','apothecary','enhancer'].includes(o[0]) ? 2.7 : .8, 1.5);
+    const scatter = (type, variant, x, y, blocking, ox = 0, oy = 0) => {
+      const rx = type === 'tree' ? 1.9 : type === 'rock' ? 1.2 : .8, ry = type === 'tree' ? 1.4 : .85;
+      const xx = x + .5 + ox / TILE, yy = y + (TILE - 6 + oy) / TILE;
+      if (!spacing.fits(xx, yy, rx, ry)) return;
+      addObj(type, variant, x, y, blocking, ox, oy); spacing.add(xx, yy, rx, ry);
+    };
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const k = id(x, y);
       if (tiles[k] !== T.GRASS || used[k]) continue;
       const border = x < 3 || y < 3 || x > W - 4 || y > H - 4;
       const variant = th.trees[(rand() * th.trees.length) | 0];
-      if (border && !clear[k]) { addObj('tree', variant, x, y, true, (rand() - 0.5) * 14, 0); continue; }
+      if (border && !clear[k]) { scatter('tree', variant, x, y, true, (rand() - 0.5) * 14, 0); continue; }
       if (clear[k]) continue;
       const n = fbm(x / 9, y / 9);
       const zf = inSlot(x, y, 7) ? (tp.forest ? 0 : 0.35) : 1;
       const r2 = rand();
       const treeHit = tp.forest ? r2 < tp.forest * zf : (n > 0.6 && r2 < 0.65 * zf * dense) || r2 < 0.02 * zf * dense;
-      if (treeHit) addObj('tree', variant, x, y, true, (rand() - 0.5) * 16, (rand() - 0.5) * 6);
+      if (treeHit) scatter('tree', variant, x, y, true, (rand() - 0.5) * 16, (rand() - 0.5) * 6);
       else if (r2 > 1 - 0.035 * (th.rocky ? 1.6 : 1)) {
         const [t, v] = pickDeco();
         const vv = v < 0 ? Math.floor(rand() * 3) : v;
         const isSolid = t === 'rock' || t === 'pillar' || t === 'crystal' || t === 'grave';
-        addObj(t, vv, x, y, isSolid, isSolid ? 0 : (rand() - 0.5) * 20, isSolid ? 0 : (rand() - 0.5) * 10);
+        scatter(t, vv, x, y, isSolid, isSolid ? 0 : (rand() - 0.5) * 20, isSolid ? 0 : (rand() - 0.5) * 10);
       }
     }
     for (let k = 0; k < W * H; k++) if (tiles[k] === T.WATER || tiles[k] === T.CLIFF) solid[k] = 1;
-    return { w: W, h: H, seed, version: 3, tiles, solid, objects };
+    return { w: W, h: H, seed, version: 3, placementVersion: 1, tiles, solid, objects };
   }
 
   // ---------------- queries ----------------

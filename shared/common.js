@@ -1581,6 +1581,24 @@
     };
   }
 
+  // Generation-only spacing in tile units; the grid keeps dense forest placement inexpensive.
+  function propSpacing() {
+    const cells = new Map(), cellSize = 4; let maxX = 0, maxY = 0;
+    return {
+      add(x, y, rx, ry) {
+        const key = Math.floor(x / cellSize) + ',' + Math.floor(y / cellSize);
+        if (!cells.has(key)) cells.set(key, []);
+        cells.get(key).push({ x, y, rx, ry }); maxX = Math.max(maxX, rx); maxY = Math.max(maxY, ry);
+      },
+      fits(x, y, rx, ry) {
+        for (let cy = Math.floor((y - ry - maxY) / cellSize); cy <= Math.floor((y + ry + maxY) / cellSize); cy++)
+          for (let cx = Math.floor((x - rx - maxX) / cellSize); cx <= Math.floor((x + rx + maxX) / cellSize); cx++)
+            for (const p of cells.get(cx + ',' + cy) || [])
+              if (((x - p.x) / (rx + p.rx)) ** 2 + ((y - p.y) / (ry + p.ry)) ** 2 < 1) return false;
+        return true;
+      },
+    };
+  }
   function generateMap(seed) {
     const W = MAP_W, H = MAP_H;
     const rand = mulberry32(seed);
@@ -1713,8 +1731,20 @@
     }
     const inZone = (x, y) => CLEARINGS.some((z) => x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1);
 
+    // The two approach lanes get mirrored scenery and equal collision, with room between canopies.
+    const spacing = propSpacing();
+    for (const o of objects) spacing.add(o[2] / TILE, o[3] / TILE, o[0] === 'tree' ? 1.25 : .8, 1);
+    const scatter = (type, variant, x, y, blocking, ox = 0, oy = 0) => {
+      const rx = type === 'tree' ? 1.25 : type === 'rock' ? .8 : .65, ry = type === 'tree' ? 1.2 : .7;
+      const xx = x + .5 + ox / TILE, yy = y + (TILE - 6 + oy) / TILE, right = W - xx;
+      if (!spacing.fits(xx, yy, rx, ry) || !spacing.fits(right, yy, rx, ry) || right - xx < rx * 2) return;
+      if (used[id(mirX(x), y)] || clear[id(mirX(x), y)] || get(mirX(x), y) !== T.GRASS) return;
+      const other = type === 'tree' ? ({ 0: 4, 2: 3, 3: 2, 4: 0 }[variant] ?? variant) : type === 'bush' ? 1 : variant;
+      addObj(type, variant, x, y, blocking, ox, oy); addObj(type, other, mirX(x), y, blocking, -ox, oy);
+      spacing.add(xx, yy, rx, ry); spacing.add(right, yy, rx, ry);
+    };
     // Trees, rocks, bushes
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W / 2; x++) {
       const k = id(x, y);
       if (tiles[k] !== T.GRASS || used[k]) continue;
       const border = x < 3 || y < 3 || x > W - 4 || y > H - 4;
@@ -1724,23 +1754,23 @@
       if (xr < 0.3) variant = r1 < 0.12 ? 2 : r1 < 0.6 ? 0 : 1;
       else if (xr > 0.7) variant = r1 < 0.12 ? 3 : r1 < 0.6 ? 4 : 1;
       else variant = r1 < 0.5 ? 0 : r1 < 0.8 ? 1 : 4;
-      if (border) { addObj('tree', variant, x, y, true, (rand() - 0.5) * 14, 0); continue; }
+      if (border && !clear[k]) { scatter('tree', variant, x, y, true, (rand() - 0.5) * 14, 0); continue; }
       if (clear[k]) continue;
       const n = fbm(x / 9, y / 9);
       const zoneFactor = inZone(x, y) ? 0.45 : 1;
       const r2 = rand();
       if ((n > 0.6 && r2 < 0.7 * zoneFactor) || r2 < 0.022 * zoneFactor) {
-        addObj('tree', variant, x, y, true, (rand() - 0.5) * 16, (rand() - 0.5) * 6);
+        scatter('tree', variant, x, y, true, (rand() - 0.5) * 16, (rand() - 0.5) * 6);
       } else if (r2 > 0.988) {
-        addObj('rock', Math.floor(rand() * 3), x, y, true);
+        scatter('rock', Math.floor(rand() * 3), x, y, true);
       } else if (r2 > 0.968) {
-        addObj('bush', xr < 0.5 ? 0 : 1, x, y, false, (rand() - 0.5) * 20, (rand() - 0.5) * 10);
+        scatter('bush', xr < 0.5 ? 0 : 1, x, y, false, (rand() - 0.5) * 20, (rand() - 0.5) * 10);
       }
     }
     // Water is solid, bridges are not
     for (let k = 0; k < W * H; k++) if (tiles[k] === T.WATER) solid[k] = 1;
 
-    return { w: W, h: H, seed, tiles, solid, objects };
+    return { w: W, h: H, seed, placementVersion: 1, tiles, solid, objects };
   }
 
   // ---------------- collision / zones ----------------
@@ -1785,6 +1815,6 @@
     evoBlock, autoSkills, cleanSkills, skillRankOf, skillPower, skillInfoAt, SKILL_VER, BUFF_SKILLS, MOVE_SKILLS, meteorPoints, blastPoints,
     STAT_PTS, STAT_POINTS, PT_KEYS, statPtsTotal, statPtsFree, cleanAlloc, basicCd, BASIC_CD_MUL, STAT_GUIDE_KEY, STAT_GUIDES, statGuide, guideTarget, guidePoints, statLimits, CRIT_CAP, skillMp, MP_COST_PCT, MP_COST_CAP, SKILL_CD_MUL,
     enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_ALLY_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_PVE_SKILL, WARRIOR_THORNS, WARRIOR_COVER, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
-    generateMap, solidAt, canStand, baseAt, areaName, spawnPoint, mulberry32, makeNoise,
+    generateMap, propSpacing, solidAt, canStand, baseAt, areaName, spawnPoint, mulberry32, makeNoise,
   };
 });
