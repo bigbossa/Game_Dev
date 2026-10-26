@@ -289,6 +289,14 @@
     s.on('partyRequest', () => SFX.play('notify', { mine: true, bus: 'ui' }));
     s.on('fx', (d) => {
       const e = ent(d.id), mine = isMe(d.id), at = { x: e ? e.x : d.x, y: e ? e.y : d.y, mine, other: !mine };
+      if(d.t==='boxer'){
+        if(d.mapId!==G.mapId)return;
+        if(d.phase==='step')SFX.play('dash',at);
+        else if(d.phase==='guard')SFX.play('buff',{...at,v:.5});
+        else if(d.phase==='windup')SFX.play('swing',{...at,v:.45,gap:100});
+        else if(d.phase==='hit')SFX.play((d.skill==='qiQuake'||d.skill==='qiEmperor'&&d.beat===d.hits-1)?'smash':'impact',{...at,v:.55,gap:60});
+        return;
+      }
       if (d.t === 'arbiter') {
         if (d.mapId && d.mapId !== G.mapId) return;
         if (['windup', 'ward', 'form', 'blades', 'resonance'].includes(d.phase)) SFX.skill(d.skill, at);

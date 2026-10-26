@@ -101,6 +101,7 @@
     if (!cls.sheet && window.DualbladeModel?.ready) $('piImg').src = DualbladeModel.portrait(fac.id);
     if(cls.id==='archer'&&window.ArcherModel?.ready)$('piImg').src=ArcherModel.portrait(fac.id);
     if(cls.id==='spearman'&&fac.id==='adharma')$('piImg').src='assets/adharma-hair/spearman-adharma-portrait.png';
+    if(cls.id==='boxer')$('piImg').src=BoxerLook.portrait(fac.id);
     $('piImg').parentElement.style.borderColor = fac.color;
     $('piLvl').textContent = d.lvl;
     $('piName').textContent = d.name;

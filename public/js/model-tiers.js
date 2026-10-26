@@ -264,7 +264,7 @@
   // 'walk-adharma' was analysed; the attack poses share one layout
   // (the นักพรต has its own drawing per faction and pose: 'tao-walk-dharma', 'tao-attack-adharma', ...)
   // (นักธนู: 'arc-walk-dharma', ...)
-  const OWN_KEY = { taoist: 'tao', archer: 'arc', spearman: 'spear', warrior: 'war', arbiter: 'arb' };
+  const OWN_KEY = { taoist: 'tao', archer: 'arc', spearman: 'spear', warrior: 'war', arbiter: 'arb', boxer:'box' };
   MT.key = (faction, atk, cls) => (OWN_KEY[cls] ? `${OWN_KEY[cls]}-${atk ? 'attack' : 'walk'}-${faction === 'adharma' ? 'adharma' : 'dharma'}`
     : atk ? 'attack' : faction === 'adharma' && info['walk-adharma'] ? 'walk-adharma' : 'walk');
 

@@ -25,7 +25,7 @@
   RANK.set = (d) => { if (d && d.board === RANK.board) { RANK.data = d; render(); } };
 
   const clsName = (cls) => (C.CLASSES[cls] || C.CLASSES.dualblade).name;
-  const portrait = (cls, f) => { const sheet = (C.CLASSES[cls] || {}).sheet; return `assets/${sheet ? sheet + '-' : ''}${f}-portrait.png`; };
+  const portrait = (cls, f) => { if(cls==='boxer')return BoxerLook.portrait(f);const sheet = (C.CLASSES[cls] || {}).sheet; return `assets/${sheet ? sheet + '-' : ''}${f}-portrait.png`; };
   const value = (r) => (RANK.board === 'pvp' ? `<b>${fmt(r.pvp)}</b> <small>คิล</small>` : `<b>Lv.${r.lvl}</b>`);
   function row(r, place, me) {
     return `<div class="rank-row${me ? ' me' : ''}">

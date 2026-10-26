@@ -9,6 +9,7 @@
   // ------------------------------------------------------------ skill icons
   function icon(id, f) {
     if (C.ALL_SKILLS[id]?.cls === 'arbiter') return ArbiterLook.icon(id, f);
+    if (C.ALL_SKILLS[id]?.cls === 'boxer') return BoxerLook.icon(id, f);
     const c = document.createElement('canvas'); c.width = c.height = 112;
     const g = c.getContext('2d');
     const sk = C.ALL_SKILLS[id];
@@ -344,6 +345,7 @@
     if(me.cls==='archer'&&window.ArcherModel?.ready)$('pfImg').src=ArcherModel.portrait(me.faction);
     if(me.cls==='spearman'&&me.faction==='adharma')$('pfImg').src='assets/adharma-hair/spearman-adharma-portrait.png';
     if(me.cls==='warrior')$('pfImg').src=WarriorLook.portrait(me.faction);
+    if(me.cls==='boxer')$('pfImg').src=BoxerLook.portrait(me.faction);
     $('pfName').innerHTML = `<span id="pfNameTxt">${esc(me.name)}</span><b id="pfEvil" class="pf-evil"></b> <small style="color:${C.FACTIONS[me.faction].color}">· ${C.FACTIONS[me.faction].name} · ${cls.name}</small>`;
     HUD.buildBar();
   };
@@ -564,6 +566,7 @@
   }
   HUD.update = function (st) {
     if (!st) return;
+    BoxerLook.updateHUD();
     updatePk(st);
     updateBuffs(st.bf);
     updatePartyExp(st.pexp);

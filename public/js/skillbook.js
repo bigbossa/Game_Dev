@@ -14,12 +14,12 @@
     const info = C.skillInfoAt(sk, rank), free = S.free || 0;
     const key = S.bar.indexOf(sk.id);
     const maximum = sk.free || sk.passive ? 1 : sk.maxRank || C.SKILL_MAX;
-    const power = sk.free && sk.arbiter ? C.arbiterPower(lvl, true) : C.skillPower(sl, rank);
-    const spec = sk.arbiter && C.arbiterSpec(sk, sl || 1, rank);
+    const power = sk.free && sk.arbiter ? C.arbiterPower(lvl, true) : sk.free&&sk.boxer?1+.05*Math.min(11,Math.floor((lvl-1)/4)):C.skillPower(sl, rank);
+    const spec = sk.arbiter ? C.arbiterSpec(sk, sl || 1, rank) : sk.boxer?C.boxerSpec(sk,sl||1,rank):null;
     const pct = value => +(value * 100).toFixed(1);
     const buffInfo = !sl || !spec ? '' : spec.kind === 'resonance' ? `บัพ ${(spec.duration/1000).toFixed(2)} วิ · โบนัสครบ 5 ชั้น +${pct(spec.bonus)}%`
       : spec.kind === 'astral' ? `บัพ ${(spec.duration/1000).toFixed(2)} วิ · ดาบเสริม ${pct(spec.bonus)}% ATK`
-      : spec.kind === 'ward' ? `ลดดาเมจ ${pct(spec.guard)}% (PvP ${pct(spec.guard*.75)}%) · ${spec.duration/1000} วิ`
+      : ['ward','guard','breath'].includes(spec.kind) ? `ลดดาเมจ ${pct(spec.guard)}% (PvP ${pct(spec.guard*.75)}%) · ${spec.duration/1000} วิ`
       : spec.kind === 'form' ? `ดาเมจ +${pct(spec.damage)}% (PvP +${pct(spec.damage*2/3)}%) · ตีเร็ว +${pct(spec.aspd)}% · ${spec.duration/1000} วิ` : '';
     const canUp = cap > sl && free > 0;
     const upWhy = sl >= maximum ? 'สเต็กเต็ม' : !cap ? `ต้องการ Lv.${sk.lvl}` : sl >= cap ? `สเต็กถัดไป Lv.${sk.lvl + sl * C.SKILL_LVL_GAP}` : !free ? 'แต้มไม่พอ' : '';

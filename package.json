@@ -4,6 +4,9 @@
   "description": "2D MMORPG - ธรรมะ vs อธรรม",
   "main": "server/index.js",
   "scripts": {
+    "boxer": "node tools/build-boxer.cjs",
+    "check:boxer": "node tools/check-boxer.cjs",
+    "check:boxer-browser": "node tools/check-boxer-browser.cjs",
     "check:beginner": "node tools/check-beginner.cjs",
     "check:arbiter": "node tools/check-arbiter.cjs",
     "check:arbiter-browser": "node tools/check-arbiter-browser.cjs",

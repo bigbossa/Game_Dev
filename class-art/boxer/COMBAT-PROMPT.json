@@ -1,0 +1,9 @@
+{
+  "tool": "built-in image_gen",
+  "transparent_background": true,
+  "prompt": "Use case: identity-preserve. Use the attached sprite atlas as the character identity reference. Create a NEW companion combat-pose atlas of exactly the SAME character, face, hairstyle, physique, outfit, gauntlets and painted rendering. Preserve true transparent background. EXACT uniform grid 8 columns and 4 rows, 32 fully isolated full-body characters; all heads boots and fists inside cells with generous transparent gutters, no effects, no shadows, no scenery or text. Landscape1536x1024. Columns face south/front, southwest, west, northwest, north/back, northeast, east, southeast. Replace all rows with these four DISTINCT skill poses: row1 horizontal elbow strike with bent arm fist near shoulder and elbow thrust toward facing direction; row2 rising knee strike one knee lifted to waist and other boot supports body fists guarding; row3 rising uppercut one fist up beside head elbow bent and torso twisted other fist at waist; row4 low wide crouching double-fist downward ground-slam pose both wrapped fists together reaching toward ground ahead. Keep identity and colors exact and same character scale as reference. Not another sheet of straight punches. All 8 directions of each pose must differ correctly, front faces have visible faces and back faces show back of hair.",
+  "references": [
+    "dharma-source.png",
+    "adharma-source.png"
+  ]
+}

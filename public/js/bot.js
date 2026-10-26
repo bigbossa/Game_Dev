@@ -16,6 +16,7 @@
   // reach of each skill (world px from the target's edge) and the order they are tried in (big ones first)
   // (heals / buffs are cast on the bot itself and its party: buffs when a fight starts, heals when someone is hurt)
   const RANGE = { lotus: 110, shadowstep: 260, rend: 140, tempest: 120, crescent: 160, skyfall: 260, thousand: 120, twindragon: 200,
+    ...Object.fromEntries(C.CLASSES.boxer.skills.filter(s=>s.key!=='1').map(s=>[s.id,C.BUFF_SKILLS.includes(s.id)?9999:s.boxer.range+(s.boxer.dash||0)-15])),
     oathSlash: 100, arcblade: 250, oathResonance: 9999, astralBlades: 9999, oathAegis: 9999, bladeOrbit: 130, ascendantForm: 9999, finalVerdict: 240,
     ...Object.fromEntries(C.CLASSES.warrior.skills.filter(s=>s.key!=='1'&&s.frontline).map(s=>[s.id,s.frontline.ward?9999:(s.frontline.range||100)-15])),
     ...Object.fromEntries(C.CLASSES.spearman.skills.filter(s=>s.spear).map(s => [s.id, s.spear.range - 15])),
@@ -27,10 +28,12 @@
     'nirvana', 'mercy', 'aegis', 'might', 'heavens', 'meteor', 'skybolt', 'spiritsword',
     'hawkeye', 'gale', 'stormphoenix', 'skyrain', 'blast', 'deadeye', 'scatter', 'rollshot'];
   const HEALS = ['mercy', 'nirvana'];
+  PRIORITY.unshift('qiBreath','qiCounter','qiEmperor','qiHeaven','qiQuake','qiElbow','qiKnee','qiTempest','qiBreaker','qiStep');
   PRIORITY.unshift('oathAegis', 'ascendantForm', 'oathResonance', 'astralBlades', 'finalVerdict', 'bladeOrbit', 'arcblade', 'oathSlash');
   PRIORITY.unshift('ironGuard','rallyGuard','lastBastion','guardianOath','battleCry','sunderStrike','shieldBash','shieldSweep','earthShatter','citadelStrike');
   PRIORITY.unshift(...Object.values(C.ALL_SKILLS).filter(s=>s.ritual).sort((a,b)=>b.lvl-a.lvl).map(s=>s.id));
   const DEF = { radius: 450, basic: true, skills: { lotus: true, rend: true, crescent: true, skybolt: true, mercy: true, aegis: true,
+    ...Object.fromEntries(C.CLASSES.boxer.skills.filter(s=>s.key!=='1').map(s=>[s.id,true])),
     oathSlash: true, arcblade: true, oathResonance: true, astralBlades: true, oathAegis: true, bladeOrbit: true, ascendantForm: true, finalVerdict: true,
     spearCrush: true, spearBreak: true, spearHeart: true, spearBoss: true,
     shieldBash: true, shieldSweep: true, ironGuard: true, battleCry: true,
@@ -181,7 +184,8 @@
     const hurt = st.hp < st.mhp * 0.7 || (window.PARTY && PARTY.list.some((m) => !m.dead && m.map === G.mapId && m.hp < m.mhp * 0.6));
     for (const id of picked) {
       if (HEALS.includes(id) && !hurt) continue;
-      if (skillDef[id].arbiter && C.BUFF_SKILLS.includes(id) &&
+      if(skillDef[id].boxer?.finisher&&(me.qiStacks||0)<C.BOXER.stacks)continue;
+      if ((skillDef[id].arbiter || skillDef[id].boxer) && C.BUFF_SKILLS.includes(id) &&
           (d > 320 || (st.bf || []).some(b => b[0] === id && b[1] > 0))) continue;
       if (d <= RANGE[id] && ready(id)) { G.useSlot(id); break; }
     }
@@ -206,7 +210,7 @@
       const mine = new Set(skillsOf().map((s) => s.id));
       // arbiter buffs only once a fight is near (BOT.fight)
       const skills = PRIORITY.filter((id) => mine.has(id) && cfg.skills[id]).map((id) =>
-        [id, skillDef[id].arbiter && C.BUFF_SKILLS.includes(id) ? Math.min(RANGE[id] || 0, 320) : RANGE[id] || 0, HEALS.includes(id)]);
+        [id, (skillDef[id].arbiter || skillDef[id].boxer) && C.BUFF_SKILLS.includes(id) ? Math.min(RANGE[id] || 0, 320) : RANGE[id] || 0, HEALS.includes(id)]);
       G.socket.emit('botAway', { on: true, x: BOT.anchor.x, y: BOT.anchor.y, r: cfg.radius, basic: cfg.basic, skills,
         hpOn: cfg.hpOn, hp: cfg.hp, mpOn: cfg.mpOn, mp: cfg.mp });
     } else if (!document.hidden && BOT.away) {

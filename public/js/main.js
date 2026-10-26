@@ -64,6 +64,7 @@
     await WarriorLook.load(loadImg);
     step(0.57, 'เทวทัณฑ์กำลังจุติ');
     await ArbiterLook.load(loadImg);
+    await BoxerLook.load(loadImg);
     step(0.61, 'กำลังจารึกอักษร');
     if (document.fonts && document.fonts.load) { try { await document.fonts.load('600 16px Kanit'); } catch (e) { /* font optional */ } }
     // level looks (hair / crown / wings / halo / horns) are measured on the ธรรมะ sheets; the อธรรม walk is its own
@@ -197,7 +198,7 @@
     const receivedAt = performance.now();
     const seen = new Set();
     for (const a of s.p) {
-      const [id, x, y, dir, mv, hp, mhp, fi, name, lvl, dead, , wt, ar, wp, gg, wg, ci, gp, pk, ev, hs, arb] = a;
+      const [id, x, y, dir, mv, hp, mhp, fi, name, lvl, dead, , wt, ar, wp, gg, wg, ci, gp, pk, ev, hs, arb, qi] = a;
       let e = G.ents.get(id);
       if (!e) { e = { kind: 'p', id, x, y, tx: x, ty: y, dir, animT: 0, flash: 0 }; G.ents.set(id, e); }
       if (id !== G.myId && !e.leap) {
@@ -205,6 +206,7 @@
       }
       Object.assign(e, { hp, mhp, faction: fi ? 'adharma' : 'dharma', cls: C.CLASS_IDS[ci] || 'dualblade', name, lvl, dead: !!dead, wt: wt || 0, ar: ar || NO_ARMOR, wp: wp || 0, gg: gg || NO_GEAR, gr: gg ? Math.max(...gg) : 0, wg: wg || 0, gp: gp || NO_GEAR,
         pk: !!pk, ev: ev || 0, hs: !!hs, arbiterForm: !!arb?.[0], oathStacks: arb?.[1] || 0, astralBlades: !!arb?.[2] });
+      e.qiStacks=qi?.[0]||0;e.qiUntil=receivedAt+(qi?.[1]||0);
       if (!dead) e.dying = 0;
       seen.add(id);
     }
@@ -251,9 +253,10 @@
     if (!me) return;
     G.mapLoading = true;
     SkillPerformance.clear();
-    FX.list=FX.list.filter(f=>!f.monsterEffect && !f.arbiterEffect);
+    FX.list=FX.list.filter(f=>!f.monsterEffect && !f.arbiterEffect && !f.boxerEffect);
     syncControl(null);
     G.order = null; me.dash = null; me.atk = null;
+    me.qiLockUntil=0;me.qiStacks=0;me.qiUntil=0;
     for (const id of [...G.ents.keys()]) if (id !== G.myId) G.ents.delete(id);
     INV.closeShop(); WARP.toggle(false);
     try { await loadMap(d.id); } catch (err) { console.error(err); HUD.toast('โหลดแผนที่ไม่สำเร็จ'); }
@@ -268,7 +271,7 @@
   socket.on('cast', (d) => {
     HUD.setCd(d.id, d.cd);
     const sk = SKILL[d.id];
-    if (sk && (sk.spear || sk.frontline || sk.arbiter)) { if (G.spearWait) G.spearWait[d.id] = 0; if (sk.key !== '1') HUD.setCd('gcd', C.GCD_MS); }
+    if (sk && (sk.spear || sk.frontline || sk.arbiter || sk.boxer)) { if (G.spearWait) G.spearWait[d.id] = 0; if (sk.key !== '1') HUD.setCd('gcd', C.GCD_MS); }
   });
   socket.on('gmreset', () => { HUD.cds = {}; });
   socket.on('gmmsg', (t) => GM.msg(String(t)));
@@ -357,6 +360,14 @@
   });
   socket.on('fx', (d) => {
     const e = G.ents.get(d.id);
+    if(d.t==='boxer'){
+      if(d.mapId!==G.mapId)return;
+      if(d.phase==='step'&&e){
+        if(d.id===G.myId)e.dash={x0:e.x,y0:e.y,x1:d.x1,y1:d.y1,t0:performance.now(),dur:d.dur};
+        else {e.x=e.tx=d.x1;e.y=e.ty=d.y1;}
+      }
+      BoxerLook.play(d);return;
+    }
     if (d.t === 'arbiter') {
       if (d.mapId !== G.mapId) return;
       if (e && d.phase === 'windup') { startAtk(e, d.skill, d.a); e.atk.dur = d.dur + 200; }
@@ -421,9 +432,10 @@
       case 'heal': FX.heal(d.id, d.k); break;
       case 'cover': FX.cover(d.id, d.to); break;
       case 'lvl': {
-        const arbiter=e?.cls==='arbiter',oldLevel=e?.lvl||1;
+        const arbiter=e?.cls==='arbiter',boxer=e?.cls==='boxer',oldLevel=e?.lvl||1;
         if(arbiter)ArbiterLook.levelUp(d.id,d.f,oldLevel,d.lvl);else FX.levelUp(d.id, d.f);
-        const was=arbiter?C.arbiterStage(oldLevel):ModelTiers.tierOf(oldLevel),now=arbiter?C.arbiterStage(d.lvl):ModelTiers.tierOf(d.lvl);
+        const lookStage=l=>boxer?+(l>=50)+ +(l>=100):arbiter?C.arbiterStage(l):ModelTiers.tierOf(l);
+        const was=lookStage(oldLevel),now=lookStage(d.lvl);
         if (e) e.lvl = d.lvl;
         if (d.id === G.myId) {
           HUD.toast(`เลเวลอัพ! ตอนนี้ Lv.${d.lvl}`);
@@ -435,7 +447,7 @@
         }
         if (now > was) {                                    // new look unlocked
           if(!arbiter)FX.equip(d.id, d.f);
-          if (d.id === G.myId) HUD.toast(arbiter?`วิวัฒนาการเทวทัณฑ์ · Lv.${d.lvl}`:`ปลดล็อกลักษณะใหม่: ${ModelTiers.nameOf(now, d.f || (e && e.faction), e && e.cls)} (ทรงผมและออร่าเปลี่ยน)`);
+          if (d.id === G.myId) HUD.toast(boxer?`นักสู้หมัดปราณ: ${now>=2?'ปราณเรืองแสงขณะออกหมัด':'เครื่องประดับจอมยุทธ์'} · Lv.${d.lvl}`:arbiter?`วิวัฒนาการเทวทัณฑ์ · Lv.${d.lvl}`:`ปลดล็อกลักษณะใหม่: ${ModelTiers.nameOf(now, d.f || (e && e.faction), e && e.cls)} (ทรงผมและออร่าเปลี่ยน)`);
         }
         break;
       }
@@ -670,6 +682,7 @@
       document.querySelectorAll('.fcard').forEach((x) => { x.querySelector('img').src = pre==='archer-'&&ArcherModel.ready?ArcherModel.portrait(x.dataset.f):!pre && DualbladeModel.ready ? DualbladeModel.portrait(x.dataset.f) : `assets/${pre==='spearman-'&&x.dataset.f==='adharma'?'adharma-hair/':''}${pre}${x.dataset.f}-portrait.png`; });
       if (cls === 'warrior') document.querySelectorAll('.fcard').forEach(x => { x.querySelector('img').src = WarriorLook.portrait(x.dataset.f); });
       if (cls === 'arbiter') document.querySelectorAll('.fcard').forEach(x => { x.querySelector('img').src = ArbiterLook.portrait(x.dataset.f); });
+      if (cls === 'boxer') document.querySelectorAll('.fcard').forEach(x => { x.querySelector('img').src = BoxerLook.portrait(x.dataset.f); });
       if (cls === 'taoist') document.querySelectorAll('.fcard').forEach(x => { x.querySelector('img').src = `assets/taoist-v2/taoist-${x.dataset.f}-portrait.png`; });
     };
     document.querySelectorAll('.cls[data-c]').forEach((b) => {
@@ -1256,21 +1269,22 @@
     }
     const sk = SKILL[id];
     if (!sk || sk.passive || sk.cls !== (G.cls || 'dualblade') || AscendedSkills.active(me)) return;
+    if(sk.boxer&&performance.now()<(me.qiLockUntil||0))return;
     if (performance.now() < (G.control?.stunUntil || 0)) return;
-    if (performance.now() < (G.control?.rootUntil || 0) && (sk.spear || sk.ritual || (sk.arbiter && !C.BUFF_SKILLS.includes(id)) || C.MOVE_SKILLS.includes(id))) return;
+    if (performance.now() < (G.control?.rootUntil || 0) && (sk.spear || sk.ritual || ((sk.arbiter || sk.boxer) && !C.BUFF_SKILLS.includes(id)) || C.MOVE_SKILLS.includes(id))) return;
     if (st.lvl < sk.lvl) { if (id !== basicId()) HUD.toast(`ต้องการเลเวล ${sk.lvl}`); return; }
     if (G.skl && !G.skl.sk[id]) { HUD.toast(`ยังไม่ได้เรียน ${sk.name} — กด K เพื่อใช้แต้มสกิล`); return; }
     if (HUD.cdLeft(id) > 0 || (id !== basicId() && HUD.cdLeft('gcd') > 0)) return;
     if (st.mp < C.skillMp(sk, st.lvl)) { HUD.toast('ปราณไม่พอ'); return; }
     // ทวน: every art needs one enemy in reach (the server refuses it otherwise). No enemy = nothing happens and no
     // cooldown; an enemy out of reach = walk up to it first (runOrder casts the skill on arrival).
-    if ((sk.spear || (sk.frontline?.damage && !sk.frontline.area) || ['single', 'basic'].includes(sk.arbiter?.kind)) && !(aim && aim.tid)) {
+    if ((sk.spear || (sk.frontline?.damage && !sk.frontline.area) || ['single', 'basic'].includes(sk.arbiter?.kind) || sk.boxer?.kind==='single') && !(aim && aim.tid)) {
       const t = spearTargetFor();
       if (!t) { if (id !== basicId()) HUD.toast('ไม่มีเป้าหมาย'); return; }
       if (!inSpearReach(t, sk)) { G.order = { type: 'attack', id: t.id, skill: id }; return; }
       aim = aimAtFoe(t);
     }
-    if (sk.spear || sk.frontline || sk.ritual || sk.arbiter) {
+    if (sk.spear || sk.frontline || sk.ritual || sk.arbiter || sk.boxer) {
       const wait = G.spearWait || (G.spearWait = {});        // one request in flight per skill
       if (performance.now() < (wait[id] || 0)) return;
       wait[id] = performance.now() + 350;
@@ -1278,7 +1292,7 @@
     const t = aim || aimFor();
     socket.emit('skill', { id, a: t.a, tx: t.tx, ty: t.ty, tid: t.tid });
     if (C.MOVE_SKILLS.includes(id) && G.order && G.order.type !== 'attack') G.order = null; // moving skills replace a walk
-    if (!sk.spear && !sk.frontline && !sk.ritual && !sk.arbiter) {
+    if (!sk.spear && !sk.frontline && !sk.ritual && !sk.arbiter && !sk.boxer) {
       HUD.setCd(id, id === basicId() ? C.basicCd(sk, (st.aspd || 0) / 100) : sk.cd);
       if (id !== basicId()) HUD.setCd('gcd', C.GCD_MS);
     }
@@ -1287,7 +1301,10 @@
   // the enemy a spear / shield / arbiter art goes for: the same pick as the attack button
   const spearTargetFor = () => pickTarget();
   // gapTo is the server's slashTarget distance; the reach is a little short of the server's for movement between updates
-  const inSpearReach = (t, sk) => gapTo(t) <= (sk.id === 'oathBasic' ? C.basicReach(G.cls, G.stats?.lvl || 1) + 12 : (sk.spear || sk.frontline || C.arbiterSpec(sk,G.skl?.sk[sk.id],C.skillRankOf(G.skl,sk.id))).range) - 12;
+  const inSpearReach = (t, sk) => {
+    const spec=sk.boxer?C.boxerSpec(sk,G.skl?.sk[sk.id],C.skillRankOf(G.skl,sk.id)):sk.spear||sk.frontline||C.arbiterSpec(sk,G.skl?.sk[sk.id],C.skillRankOf(G.skl,sk.id));
+    return gapTo(t)<=(sk.id==='oathBasic'?C.basicReach(G.cls,G.stats?.lvl||1)+12:spec.range+(sk.boxer?spec.dash||0:0))-12;
+  };
   const aimAtFoe = (t) => ({ a: Math.atan2(t.y - radiusOf(t) * 0.4 - (G.me.y - 18), t.x - G.me.x), tx: t.x, ty: t.y, tid: t.id });
 
   // ------------------------------------------------------------ simulation
@@ -1308,6 +1325,7 @@
       me.moving = false;
       return;
     }
+    if(me.cls==='boxer'&&now<(me.qiLockUntil||0)){me.moving=false;return;}
     let dx = 0, dy = 0;
     if (!typing()) {
       if (keys.has('a') || keys.has('arrowleft')) dx--;
@@ -1527,6 +1545,7 @@
     const ritual = AscendedSkills.frame(e, now);
     if (ritual) return ritual;
     if (e.cls === 'arbiter') return ArbiterLook.frame(e, now);
+    if (e.cls === 'boxer') return BoxerLook.frame(e, now);
     if (e.cls === 'warrior') return WarriorLook.frame(e, now);
     if (e.cls === 'spearman') return SpearmanLook.frame(e, now);
     const OM = e.cls !== 'taoist' && C.CLASSES[e.cls] && C.CLASSES[e.cls].sheet && ownMeta(e.cls);
@@ -1578,6 +1597,7 @@
   function drawSprite(e, F, x, y, opts = {}) {
     const g = opts.ctx || ctx, s = opts.scale || PLAYER_SCALE;
     if (e.cls === 'arbiter') return ArbiterLook.draw(g, e, F, x, y, s, performance.now());
+    if (e.cls === 'boxer') return BoxerLook.draw(g, e, F, x, y, s, performance.now());
     if (e.cls === 'warrior') return WarriorLook.draw(g, e, F, x, y, s,performance.now(),opts);
     const costumeTier = DualbladeLook.is(e) ? DualbladeLook.stageOf(e.lvl || 1) : ModelTiers.tierOf(e.lvl || 1);
     const meta = metaOf(e, F);
@@ -1645,6 +1665,7 @@
     const F = poseFrame ? {...poseFrame} : attacking ? { atk: true, dir, frame: Math.floor((t % 0.9) / 0.3) } : { atk: false, dir, frame: me.cls === 'archer' && t % .9 < .4 ? 3 : [0, 1, 2, 1][Math.floor(t * 8) % 4] };
     F.faction = me.faction;
     if (me.cls === 'arbiter') { ArbiterLook.draw(g, me, F, w / 2, h - 16, Math.min(.9, (h - 28) / 210), t * 1000); return; }
+    if (me.cls === 'boxer') { BoxerLook.draw(g, me, F, w / 2, h - 16, Math.min(.9, (h - 28) / 220), t * 1000); return; }
     if (me.cls === 'warrior') {
       const px=w/2+(bodyPose?.dx||0),py=h-16+(bodyPose?.dy||0)-(bodyPose?.lift||0);
       g.save();g.translate(px,py);g.rotate(bodyPose?.roll||0);g.scale(bodyPose?.sx||1,bodyPose?.sy||1);
@@ -1819,6 +1840,7 @@
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(e.x + pose.dx, e.y + pose.dy, 22 * LOOK_K * sh * K, 7 * LOOK_K * sh * K, 0, 0, Math.PI * 2); ctx.fill();
     if (e.cls === 'arbiter') { ArbiterLook.draw(ctx, e, F, px, py, PLAYER_SCALE, now); return; }
+    if (e.cls === 'boxer') { BoxerLook.draw(ctx, e, F, px, py, PLAYER_SCALE, now); return; }
     if (e.cls === 'warrior') {
       ctx.save(); ctx.strokeStyle=fcol; ctx.lineWidth=2;
       ctx.beginPath(); ctx.ellipse(e.x,e.y,24,8,0,0,Math.PI*2); ctx.stroke();

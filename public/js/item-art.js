@@ -1025,6 +1025,7 @@
     if (it.slot === 'weapon' && viewCls() === 'taoist' && it.tier >= 11) { AscendedGear.whiskIcon(g, it.tier, faction, ICON); return c; }
     if (it.slot === 'weapon' && viewCls() === 'spearman') SpearmanLook.icon(g, faction, ICON, it.tier);
     else if (it.slot === 'weapon' && viewCls() === 'archer') bowIcon(g, it, faction);
+    else if (it.slot === 'weapon' && viewCls() === 'boxer') BoxerLook.weaponIcon(g,it,faction,ICON);
     else if (it.slot === 'weapon' && viewCls() !== 'dualblade' && whiskIcon(g, it, faction)) { /* class weapon art */ }
     else if (it.slot === 'weapon' && viewCls() === 'arbiter') ArbiterLook.weaponIcon(g,it,faction,ICON);
     else if (it.slot === 'weapon') weaponIcon(g, it, faction);

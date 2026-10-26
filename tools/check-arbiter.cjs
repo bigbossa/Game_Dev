@@ -31,7 +31,7 @@ function test(name,fn){fn();checks++;console.log('PASS '+name);}
 try{
   Date.now=()=>now;Math.random=()=>.5;
   test('stable class indices; basic + eight skills + two Lv.120/130 arts; all levels load without overspending',()=>{
-    assert.deepEqual(C.CLASS_IDS,['dualblade','taoist','archer','spearman','warrior','arbiter']);
+    assert.deepEqual(C.CLASS_IDS,['dualblade','taoist','archer','spearman','warrior','arbiter','boxer']);
     assert.equal(C.CLASSES.arbiter.skills.length,11);
     assert.deepEqual(C.CLASSES.arbiter.skills.slice(9).map(s=>[s.id,s.key,s.lvl,!!s.ritual]),[['oathFirmament','0',120,true],['oathGenesis','-',130,true]]);
     for(let lvl=1;lvl<=130;lvl++)for(const cls of C.CLASS_IDS){const d=C.cleanSkills(cls,null,lvl);assert(C.skillPtsFree(d,lvl)>=0);assert.deepEqual(C.cleanSkills(cls,copy(d),lvl),d);}
@@ -124,7 +124,7 @@ try{
     const f=fixture(30),calls=[],node={addEventListener(){},classList:{toggle(){}},querySelectorAll(){return[];}};
     const G={cls:'arbiter',me:f.p,stats:{lvl:30,mp:f.p.mp,hp:f.p.hp,mhp:f.p.hp},skl:f.p.skl,mapId:'lab',
       useSlot(id){calls.push(id);cast(f,id);this.stats.bf=f.w.buffList(f.p);}};
-    const context={C,G,window:null,document:{getElementById:()=>node},localStorage:{getItem(){return null;}},HUD:{cdLeft:()=>0},performance:{now:()=>now}};context.window=context;
+    const context={C,G,window:null,document:{getElementById:()=>node,addEventListener(){}},localStorage:{getItem(){return null;}},HUD:{cdLeft:()=>0},performance:{now:()=>now}};context.window=context;
     vm.runInNewContext(fs.readFileSync(require.resolve('../public/js/bot.js'),'utf8'),context);
     context.BOT.api={radiusOf:()=>20,orderMove(){}};
     for(let i=0;i<4;i++){context.BOT.fight(f.t,now);flush(f.w);now+=C.GCD_MS;}

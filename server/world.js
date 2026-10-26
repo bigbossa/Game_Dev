@@ -662,6 +662,8 @@ class World {
     if (!Number.isFinite(a)) a = (p.dir * Math.PI) / 4;
     const arbiter = sk.arbiter && this.arbiterAim(p, sk, d, a);
     if (sk.arbiter && !arbiter) return;
+    const boxer = sk.boxer && this.boxerAim(p, sk, d, a);
+    if (sk.boxer && !boxer) return;
     // Spear skills lock exactly one legal melee target before spending resources.
     const front = sk.frontline;
     const frontTarget = front && front.damage && !front.area && this.slashTarget(p, a, front.range, Math.PI, d.tid);
@@ -688,6 +690,7 @@ class World {
     const fx = (data) => this.fx(p, { id: p.id, r: rank, sl, ...data });
     const alive = () => this.alive(p);
     if (arbiter) return this.castArbiter(p, sk, arbiter, basic ? C.arbiterPower(p.lvl, true) : mult, now);
+    if (boxer) return this.castBoxer(p,sk,boxer,basic?1+.05*Math.min(11,Math.floor((p.lvl-1)/4)):mult,now);
     if (front) {
       const mapId = p.mapId, epoch = p.controlEpoch || 0;
       const castId=p.frontlineSeq=(p.frontlineSeq||0)+1;
@@ -1512,6 +1515,7 @@ class World {
     for (const [id, reach, heal] of b.skills) {
       if (heal && !hurt) continue;
       if (C.BUFF_SKILLS.includes(id) && p.buffs && p.buffs[id] && now < p.buffs[id].until) continue;
+      if(SKILLS[p.cls][id]?.boxer?.finisher&&this.boxerStacks(p,now)<C.BOXER.stacks)continue;
       if (d <= reach && this.botReady(p, id, now)) { this.castSkill(p, { id, ...aim }); break; }
     }
     if (b.basic) {
@@ -1727,6 +1731,7 @@ class World {
   changeMapOne(p, to, pos) {
     p.arbiterTravel = (p.arbiterTravel || 0) + 1;
     p.oathStacks = p.arbiterCombo = 0;
+    p.qiStacks=0;p.qiLast=null;p.qiUntil=0;p.qiCounter=null;
     this.dropAggro(p);
     this.emitNear(p.mapId, p.x, p.y, 'fx', { t: 'spawn', id: p.id, f: p.faction });
     p.mapId = to;
@@ -2575,7 +2580,7 @@ class World {
       changed = true;
     }
     if (opts.slow) {
-      tgt.slowUntil = Math.max(tgt.slowUntil || 0, now + Math.round(Math.min(2500, opts.slow) * resist));
+      tgt.slowUntil = Math.max(tgt.slowUntil || 0, now + Math.round(Math.min(2500, opts.slow) * resist * (1-this.buffVal(tgt,'qiSlowResist'))));
       changed = true;
     }
     if (changed) this.sendControl(tgt);
@@ -2715,9 +2720,10 @@ class World {
       if (tP) dmg *= C.ARBITER.pvp;
       dmg *= 1 + this.buffVal(src, 'arbiterDamage') * (tP ? 2 / 3 : 1);
     }
+    if(sP&&tP&&src.cls==='boxer'&&!opts.reflect)dmg*=C.BOXER.pvp;
     if (tP) {
       const tfx = tgt.stats.fx;
-      const ward = Math.max(this.buffVal(tgt, 'guard'), this.buffVal(tgt, 'frontGuard'), this.buffVal(tgt, 'arbiterGuard') * (sP ? .75 : 1)); // strongest ward only
+      const ward = Math.max(this.buffVal(tgt, 'guard'), this.buffVal(tgt, 'frontGuard'), this.buffVal(tgt, 'arbiterGuard') * (sP ? .75 : 1),Math.max(this.buffVal(tgt,'qiCounterGuard'),this.buffVal(tgt,'qiBreathGuard'))*(sP?.75:1)); // strongest ward only
       // ปราการสุดท้าย (gear passive): below 35% HP, a blow is reduced only when the passive fires
       const wall = tfx.bulwark && tgt.hp < tgt.stats.maxHp * 0.35 && Math.random() < ((tgt.stats.procs && tgt.stats.procs.bulwark) || 0);
       // ทวน locked in a heavy strike (C.SPEAR_WINDUP_GUARD); a stun / root since the cast ends it
@@ -2753,6 +2759,7 @@ class World {
       else this.killMonster(tgt, src);
     }
     if (tP && tgt.cls === 'warrior' && !opts.dot && !opts.reflect) this.thorns(tgt, src, dmg, now);
+    if(tP&&tgt.cls==='boxer')this.boxerCounter(tgt,src,opts,now);
     return dmg;
   }
   // นักรบแนวหน้า โล่หนาม (C.WARRIOR_THORNS): part of a blow taken goes back to the attacker
@@ -3503,7 +3510,8 @@ class World {
           C.ITEMS[q.eq.weapon].tier, C.armorTiers(q.eq), C.ITEMS[q.eq.weapon].plus || 0, C.gearGrades(q.eq), C.ITEMS[q.eq.weapon].grade || 0,
           C.CLASS_IDS.indexOf(q.cls), C.gearPlus(q.eq),
           q.pk ? 1 : 0, q.evil || 0, this.canPk(p, q, now) ? 1 : 0,
-          q.cls === 'arbiter' ? [this.buffVal(q, 'arbiterForm') ? 1 : 0, this.buffVal(q, 'oathResonance') ? q.oathStacks || 0 : 0, this.buffVal(q, 'astralPower') ? 1 : 0] : null]);
+          q.cls === 'arbiter' ? [this.buffVal(q, 'arbiterForm') ? 1 : 0, this.buffVal(q, 'oathResonance') ? q.oathStacks || 0 : 0, this.buffVal(q, 'astralPower') ? 1 : 0] : null,
+          q.cls==='boxer'?[this.boxerStacks(q,now),Math.max(0,(q.qiUntil||0)-now)]:null]);
       }
       const pt = this.partyOf(p), ours = pt ? new Set(pt.members) : new Set([p.id]);   // aggro 2 = on p or its party
       for (const m of this.maps[p.mapId].monsters) {
@@ -3544,4 +3552,5 @@ class World {
   chatItem(it) { return it && !it.kind ? { g: it.grade || 0, it: it.name } : {}; }
 }
 
+Object.assign(World.prototype, require('./boxer-combat'));
 module.exports = World;

@@ -26,7 +26,7 @@
   WHO.inspect = (id) => { WHO.toggle(true); WHO.view = { loading: true, id }; render(); send({ cmd: 'inspect', id }); };
 
   const clsName = (cls) => (C.CLASSES[cls] || C.CLASSES.dualblade).name;
-  const portrait = (cls, f) => { const sheet = (C.CLASSES[cls] || {}).sheet; return `assets/${sheet ? sheet + '-' : ''}${f}-portrait.png`; };
+  const portrait = (cls, f) => { if(cls==='boxer')return BoxerLook.portrait(f);const sheet = (C.CLASSES[cls] || {}).sheet; return `assets/${sheet ? sheet + '-' : ''}${f}-portrait.png`; };
   // an item as the inspected player's class calls it (the viewer's own class renames weapons: แส้ / ธนู / ทวน ...)
   function asOf(it, cls) {
     const b = C.ITEMS[it.base || it.id] || it;

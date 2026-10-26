@@ -439,9 +439,56 @@
     }
     return s;
   }
+  const BOXER = { stacks: 3, comboMs: 5000, stackPower: .2, pvp: .9 };
+  CLASSES.boxer = {
+    id: 'boxer', name: 'นักสู้หมัดปราณ', weapon: 'สนับหมัดคู่',
+    desc: 'นักสู้ประชิด ต่อท่าต่างชนิดสะสมจังหวะหมัด 3 ชั้น แล้วใช้หมัดหนักปิดคอมโบ · พุ่งเข้าหาและตั้งการ์ดสวนกลับ',
+    hp: 175, hpG: 27, mp: 95, mpG: 12, atk: 19, atkG: 5.1, def: 3, defG: 1.1, speed: 235, crit: .1, reach: 82,
+    skills: [
+      { id:'qiJab', name:'หมัดสามประสาน', key:'1', lvl:1, mp:0, cd:650, free:true, evo:[],
+        boxer:{kind:'single',range:95,power:1.15,hits:3,gap:75,windup:100}, desc:'ต่อยเป้าเดียว 3 จังหวะ รวม 115% ATK · ฝึกอัตโนมัติ +5% ทุก 4 เลเวล สูงสุด 55% · ทั้งชุดนับเป็นหนึ่งท่า' },
+      { id:'qiBreaker', name:'หมัดทะลวงหิน', key:'2', lvl:1, mp:12, cd:6000,
+        boxer:{kind:'single',range:105,power:2.1,windup:360,finisher:true},
+        evo:[{lvl:40,name:'หมัดทลายภูผา',desc:'พลังเพิ่ม 30% ระยะเพิ่ม 15'}], desc:'หมัดหนัก 210% ATK · ใช้จังหวะหมัดที่สะสม เพิ่มพลัง 20% ต่อชั้น · พลาดไม่เสียชั้น' },
+      { id:'qiStep', name:'ก้าวพยัคฆ์', key:'3', lvl:2, mp:12, cd:8000,
+        boxer:{kind:'single',range:95,dash:220,power:1.4,windup:180},
+        evo:[{lvl:60,name:'ก้าวพยัคฆ์ไร้เงา',desc:'พลังเพิ่ม 30% ระยะหมัดเพิ่ม 15'}], desc:'พุ่งเข้าหาเป้าไม่เกิน 220 แล้วต่อย 140% ATK · หยุดก่อนกำแพงและต้องมีเป้า' },
+      { id:'qiElbow', name:'ศอกหักเกราะ', key:'4', lvl:4, mp:20, cd:10000,
+        boxer:{kind:'single',range:100,power:1.8,windup:240,armorBreak:.2},
+        evo:[{lvl:80,name:'ศอกอสูรทลายเกราะ',desc:'พลังเพิ่ม 30% ลดเกราะ 25%'}], desc:'ศอกประชิด 180% ATK ลดเกราะ 20% นาน 5 วิ · ไม่ซ้อนกับเกราะแตกที่แรงกว่า' },
+      { id:'qiTempest', name:'หมัดพายุแปดทิศ', key:'5', lvl:7, mp:34, cd:18000,
+        boxer:{kind:'cone',range:135,power:3.6,hits:6,gap:95,windup:260,cap:5},
+        evo:[{lvl:90,name:'พายุหมัดสะท้านฟ้า',desc:'พลังเพิ่ม 30% ระยะเพิ่ม 15'},{lvl:130,name:'พายุหมัดเทวะ',desc:'พลังเพิ่มรวม 60% ระยะเพิ่มรวม 30'}], desc:'รัวหมัดเป็นกรวยด้านหน้า 6 ครั้ง รวม 360% ATK สูงสุด 5 เป้า · หนึ่งท่าสะสมหนึ่งชั้น' },
+      { id:'qiCounter', name:'ตั้งการ์ดสวนมังกร', key:'6', lvl:10, mp:22, cd:16000,
+        boxer:{kind:'guard',range:110,power:2.2,windup:180,duration:1200,guard:.35},
+        evo:[{lvl:100,name:'การ์ดมังกรคืนสนอง',desc:'พลังสวนเพิ่ม 30% หน้าต่างการ์ดเพิ่ม 0.3 วิ'}], desc:'การ์ด 1.2 วิ ลดดาเมจ 35% · รับการโจมตีตรงครั้งแรกแล้วสวน 220% ATK หากผู้โจมตียังอยู่ระยะประชิด · พิษและสะท้อนไม่กระตุ้น' },
+      { id:'qiKnee', name:'เข่าพยัคฆ์ทะยาน', key:'7', lvl:30, mp:28, cd:12000,
+        boxer:{kind:'single',range:100,dash:180,power:2.5,windup:380,stun:450},
+        evo:[{lvl:110,name:'เข่าพยัคฆ์ทะลวงเมฆา',desc:'พลังเพิ่ม 30% ระยะเพิ่ม 15'}], desc:'พุ่งเข้าใส่เป้า 180 แล้วแทงเข่า 250% ATK สตัน 0.45 วิ · บอสช้าแทน' },
+      { id:'qiBreath', name:'ลมหายใจเหล็ก', key:'8', lvl:50, mp:40, cd:30000,
+        boxer:{kind:'breath',duration:6000,guard:.2},
+        evo:[{lvl:120,name:'ลมหายใจวัชระ',desc:'ลดดาเมจเพิ่ม 4 จุดเปอร์เซ็นต์ นานขึ้น 2 วิ'}], desc:'ลดดาเมจ 20% นาน 6 วิ และลดระยะเวลาสถานะช้าที่ได้รับ 50% · ใช้เกราะที่แรงที่สุด' },
+      { id:'qiQuake', name:'หมัดมังกรสะท้านปฐพี', key:'9', lvl:70, mp:50, cd:24000,
+        boxer:{kind:'circle',range:155,power:4,windup:650,cap:5,finisher:true},
+        evo:[{lvl:130,name:'มังกรถล่มปฐพี',desc:'พลังเพิ่ม 30% รัศมีเพิ่ม 15'}], desc:'ทุบพื้นรอบตัว 400% ATK สูงสุด 5 เป้า · ใช้จังหวะหมัดเพิ่ม 20% ต่อชั้น · วงเตือนหลบได้' },
+      { id:'qiHeaven', name:'เก้าหมัดผ่าสวรรค์', key:'0', lvl:120, mp:120, cd:45000, evo:[],
+        boxer:{kind:'single',range:110,dash:220,power:8,hits:9,gap:85,windup:450}, desc:'พุ่งเข้าหา รัวหมัด 8 ครั้งแล้วเสยหมัดมังกร รวม 800% ATK · เป้าออกระยะหลบหมัดที่เหลือได้' },
+      { id:'qiEmperor', name:'จักรพรรดิหมัดสยบสามภพ', key:'-', lvl:130, mp:180, cd:70000, evo:[],
+        boxer:{kind:'single',range:120,dash:240,power:10,hits:5,gap:160,windup:650,finisher:true}, desc:'พุ่งประชิดแล้วต่อยสลับทิศ ปิดด้วยหมัดคู่ รวม 1000% ATK · ใช้จังหวะหมัดเพิ่ม 20% ต่อชั้น · ถูกควบคุมยกเลิกหมัดที่เหลือ' },
+    ],
+  };
+  function boxerSpec(sk, sl = 1, rank = 0) {
+    const s = {...sk.boxer};
+    if(s.range)s.range += rank*15;
+    if(s.armorBreak)s.armorBreak += rank*.05;
+    if(s.kind==='guard')s.duration += rank*300;
+    if(s.kind==='breath'){s.guard += Math.max(0,Math.min(11,sl-1))*.003+rank*.04;s.duration += rank*2000;}
+    return s;
+  }
   const CLASS_IDS = Object.keys(CLASSES);          // snapshot index of a class
   // Fractions, not percentages. Both factions use the same combat rules.
   const CLASS_ROLES = {
+    boxer: { evasion:.06, evasionG:.03, accuracy:.05, resistance:.08, aspd:.05, attackMove:.75, critPower:1.6, manaRegen:.03 },
     arbiter: { evasion: .03, evasionG: .02, accuracy: .05, resistance: 0, aspd: 0, attackMove: .65, critPower: 1.6, manaRegen: .034 },
     warrior: { evasion: 0.02, evasionG: 0.01, accuracy: 0.04, resistance: 0.15, aspd: 0, attackMove: 0.6, critPower: 1.5, manaRegen: 0.034 },
     spearman: { evasion: 0.01, evasionG: 0.01, accuracy: 0.04, resistance: 0, aspd: 0, attackMove: 0.55, critPower: 1.5, manaRegen: 0.022 },
@@ -473,7 +520,8 @@
   // timed buffs a skill leaves on the caster / party (HUD buff row; values are applied on the server)
   const BUFF_SKILLS = ['aegis', 'might', 'hawkeye', 'gale', 'rollshot', 'nirvana', 'ironGuard', 'rallyGuard', 'lastBastion', 'guardianOath', 'oathResonance', 'astralBlades', 'oathAegis', 'ascendantForm'];
   // skills that move the caster: a root blocks them (server and client)
-  const MOVE_SKILLS = ['shadowstep', 'skyfall', 'twindragon', 'rollshot'];
+  BUFF_SKILLS.push('qiCounter','qiBreath');
+  const MOVE_SKILLS = ['shadowstep', 'skyfall', 'twindragon', 'rollshot', 'qiStep', 'qiKnee', 'qiHeaven', 'qiEmperor'];
   // where ดาวตกเพลิงฟ้า's meteors land round the aim (golden-angle ring), shared so every client draws the real spots
   const meteorPoints = (x, y, n) => Array.from({ length: n }, (_, i) => {
     const a = i * 2.39996, r = i ? 40 + (i % 3) * 30 : 0;
@@ -750,6 +798,7 @@
   //   tip    why, shown in the stat panel
   const STAT_GUIDE_KEY = 'guide';
   const STAT_GUIDES = {
+    boxer: {share:{atk:.35,hp:.25,aspd:.15,crit:.1,def:.1,mp:.05},tip:'หมัดประชิด: เน้นโจมตีและชีวิต เสริมตีเร็ว ต่อท่าต่างชนิดแล้วปิดด้วยหมัดหนัก'},
     arbiter: { share: { atk: .35, hp: .2, aspd: .15, crit: .1, def: .1, mp: .1 }, tip: 'ดาบผสม: โจมตีและชีวิตเป็นหลัก เสริมปราณสำหรับคลื่นดาบ บริหารระยะและคูลดาวน์จุติ' },
     warrior: { share: { atk: 0.25, hp: 0.35, def: 0.2, mp: 0.1, aspd: 0.1 },
       tip: 'แนวหน้าดาบและโล่: เน้น HP และป้องกัน เสริมโจมตี/ปราณเพื่อยืนคุ้มกันทีม ไม่ใช่สายดาเมจหรือฮีล' },
@@ -1364,9 +1413,11 @@
     w.names = { dualblade: w.name, taoist: w.name.replace('ดาบคู่', 'แส้'), archer: w.name.replace('ดาบคู่', 'ธนู'), spearman: w.name.replace('ดาบคู่', 'ทวน') };
     w.names.warrior = w.name.replace('ดาบคู่', 'ดาบและโล่');
     w.names.arbiter = w.name.replace('ดาบคู่', 'ดาบสัตย์');
+    w.names.boxer = w.name.replace('ดาบคู่', 'สนับหมัดคู่');
     w.descs = { dualblade: w.desc, taoist: w.desc.replace(/ใบดาบ/g, 'ขนแส้').replace(/ดาบ/g, 'แส้'), archer: bowDesc(w.desc), spearman: w.desc.replace(/ดาบคู่/g, 'ทวน').replace(/ใบดาบ/g, 'คมทวน').replace(/ดาบ/g, 'ทวน') };
     w.descs.warrior = 'ชุดดาบมือเดียวและโล่ ใช้ช่องอาวุธเดียว ค่าสถานะและการตีบวกเท่ากับอาวุธระดับเดียวกัน';
     w.descs.arbiter = 'ดาบสัตย์มือเดียว ใช้ค่าสถานะและการตีบวกของอาวุธระดับเดียวกัน';
+    w.descs.boxer = 'สนับหมัดคู่ ใช้ค่าสถานะและการตีบวกของอาวุธระดับเดียวกัน';
   }
   // นักพรต outfit: the same armour items read as Taoist robes, trousers, wrist cuffs and shoulder shawls
   const TAO_SETS = [
@@ -1721,6 +1772,7 @@
   const spawnPoint = (f) => ({ x: BASES[f].spawn.tx * TILE + TILE / 2, y: BASES[f].spawn.ty * TILE + TILE / 2 });
 
   return {
+    BOXER, boxerSpec,
     ARBITER, ARBITER_STAGES, arbiterStage, arbiterPower, arbiterSpec, basicReach,
     TILE, MAP_W, MAP_H, T, FACTIONS, BASES, CENTER, STONES, CLASSES, CLASS_ROLES, roleOf, combatMoveScale, MAX_LVL, CONSUMABLES, STACK_MAX, stackCount, stackKey, ITEM_USE_CD, BEGINNER, beginnerStrength,
     skillRank, skillMult, skillInfo, stageOf, SKILL_STAGES, stagesOf, STANCES, GCD_MS, CLASS_IDS, ALL_SKILLS, setViewClass, spearSequence, spearAreaContains,
