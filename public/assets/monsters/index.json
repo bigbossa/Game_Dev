@@ -579,5 +579,425 @@
     ],
     "attackRow": 3,
     "managedBy": "build-stage-monsters"
+  },
+  "ghostsoldier": {
+    "file": "ghostsoldier-v2.png",
+    "version": "49492ba4161d",
+    "fw": 198,
+    "fh": 200,
+    "cols": 8,
+    "rows": 4,
+    "ax": 99,
+    "ay": 192,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "stonepython": {
+    "file": "stonepython-v2.png",
+    "version": "86dcd8959394",
+    "fw": 192,
+    "fh": 194,
+    "cols": 8,
+    "rows": 4,
+    "ax": 96,
+    "ay": 186,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "guardstatue": {
+    "file": "guardstatue-v2.png",
+    "version": "31e84e6706b5",
+    "fw": 166,
+    "fh": 198,
+    "cols": 8,
+    "rows": 4,
+    "ax": 83,
+    "ay": 190,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "dancer": {
+    "file": "dancer-v2.png",
+    "version": "57758b1fef8e",
+    "fw": 148,
+    "fh": 192,
+    "cols": 8,
+    "rows": 4,
+    "ax": 74,
+    "ay": 184,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "headless": {
+    "file": "headless-v2.png",
+    "version": "a729ba3c1a4c",
+    "fw": 241,
+    "fh": 210,
+    "cols": 8,
+    "rows": 4,
+    "ax": 120.5,
+    "ay": 202,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "deathcrow": {
+    "file": "deathcrow-v2.png",
+    "version": "3df7d8d88fa1",
+    "fw": 229,
+    "fh": 202,
+    "cols": 8,
+    "rows": 4,
+    "ax": 114.5,
+    "ay": 194,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "ghostgeneral": {
+    "file": "ghostgeneral-v2.png",
+    "version": "cc0f2df1740b",
+    "fw": 189,
+    "fh": 196,
+    "cols": 8,
+    "rows": 4,
+    "ax": 94.5,
+    "ay": 188,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "whitetiger": {
+    "file": "whitetiger-v2.png",
+    "version": "877bdb35b6f5",
+    "fw": 271,
+    "fh": 232,
+    "cols": 8,
+    "rows": 4,
+    "ax": 135.5,
+    "ay": 224,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "firecrane": {
+    "file": "firecrane-v2.png",
+    "version": "8672bbad4af2",
+    "fw": 178,
+    "fh": 195,
+    "cols": 8,
+    "rows": 4,
+    "ax": 89,
+    "ay": 187,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "gatemonk": {
+    "file": "gatemonk-v2.png",
+    "version": "fd7f54c17743",
+    "fw": 182,
+    "fh": 194,
+    "cols": 8,
+    "rows": 4,
+    "ax": 91,
+    "ay": 186,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "bronzegolem": {
+    "file": "bronzegolem-v2.png",
+    "version": "c5bc1572c76c",
+    "fw": 201,
+    "fh": 208,
+    "cols": 8,
+    "rows": 4,
+    "ax": 100.5,
+    "ay": 200,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "jadenaga": {
+    "file": "jadenaga-v2.png",
+    "version": "b671b2cb96a2",
+    "fw": 170,
+    "fh": 198,
+    "cols": 8,
+    "rows": 4,
+    "ax": 85,
+    "ay": 190,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "goldlion": {
+    "file": "goldlion-v2.png",
+    "version": "e181a84db00a",
+    "fw": 229,
+    "fh": 218,
+    "cols": 8,
+    "rows": 4,
+    "ax": 114.5,
+    "ay": 210,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "wardemon": {
+    "file": "wardemon-v2.png",
+    "version": "c1400509ff5c",
+    "fw": 164,
+    "fh": 192,
+    "cols": 8,
+    "rows": 4,
+    "ax": 82,
+    "ay": 184,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "lavascorpion": {
+    "file": "lavascorpion-v2.png",
+    "version": "da8aabef23a4",
+    "fw": 204,
+    "fh": 201,
+    "cols": 8,
+    "rows": 4,
+    "ax": 102,
+    "ay": 193,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "firetiger": {
+    "file": "firetiger-v2.png",
+    "version": "e3b9d0bd7f0d",
+    "fw": 263,
+    "fh": 217,
+    "cols": 8,
+    "rows": 4,
+    "ax": 131.5,
+    "ay": 209,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "lavagolem": {
+    "file": "lavagolem-v2.png",
+    "version": "ac84494494c8",
+    "fw": 216,
+    "fh": 206,
+    "cols": 8,
+    "rows": 4,
+    "ax": 108,
+    "ay": 198,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "phoenix": {
+    "file": "phoenix-v2.png",
+    "version": "34a74594d0ca",
+    "fw": 182,
+    "fh": 193,
+    "cols": 8,
+    "rows": 4,
+    "ax": 91,
+    "ay": 185,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "firedrake": {
+    "file": "firedrake-v2.png",
+    "version": "69b82494136f",
+    "fw": 240,
+    "fh": 211,
+    "cols": 8,
+    "rows": 4,
+    "ax": 120,
+    "ay": 203,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "flamegeneral": {
+    "file": "flamegeneral-v2.png",
+    "version": "b2b9bba94081",
+    "fw": 194,
+    "fh": 192,
+    "cols": 8,
+    "rows": 4,
+    "ax": 97,
+    "ay": 184,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "elderdragon": {
+    "file": "elderdragon-v2.png",
+    "version": "fd0ecfea56d0",
+    "fw": 233,
+    "fh": 202,
+    "cols": 8,
+    "rows": 4,
+    "ax": 116.5,
+    "ay": 194,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
   }
 }

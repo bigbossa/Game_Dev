@@ -1,6 +1,6 @@
 // Painted stage props and deterministic terrain. Authoritative tiles stay untouched.
 (function(){
- const A=window.StageArt={ready:false},T=C.T,S=C.TILE,TAU=Math.PI*2,sets=new Map(),masks=new WeakMap();
+ const A=window.StageArt={ready:false},T=C.T,S=C.TILE,TAU=Math.PI*2,sets=new Map(),masks=new WeakMap(),seals=new Map();
  const canvas=(w,h)=>Object.assign(document.createElement('canvas'),{width:w,height:h});
  const H=(x,y,s=0)=>Art.hash(x,y,s);
  const themes={
@@ -28,6 +28,7 @@
    };
    scale('shrub','tree',.31);scale('smallRock','rock',.55);
    scale('stone',id==='forest'?'waystone':id==='fire'?'emberSpire':id==='manor'?'memorial':'lotusShrine',.45);
+   scale('pillar',id==='forest'?'waystone':id==='fire'?'emberSpire':id==='manor'?'memorial':'lotusShrine',.3);
    if(id==='manor')scale('grave','memorial',.27);
    if(id==='fire')scale('crystal','emberSpire',.25);
    // Darker canopy variant is cached once, adding variety without per-frame filters.
@@ -52,6 +53,18 @@
  };
  function line(g,points,color,width=1){g.strokeStyle=color;g.lineWidth=width;g.beginPath();points.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.stroke();}
  function disc(g,x,y,r,color){g.fillStyle=color;g.beginPath();g.arc(x,y,r,0,TAU);g.fill();}
+ function bossSeal(id,res){
+  const key=id+':'+res;if(seals.has(key))return seals.get(key);
+  const th=themes[id],r=(C.MAPS[id].lair.r-.8)*S,size=Math.ceil(r*2+16),img=canvas(Math.round(size*res),Math.round(size*res)),g=img.getContext('2d');
+  g.scale(img.width/size,img.height/size);g.translate(size/2,size/2);disc(g,0,0,r,th.stone+'b0');
+  for(const k of [1,.93,.68]){g.strokeStyle=th.accent+'88';g.lineWidth=k===1?5:2;g.beginPath();g.arc(0,0,r*k,0,TAU);g.stroke();}
+  const petals=id==='forest'?3:id==='temple'?8:6;
+  for(let i=0;i<petals;i++){
+   g.save();g.rotate(i*TAU/petals);g.strokeStyle=th.dark+'50';g.lineWidth=3;g.beginPath();g.moveTo(0,0);
+   g.bezierCurveTo(-r*.3,-r*.25,-r*.18,-r*.48,0,-r*.61);g.bezierCurveTo(r*.18,-r*.48,r*.3,-r*.25,0,0);g.stroke();g.restore();
+  }
+  disc(g,0,0,r*.09,th.accent+'55');const value={img,size};seals.set(key,value);return value;
+ }
  function groundMask(map){
   if(masks.has(map))return masks.get(map);
   const raw=canvas(map.w*4,map.h*4),g=raw.getContext('2d');g.fillStyle='#fff';
@@ -119,15 +132,10 @@
    }
   }
   // Boss seal: subdued enough to keep combat telegraphs readable.
-  const lair=C.MAPS[id].lair,bx=(lair.tx+.5)*S,by=(lair.ty+.5)*S,r=(lair.r-.8)*S;
+  const lair=C.MAPS[id].lair,bx=(lair.tx+.5)*S,by=(lair.ty+.5)*S;
   g.save();mask([T.GRASS,T.FIELD,T.PATH,T.PLAZA,T.SAND]);g.clip();
-  disc(g,bx,by,r,th.stone+'b0');
-  for(const k of [1,.93,.68]){g.strokeStyle=th.accent+'88';g.lineWidth=k===1?5:2;g.beginPath();g.arc(bx,by,r*k,0,TAU);g.stroke();}
-  const petals=id==='forest'?3:id==='temple'?8:6;
-  for(let i=0;i<petals;i++){
-   const a=i*TAU/petals;g.save();g.translate(bx,by);g.rotate(a);g.strokeStyle=th.dark+'50';g.lineWidth=3;
-   g.beginPath();g.moveTo(0,0);g.bezierCurveTo(-r*.3,-r*.25,-r*.18,-r*.48,0,-r*.61);g.bezierCurveTo(r*.18,-r*.48,r*.3,-r*.25,0,0);g.stroke();g.restore();
-  }disc(g,bx,by,r*.09,th.accent+'55');g.restore();
+  // Rasterize curves once: browser curve flattening can otherwise vary at chunk edges.
+  const seal=bossSeal(id,res);g.drawImage(seal.img,bx-seal.size/2,by-seal.size/2,seal.size,seal.size);g.restore();
   return cv;
  };
 })();
