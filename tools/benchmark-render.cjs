@@ -22,13 +22,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   };
   try {
     await send('Runtime.enable'); await send('Page.enable');
-    if (process.argv.includes('--baseline')||process.argv.includes('--baseline-smooth')) {
+    if (process.argv.includes('--baseline')||process.argv.includes('--baseline-smooth')||process.argv.includes('--baseline-polish')) {
       ws.on('message', async raw => {
         const m = JSON.parse(raw); if (m.method !== 'Fetch.requestPaused') return;
         const { requestId, request } = m.params, file = new URL(request.url).pathname.split('/').pop();
         const smooth=process.argv.includes('--baseline-smooth');
-        const saved = path.join(__dirname, smooth?'../artifacts/smooth-v2/baseline/public/js':'../artifacts/performance/before-js', file);
-        if ((smooth?fs.existsSync(saved):['main.js', 'hud.js', 'fx.js'].includes(file))) {
+        const polish=process.argv.includes('--baseline-polish');
+        const saved = path.join(__dirname, polish?'../artifacts/skill-polish/baseline/public/js':smooth?'../artifacts/smooth-v2/baseline/public/js':'../artifacts/performance/before-js', file);
+        if (((smooth||polish)?fs.existsSync(saved):['main.js', 'hud.js', 'fx.js'].includes(file))) {
           await send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'text/javascript' }], body: fs.readFileSync(saved).toString('base64') });
         } else await send('Fetch.continueRequest', { requestId });
       });
@@ -41,6 +42,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     for (let i = 0; i < 900; i++) { ready = await run("!!window.G?.map && document.getElementById('loading').classList.contains('hidden')"); if (ready) break; await pause(100); }
     assert(ready, 'game boot');
     await run(`(${setup})()`);
+    if(process.argv.includes('--skill-stress'))await run('window.renderBenchSkillStress=true');
     await send('Profiler.enable'); await send('Profiler.start');
     const result = process.argv.includes('--checks-only') ? { scenarios: [] } : await run(`(${sample})()`);
     const { profile } = await send('Profiler.stop');
@@ -83,6 +85,9 @@ async function sample() {
       G.ents.set(id, { kind: 'm', id, type, x, y, tx: x, ty: y, name: d.name, lvl: d.lvl, hp: d.hp, mhp: d.hp, face: 1, seed: i, flash: 0 });
     }
     const intervals = [], begin = performance.now(); let previous = begin, measured = false, nextBurst = 0;
+    if(scene==='combat'&&window.renderBenchSkillStress)Object.keys(C.CLASSES).forEach((cls,i)=>{
+      G.ents.set('skill-'+cls,{...G.me,id:'skill-'+cls,cls,x:G.me.x+(i-3)*65,y:G.me.y+100,tx:G.me.x+(i-3)*65,ty:G.me.y+100});
+    });
     await new Promise(resolve => {
       function tick(now) {
         const elapsed = (now - begin) / 1000;
@@ -95,6 +100,9 @@ async function sample() {
             FX.burst(x, y, 100, ['#ffffff', '#69cfff'], { speed: 200, life: 900, size: 3, spark: !!(i % 2) });
             FX.text(x, y, '1280', '#ffd76a', 20);
           }
+          if(window.renderBenchSkillStress)Object.keys(C.CLASSES).forEach((cls,i)=>{
+            for(let n=0;n<3;n++)FX.hit(G.me.x+(i-3)*65,G.me.y-25+n*40,null,n===0,'skill-'+cls);
+          });
         }
         const start = performance.now(); HUD.update(G.me); HUD.target(G.ents.get('mob0') || G.me); renderBench.hudMs += performance.now() - start;
         if (elapsed > 2) {

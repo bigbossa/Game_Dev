@@ -676,6 +676,7 @@
   const legacyHit=FX.hit;
   FX.hit=(x,y,f,crit,id)=>{
     const e=ent(id);if(!e||!C.CLASSES[e.cls])return legacyHit(x,y,f,crit,id);
+    if(window.SkillPolish?.hit(x,y,crit,e))return;
     const A=S.profile(id,e.cls,f);
     if(e.cls==='dualblade'||e.cls==='spearman')shards(A,x,y,crit?10:5,crit?45:26);
     else if(e.cls==='archer')petals(A,x,y,crit?38:22);

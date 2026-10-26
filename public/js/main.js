@@ -237,6 +237,7 @@
     const now = performance.now();
     G.control = { stunUntil: now + (d?.stun || 0), rootUntil: now + (d?.root || 0), slowUntil: now + (d?.slow || 0) };
     if (G.me && (d?.stun || d?.root)) {
+      SkillPolish.cancel(G.me.id);
       if(d?.stun || G.me.cls==='spearman' || G.me.cls==='warrior') SkillPerformance.cancel(G.me.id,undefined,!!(G.me.ritual||C.ALL_SKILLS[G.me.skillMotion?.skill]?.spear||C.ALL_SKILLS[G.me.skillMotion?.skill]?.frontline));
       G.me.moving = false; G.me.dash = null; G.me.leap = null;
       if (Number.isFinite(d.x) && Number.isFinite(d.y)) Motion.correction(G.me, d.x, d.y);
@@ -255,6 +256,7 @@
     if (!me) return;
     G.mapLoading = true;
     SkillPerformance.clear();
+    SkillPolish.clear();
     FX.list=FX.list.filter(f=>!f.monsterEffect && !f.arbiterEffect && !f.boxerEffect);
     syncControl(null);
     G.order = null; me.dash = null; me.atk = null;
@@ -349,6 +351,7 @@
     const e = G.ents.get(d.id);
     if (!e) return;
     e.dying = performance.now();
+    SkillPolish.cancel(e.id);
     SkillPerformance.cancel(e.id);
     const col = e.kind === 'm' ? (e.boss ? '#ff4a3a' : '#e8f4ff') : C.FACTIONS[e.faction].color;
     FX.death(e.x, e.y, col);
@@ -362,6 +365,7 @@
   });
   socket.on('fx', (d) => {
     const e = G.ents.get(d.id);
+    SkillPolish.play(d);
     if(d.t==='boxer'){
       if(d.mapId!==G.mapId)return;
       if(d.phase==='step'&&e){
