@@ -572,7 +572,7 @@
     updatePartyExp(st.pexp);
     setBar('#playerFrame .hp', st.hp, st.mhp, `${st.hp} / ${st.mhp}`);
     setBar('#playerFrame .mp', st.mp, st.mmp, `${st.mp} / ${st.mmp}`);
-    setBar('#playerFrame .xp', st.exp, st.need, st.lvl >= C.MAX_LVL ? 'MAX' : `${((st.exp / st.need) * 100).toFixed(2)}%`);
+    setBar('#playerFrame .xp', st.exp, st.need, st.lvl >= C.LVL_CAP ? 'MAX' : `${((st.exp / st.need) * 100).toFixed(2)}%`);
     const frame = $('playerFrame'), title = `EXP ${st.exp} / ${st.need} · ATK ${st.atk} · DEF ${st.def} · สังหาร ${st.k} · ตาย ${st.d}`;
     if (frame.title !== title) frame.title = title;
     const level = $('pfLvl'), levelText = String(st.lvl);

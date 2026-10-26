@@ -152,14 +152,12 @@ for (const n of [10, '10', '+10', '1', 1000000000]) {
   savedMatches(f); checks++;
 }
 
-// The maximum level clamps residual EXP; an already-capped or dead admin cannot gain it.
+// There is no level cap: EXP carries past MAX_LVL (the top of the content) and keeps levelling.
 {
   const f = fixture(World, C.MAX_LVL - 1);
   f.p.exp = C.expToNext(f.p.lvl) - 5;
   f.w.onGm(f.p, { cmd: 'exp', n: 1000000000 });
-  assert.equal(f.p.lvl, C.MAX_LVL); assert.equal(f.p.exp, 0); savedMatches(f);
-  denied(f, f.p, () => f.w.onGm(f.p, { cmd: 'exp', n: 10 }), 'already maximum level');
-  assert.match(events(f.p, 'gmmsg').at(-1).data, /เลเวลสูงสุด/); checks++;
+  assert(f.p.lvl > C.MAX_LVL); assert(f.p.exp < C.expToNext(f.p.lvl)); savedMatches(f); checks++;
 }
 {
   const f = fixture(); f.p.dead = true;

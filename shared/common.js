@@ -535,7 +535,10 @@
     ALL_SKILLS[id].desc += ` · ${note}`;
     for (const evo of ALL_SKILLS[id].evo || []) evo.desc += ` · ${note}`;
   }
+  // MAX_LVL = the top of the content (maps, gear, skills, balance curves all reference it); players are not stopped
+  // there: LVL_CAP is the real level limit and is unlimited, levels past MAX_LVL keep the Lv.130 curves
   const MAX_LVL = 130;
+  const LVL_CAP = Infinity;
   // shared cooldown between skills 1-8 (the basic attack is not affected), on top of each skill's own cooldown
   const GCD_MS = 700;
   // Beginner assistance is scoped by the server to village PvE; never a player stat bonus.
@@ -572,13 +575,15 @@
     if (d < 0) return 1 + Math.min(EXP_ABOVE.cap, EXP_ABOVE.per * -d);
     return d > 10 ? 0.05 : d > 6 ? 0.2 : d > 3 ? 0.6 : 1;
   };
-  // party: up to 8 players of either faction; the kill EXP is pooled (+25% per extra member in range) and split by level
+  // party: any number of players of either faction, any level gap; the kill EXP is pooled (+25% per extra member in range) and split by level
   // (Yulgang style: every member gets less per kill, but the party kills much faster, so grouping levels faster)
-  const PARTY_MAX = 8;
-  // party EXP bonus: +25% as soon as two play together, then +2% for every further member (3 → 27% … 8 → 37%)
+  const PARTY_MAX = Infinity;
+  // party EXP bonus: +25% as soon as two play together, then +2% for every further member (3 → 27% … 8 → 37%);
+  // it stops growing at PARTY_BONUS_MAX members (a bigger party still shares, it just gets no extra bonus)
+  const PARTY_BONUS_MAX = 8;
   const PARTY_BONUS = 0.25, PARTY_BONUS_STEP = 0.02;
-  const PARTY_LVL_GAP = 10;          // a player joins only within ±10 levels of every member
-  const partyExpBonus = (n) => { n = Math.min(PARTY_MAX, n); return n < 2 ? 0 : PARTY_BONUS + PARTY_BONUS_STEP * (n - 2); };
+  const PARTY_LVL_GAP = Infinity;    // no level gap limit: anyone can join
+  const partyExpBonus = (n) => { n = Math.min(PARTY_BONUS_MAX, n); return n < 2 ? 0 : PARTY_BONUS + PARTY_BONUS_STEP * (n - 2); };
   // members nearby from a shown bonus % (the party EXP chip)
   const partyCountOf = (pct) => (pct < PARTY_BONUS * 100 ? 1 : 2 + Math.round((pct - PARTY_BONUS * 100) / (PARTY_BONUS_STEP * 100)));
   const PARTY_RANGE = 1400;
@@ -1804,7 +1809,7 @@
   return {
     BOXER, boxerSpec,
     ARBITER, ARBITER_STAGES, arbiterStage, arbiterPower, arbiterSpec, basicReach,
-    TILE, MAP_W, MAP_H, T, FACTIONS, BASES, CENTER, STONES, CLASSES, CLASS_ROLES, roleOf, combatMoveScale, MAX_LVL, CONSUMABLES, STACK_MAX, stackCount, stackKey, ITEM_USE_CD, BEGINNER, beginnerStrength,
+    TILE, MAP_W, MAP_H, T, FACTIONS, BASES, CENTER, STONES, CLASSES, CLASS_ROLES, roleOf, combatMoveScale, MAX_LVL, LVL_CAP, CONSUMABLES, STACK_MAX, stackCount, stackKey, ITEM_USE_CD, BEGINNER, beginnerStrength,
     skillRank, skillMult, skillInfo, stageOf, SKILL_STAGES, stagesOf, STANCES, GCD_MS, CLASS_IDS, ALL_SKILLS, setViewClass, spearSequence, spearAreaContains,
     BAG_SIZE, STORAGE_SIZE, RARITY, GRADES, GRADE_LIGHT, gradeLight, EPIC, AFFIXES, OPTIONS, PASSIVES, DROP_LVL_RANGE, TOP_ITEM_LVL, canDropHigh, rollGrade, gradeChances, gradeBands, HIGH_BANDS, BOSS_GRADES, BOSS_RESPAWN,
     makeKey, gradeId, gearFx, gearGrade, gearGrades, gearPlus, WEAPONS, WEAPON_BY_TIER, ARMORS, ARMOR_SETS, ALL_ITEMS, ITEMS, SLOTS, SLOT_NAMES, ARMOR_SLOTS,
@@ -1814,7 +1819,7 @@
     SKILL_MAX, SKILL_STEP, SKILL_LVL_GAP, EVO_NEED, EVO_COST, BAR_KEYS, SKILL_PATHS, skillPtsTotal, skillCap, basicOf, skillPtsFree,
     evoBlock, autoSkills, cleanSkills, skillRankOf, skillPower, skillInfoAt, SKILL_VER, BUFF_SKILLS, MOVE_SKILLS, meteorPoints, blastPoints,
     STAT_PTS, STAT_POINTS, PT_KEYS, statPtsTotal, statPtsFree, cleanAlloc, basicCd, BASIC_CD_MUL, STAT_GUIDE_KEY, STAT_GUIDES, statGuide, guideTarget, guidePoints, statLimits, CRIT_CAP, skillMp, MP_COST_PCT, MP_COST_CAP, SKILL_CD_MUL,
-    enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_ALLY_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_PVE_SKILL, WARRIOR_THORNS, WARRIOR_COVER, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
+    enemyOf, expToNext, EXP_CURVE, EXP_RATE, monsterExpMul, EXP_LEVEL, levelExpMul, expPenalty, PARTY_MAX, PARTY_BONUS_MAX, PARTY_BONUS, PARTY_BONUS_STEP, PARTY_LVL_GAP, partyExpBonus, partyCountOf, PARTY_RANGE, PARTY_INVITE_MS, PARTY_EXP_MODES, PARTY_ITEM_MODES, PARTY_DEFAULT, PK, LVL_GAP, levelGapMul, DMG_FLOOR, SPEAR_PVE_MULT, TAOIST_SELF_HEAL_MULT, TAOIST_ALLY_HEAL_MULT, TAOIST_SOLO, TAOIST_MERCY_AURA, WARRIOR_SOLO, WARRIOR_PVE_SKILL, WARRIOR_THORNS, WARRIOR_COVER, SPEAR_WINDUP_GUARD, statsFor, dirFromAngle, dirFromVec,
     generateMap, propSpacing, solidAt, canStand, baseAt, areaName, spawnPoint, mulberry32, makeNoise,
   };
 });

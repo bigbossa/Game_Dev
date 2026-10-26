@@ -2,6 +2,8 @@
 // Members near a kill share its EXP (server: shareExp). Chat: /p text · /party name · /leave · /kick name
 (function () {
   const PARTY = { leader: null, list: [], ids: new Set(), rules: C.PARTY_DEFAULT };
+  // "3/8 คน" when the party size is capped, just "3 คน" when it is unlimited
+  const sizeText = (n) => (Number.isFinite(C.PARTY_MAX) ? `${n}/${C.PARTY_MAX}` : `${n}`);
   window.PARTY = PARTY;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -34,7 +36,7 @@
     if (!PARTY.list.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
     box.classList.remove('hidden');
     const lead = PARTY.isLeader();
-    box.innerHTML = `<div class="pt-head"><span>👥 ปาร์ตี้ ${PARTY.list.length}/${C.PARTY_MAX}</span>` +
+    box.innerHTML = `<div class="pt-head"><span>👥 ปาร์ตี้ ${sizeText(PARTY.list.length)}</span>` +
       `<span class="pt-btns"><button type="button" class="pt-leave" title="ออกจากปาร์ตี้">ออก</button>` +
       `<button type="button" class="hud-fold" data-fold="party" title="${HUD.layout.party ? 'แสดงสมาชิกปาร์ตี้' : 'ย่อปาร์ตี้'}"></button></span></div>` +
       rulesHtml(lead) +
@@ -108,10 +110,10 @@
     $('piMeta').innerHTML = `${esc(cls.name)} · <span style="color:${fac.color}">ฝ่าย${esc(fac.name)}</span>`;
     $('piTitle').textContent = d.type === 'request' ? 'คำขอเข้าร่วมปาร์ตี้' : 'คำเชิญเข้าปาร์ตี้';
     if (d.type === 'request') {
-      $('piSize').textContent = `${d.name} ขอเข้าร่วมปาร์ตี้ของคุณ` + (d.size > 1 ? ` (ตอนนี้ ${d.size}/${C.PARTY_MAX} คน)` : '');
+      $('piSize').textContent = `${d.name} ขอเข้าร่วมปาร์ตี้ของคุณ` + (d.size > 1 ? ` (ตอนนี้ ${sizeText(d.size)} คน)` : '');
     } else {
       const r = d.rules || C.PARTY_DEFAULT;
-      $('piSize').textContent = (d.size > 1 ? `ปาร์ตี้ตอนนี้ ${d.size}/${C.PARTY_MAX} คน` : 'ตั้งปาร์ตี้ใหม่กับคุณ') +
+      $('piSize').textContent = (d.size > 1 ? `ปาร์ตี้ตอนนี้ ${sizeText(d.size)} คน` : 'ตั้งปาร์ตี้ใหม่กับคุณ') +
         ` · EXP ${C.PARTY_EXP_MODES[r.exp].name} · ไอเทม ${C.PARTY_ITEM_MODES[r.item].name}`;
     }
     showQueue();

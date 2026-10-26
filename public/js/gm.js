@@ -24,7 +24,7 @@
     setSel.innerHTML = sets.map((s) => `<option value="tier:${s.tier}">Lv.${s.lvl} ชุด${s.name}</option>`).join('');
     setSel.value = `tier:${sets.at(-1).tier}`;
     $('gmMap').innerHTML = C.MAP_ORDER.map((id) => `<option value="${id}">${C.MAPS[id].name} (${C.levelText(C.MAPS[id])})</option>`).join('');
-    $('gmLvl').max = C.MAX_LVL;
+    if (Number.isFinite(C.LVL_CAP)) $('gmLvl').max = C.LVL_CAP;
     sel.value = C.WEAPONS.at(-1).id;
     $('gmPanel').addEventListener('click', (e) => {
       const b = e.target.closest('button');

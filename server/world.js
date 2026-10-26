@@ -2299,7 +2299,7 @@ class World {
   }
 
   setLevel(p, lvl) {
-    p.lvl = Math.max(1, Math.min(C.MAX_LVL, lvl));
+    p.lvl = Math.max(1, Math.min(C.LVL_CAP, lvl));
     p.exp = 0;
     p.alloc = C.cleanAlloc(p.alloc, p.lvl);
     if (p.autoStat) this.addStat(p, p.autoStat, Infinity);
@@ -2366,7 +2366,7 @@ class World {
       }
       case 'lvl': {
         const lvl = Math.floor(Number(d.lvl));
-        if (!Number.isFinite(lvl)) return this.gmReply(p, `ระบุเลเวล 1-${C.MAX_LVL}`);
+        if (!Number.isSafeInteger(lvl) || lvl < 1) return this.gmReply(p, 'ระบุเลเวลตั้งแต่ 1 ขึ้นไป');
         this.setLevel(p, lvl);
         this.gmReply(p, `ตั้งเลเวลเป็น ${p.lvl}`);
         break;
@@ -2379,11 +2379,11 @@ class World {
           return this.gmReply(p, 'ใช้ /exp +10 เพื่อเพิ่ม EXP 10 หน่วยให้ตัวเอง (จำนวนเต็ม 1–1,000,000,000)');
         }
         if (p.dead) return this.gmReply(p, 'ตายอยู่ กดเกิดใหม่ก่อน');
-        if (p.lvl >= C.MAX_LVL) return this.gmReply(p, `เลเวลสูงสุด ${C.MAX_LVL} แล้ว ไม่สามารถเพิ่ม EXP ได้`);
+        if (p.lvl >= C.LVL_CAP) return this.gmReply(p, `เลเวลสูงสุด ${C.LVL_CAP} แล้ว ไม่สามารถเพิ่ม EXP ได้`);
         const before = p.lvl;
         this.gainExp(p, n);
         if (p.lvl === before) this.sendStat(p);
-        const progress = p.lvl >= C.MAX_LVL ? 'เลเวลสูงสุด' : `EXP ${p.exp.toLocaleString()}/${C.expToNext(p.lvl).toLocaleString()}`;
+        const progress = p.lvl >= C.LVL_CAP ? 'เลเวลสูงสุด' : `EXP ${p.exp.toLocaleString()}/${C.expToNext(p.lvl).toLocaleString()}`;
         this.gmReply(p, `เพิ่ม EXP +${n.toLocaleString()} · Lv.${p.lvl} · ${progress}`);
         break;
       }
@@ -2953,11 +2953,11 @@ class World {
   }
 
   gainExp(p, amount) {
-    if (amount <= 0 || p.lvl >= C.MAX_LVL) return;
+    if (amount <= 0 || p.lvl >= C.LVL_CAP) return;
     const lvl0 = p.lvl;
     p.exp += amount;
     p.socket.emit('exp', amount);
-    while (p.lvl < C.MAX_LVL && p.exp >= C.expToNext(p.lvl)) {
+    while (p.lvl < C.LVL_CAP && p.exp >= C.expToNext(p.lvl)) {
       p.exp -= C.expToNext(p.lvl);
       p.lvl++;
       if (p.cls === 'arbiter' && C.ARBITER_STAGES.some(s => s.lvl === p.lvl))
@@ -2982,7 +2982,7 @@ class World {
       if (free > 0) this.toast(p, `มีแต้มสกิล ${free} แต้ม — กด K เพื่ออัปสกิล`);
       this.sendSkills(p);
     }
-    if (p.lvl >= C.MAX_LVL) p.exp = 0;
+    if (p.lvl >= C.LVL_CAP) p.exp = 0;
     if (p.lvl !== lvl0) {
       const free = C.statPtsFree(p.alloc, p.lvl);
       if (free > 0) this.toast(p, `ได้รับแต้มสถานะ! มี ${free} แต้ม — กด C เพื่ออัปค่าพลัง`);
