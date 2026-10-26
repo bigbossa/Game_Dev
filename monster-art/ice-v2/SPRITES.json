@@ -1,0 +1,52 @@
+{
+  "generator": "built-in image_gen",
+  "layout": {
+    "columns": [
+      "S",
+      "SE",
+      "E",
+      "NE",
+      "N",
+      "NW",
+      "W",
+      "SW"
+    ],
+    "rows": [
+      "walkA",
+      "idle",
+      "walkB",
+      "attack"
+    ]
+  },
+  "prompt": "Use case: stylized-concept. Production sprite atlas for a painted chibi Chinese wuxia 2D RPG, North Sea Ice Palace. Landscape 1536x1024 transparent RGBA image. EXACTLY 8 equal columns and 4 equal rows, 32 separate full-body poses of ONE identical creature. Columns LEFT to RIGHT: facing S toward viewer, SE bottom-right, E right profile, NE back-right, N completely away, NW back-left, W left profile, SW front-left. Rows TOP to BOTTOM: walk stride A, neutral idle, walk stride B opposite limbs, melee attack contact. Elevated orthographic game camera 25 degrees. True directional anatomy, rear views show back without face. Consistent proportions, scale and upper-left lighting across all cells. Each pose centered with generous transparent gutters, no overlapping cells, no cropped tails or weapons. All appendages connected. Rich hand-painted volume and fur/material detailing, dark navy silhouette edges for readability on white snow, ice blue and silver colors, restrained highlights. No text, borders, grid, scenery, floor, ground shadows or detached particles. Actual transparent background, not a background painting. Subject: ",
+  "species": [
+    {
+      "id": "snowwolf",
+      "subject": "A powerful compact FOUR-LEGGED arctic snow wolf with thick ivory-white fur, a dark slate-blue back stripe, a pale cyan ice-crystal mane closely attached to its shoulders, dark navy paws and nose, icy blue eyes, one bushy tail curved upward with a navy tip. Anatomical wolf face, pointed ears, lean strong legs. Walk diagonally alternating paws, idle stands all four paws, attack lunges with forelegs and open fangs, still quadrupedal. No armor, no saddle, no wings."
+    },
+    {
+      "id": "icewisp",
+      "subject": "A small floating frost spirit shaped like a rounded translucent icy-blue teardrop body, readable dark navy oval eyes and small mischievous mouth only on front, six broad snowflake crystal points attached around its head like a crown, two tiny attached ice-fin arms, one curved icicle tail below. Bright opaque pearlescent core within azure faceted translucent surface. Compact coherent silhouette. Walking rows have opposite fin gestures and curved tail sway, idle symmetric, attack leans forward with both ice fins extended. Rear is a smooth crystalline back with no eyes. No legs, detached shards or snow clouds."
+    },
+    {
+      "id": "icegolem",
+      "subject": "A massive squat glacier golem, humanoid with two huge articulated fists, two thick short legs, a small recessed faceted head. Body made from connected large translucent deep-cyan glacial stone blocks, bright frosty bevels, carved snowflake breastplate, dark navy joints, snow caps attached on shoulders, two small white-blue eyes. Heavy clear silhouette, no loose rocks or floating crystals. Walk rows visibly opposite leg and arm positions, idle fists low, attack thrust ONE big fist forward. Back views display solid glacier back without eyes."
+    },
+    {
+      "id": "frostserpent",
+      "subject": "One continuous coiled serpentine Chinese ice dragon, NO wings and NO limbs. Long sapphire-blue scaled snake body coiled in a compact S loop on the ground, ivory segmented belly, elegant small dragon head with two swept-back short ivory antler horns, narrow icy eyes and small connected whiskers, attached crystalline dorsal fins along back. The complete tail stays inside its own cell. Walk rows shift coils opposite directions, idle head upright, attack neck extends forward with open fangs. Back views show the scaled back of the head, not a face. Distinct from a cobra: narrow neck without hood. Deep blue shadows and bright silver-blue scales."
+    },
+    {
+      "id": "snowguard",
+      "subject": "A chibi adult human male ice palace royal SPEAR GUARD. Exactly two arms, two legs. Silver lamellar wuxia armor with sapphire chest jewel, deep navy robe and compact blue cape with white fur shoulder collar, ornate silver helmet with a small pointed ice crest, visible stern human face. One short silver spear held securely in both hands, blade icy blue, diagonal spear contained fully inside each cell. Dark navy boots and gloves. Rear views show back of helmet and blue cape, NO face or chest jewel. Walk alternate legs, idle spear held diagonally close, attack thrust spear forward. Not a knight in Western armor, no shield, no wings, no detached effects."
+    },
+    {
+      "id": "frostdrake",
+      "subject": "A compact juvenile ICE DRAGON, four sturdy legs plus TWO folded leathery wings, one curled tail, small horned dragon head. Sapphire and silver-blue scales, ivory belly plates and short horns, crystalline ridges attached along spine, light blue wing membranes with dark navy bones. Not a snake and not a bird. All four paws grounded in idle, wings remain bent and tightly folded close to shoulders so poses fit narrow cells. Walking rows alternate opposite diagonal paw pairs with slight wing motion, attack crouches and lunges forward baring fangs with wings slightly lifted but still compact. Rear views show hindquarters, folded wings and tail with no face. No breath effect, ground clouds, separate ice shards or flames."
+    },
+    {
+      "id": "icequeen",
+      "subject": "The boss ETERNAL SNOW EMPRESS, regal adult human woman in chibi wuxia proportions, full-length layered white-silver and sapphire-blue imperial hanfu with intricate frost embroidery, a compact blue silk cape, long silver-white hair, tall elegant crystalline silver crown, stern beautiful face with blue eyes. One royal staff in her right hand with an attached faceted cyan ice lotus finial. Sleeves and cape stay narrow and contained inside each cell. Navy inner gown folds clearly separate her silhouette from snow. No wings or throne. Walk rows have different visible boots and flowing hem directions, idle holds staff upright, attack leans and points the staff forward with left palm extended. Rear views show silver hair, crown back and blue embroidered cape with no face. Entire staff and crown contained within each cell. Dramatic refined hand-painted boss details, not a child."
+    }
+  ]
+}

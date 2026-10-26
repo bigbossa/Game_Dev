@@ -37,7 +37,7 @@
       else if (a === 'set') send({ cmd: 'set', id: setSel.value, g: gradeSel.value, to });
       else if (a === 'plus') send({ cmd: 'plus', n: Number(v), slot: $('gmPlusSlot').value });
       else if (a === 'stone') send({ cmd: 'stone', n: Number(v), to });
-      else if (a === 'clearbag') { if (confirm('ล้างไอเทมทั้งหมดในกระเป๋า?')) send({ cmd: 'clearbag' }); }
+      else if (a === 'clearbag') UI.confirm('ไอเทมทั้งหมดในกระเป๋าจะหายไป', { title: 'ล้างกระเป๋า?', icon: '🗑', ok: 'ล้างกระเป๋า', danger: true }).then((ok) => ok && send({ cmd: 'clearbag' }));
       else if (a === 'lvl') { if (v) $('gmLvl').value = v; send({ cmd: 'lvl', lvl: Number($('gmLvl').value) }); }
       else if (a === 'gold') send({ cmd: 'gold', n: Number(v || $('gmGold').value), to });
       else if (a === 'heal') send({ cmd: 'heal' });
@@ -96,12 +96,14 @@
       const names = users.filter((u) => picked.has(u.name.toLowerCase())).map((u) => u.name);
       if (!names.length) return;
       const preview = names.slice(0, 10).join(', ') + (names.length > 10 ? ` และอีก ${names.length - 10} ตัว` : '');
-      if (confirm(`ลบตัวละคร ${names.length} ตัวถาวร?\n${preview}\n(เลเวล ไอเทม ทอง จะหายทั้งหมด)`)) { sendUsers({ cmd: 'del', names }); picked.clear(); }
+      UI.confirm(preview, { title: `ลบตัวละคร ${names.length} ตัวถาวร?`, icon: '🗑', ok: 'ลบถาวร', danger: true, warn: 'เลเวล ไอเทม และทองจะหายทั้งหมด กู้คืนไม่ได้' })
+        .then((ok) => { if (ok) { sendUsers({ cmd: 'del', names }); picked.clear(); } });
       return;
     }
     e.preventDefault();                   // the row is a <label>: a click on its delete button must not tick the box
     const name = b.dataset.del;
-    if (name && confirm(`ลบตัวละคร "${name}" ถาวร? (เลเวล ไอเทม ทอง จะหายทั้งหมด)`)) sendUsers({ cmd: 'del', name });
+    if (name) UI.confirm(name, { title: 'ลบตัวละครถาวร?', icon: '🗑', ok: 'ลบถาวร', danger: true, warn: 'เลเวล ไอเทม และทองจะหายทั้งหมด กู้คืนไม่ได้' })
+      .then((ok) => ok && sendUsers({ cmd: 'del', name }));
   });
   $('userSearch').addEventListener('input', renderUsers);
   $('userPanel').addEventListener('change', (e) => {

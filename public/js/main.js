@@ -926,8 +926,8 @@
   $('bagBtn').addEventListener('click', () => INV.toggle());
   // เปลี่ยนตัวละคร: leave this character (same cleanup as closing the tab) and go back to the character list,
   // keeping the login session — reloading is the simplest safe way to reset every bit of game/HUD state at once
-  $('switchCharBtn').addEventListener('click', () => {
-    if (!confirm('ออกจากตัวละครนี้เพื่อเปลี่ยนตัวละคร?')) return;
+  $('switchCharBtn').addEventListener('click', async () => {
+    if (!(await UI.confirm('กลับไปหน้าเลือกตัวละคร ไม่ต้องล็อกอินใหม่', { title: 'เปลี่ยนตัวละคร?', icon: '⇄', ok: 'เปลี่ยนตัวละคร' }))) return;
     socket.emit('leaveChar', {}, (res) => { if (res && res.ok) location.reload(); });
   });
   // blacksmith, apothecary (ร้านขายยา), enhancement shop (ร้านตีบวก) + teleport stone of the current map (own base on the PvP map)
@@ -966,9 +966,10 @@
     const near = nearSmith() ? 'smith' : nearApothecary() ? 'apothecary' : nearEnhancer() ? 'enhancer' : nearStone() ? 'stone' : '';
     if (near !== hintShown) {
       $('interactHint').classList.toggle('hidden', !near);
-      const press = G.touch ? '👆 แตะ' : 'กด <b>F</b>';            // touch: the hint itself is the button
-      $('interactHint').innerHTML = `${press} ${near === 'stone' ? 'เพื่อใช้ศิลาเคลื่อนย้าย'
-        : near === 'apothecary' ? 'เพื่อเปิดร้านขายยา' : near === 'enhancer' ? 'เพื่อเปิดร้านตีบวก' : 'เพื่อเปิดร้านช่างตีดาบ'}`;
+      const place = { stone: 'ศิลาเคลื่อนย้าย', apothecary: 'ร้านขายยา', enhancer: 'ร้านตีบวก', smith: 'ร้านช่างตีดาบ' }[near] || '';
+      const act = near === 'stone' ? 'ใช้' : 'เปิด';
+      // touch: the hint itself is the button, a short label that never breaks inside the place's name
+      $('interactHint').innerHTML = G.touch ? `👆 ${act}<span class="nb">${place}</span>` : `กด <b>F</b> เพื่อ${act}${place}`;
       hintShown = near;
     }
     if (near !== 'smith' && INV.shopOpen) INV.closeShop();

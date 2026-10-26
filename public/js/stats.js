@@ -105,7 +105,7 @@
     if (!b) return;
     if (b.classList.contains('close')) return STATS.toggle(false);
     if (b.classList.contains('st-reset')) {
-      if (confirm('คืนแต้มสถานะทั้งหมดเพื่อแจกใหม่?')) send({ cmd: 'reset' });
+      UI.confirm('คืนแต้มสถานะทั้งหมดเพื่อแจกใหม่', { title: 'รีเซ็ตแต้มสถานะ?', icon: '💪', ok: 'รีเซ็ตแต้ม' }).then((ok) => ok && send({ cmd: 'reset' }));
       return;
     }
     if (b.classList.contains('st-guide-btn')) return send({ cmd: 'guide' });

@@ -37,6 +37,33 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
       window.warriorFx=G.socket.listeners('fx')[0];window.warriorCast=G.socket.listeners('cast')[0];
     })()`);
     await pause(200);
+    const endgameBook = await run(`(()=>{
+      const check=(ok,msg)=>{if(!ok)throw Error(msg);}, saved=G.skl;
+      for(const lvl of [99,100,110,120,130]){
+        G.stats.lvl=lvl;G.skl=C.cleanSkills('warrior',{v:C.SKILL_VER,sk:{guardSlash:1},ev:{},bar:saved.bar},lvl);
+        G.skl.free=C.skillPtsFree(G.skl,lvl);BOOK.toggle(true);BOOK.refresh();
+        const overview=document.querySelector('[data-warrior-endgame]');check(!!overview,'missing high-level overview');
+        const links=[...overview.querySelectorAll('[data-skill-jump]')];check(links.length===9,'all five evolutions and four new skills');
+        check(document.querySelectorAll('#bookList .sk-card').length===13,'skill cards must not duplicate');
+        for(const b of links){const sk=C.ALL_SKILLS[b.dataset.skillJump],i=b.dataset.jumpEvo;
+          const level=i===undefined?sk.lvl:sk.evo[Number(i)].lvl;
+          check(b.textContent.includes(lvl<level?'ปลดล็อก Lv.'+level:i===undefined?'ยังไม่เรียน':'ยังไม่อัปขั้น'),'incorrect unlock status');}
+      }
+      const b=document.querySelector('[data-skill-jump="sunderStrike"]');b.click();
+      const evo=document.querySelector('.sk-card[data-id="sunderStrike"] .sk-evo').getBoundingClientRect();
+      const box=document.getElementById('bookList').getBoundingClientRect();check(evo.bottom>box.top&&evo.top<box.bottom,'jump to Lv.100 evolution');
+      G.skl.sk.guardianOath=1;G.skl.sk.guardFirmament=1;BOOK.refresh();
+      check(document.querySelector('[data-skill-jump="guardianOath"]').textContent.includes('ยังไม่วางปุ่ม'),'extra skill indicates no hotkey');
+      check(document.querySelector('[data-skill-jump="guardFirmament"]').textContent.includes('ปุ่ม 0'),'ultimate indicates key 0');
+      const original=G.skl.bar.slice();BOOK.refresh();check(JSON.stringify(original)===JSON.stringify(G.skl.bar),'overview preserves customized bar');
+      document.querySelector('[data-skill-jump="guardGenesis"]').click();
+      document.querySelector('[data-up="guardGenesis"]').click();
+      check(warriorEmits.some(e=>e.ev==='skills'&&e.data.cmd==='up'&&e.data.id==='guardGenesis'),'learn request reaches skills handler');
+      G.skl=saved;G.skl.free=C.skillPtsFree(saved,130);BOOK.refresh();document.getElementById('bookList').scrollTop=0;
+      return {milestones:9,levels:[99,100,110,120,130],cards:13,learning:true,customBarPreserved:true};
+    })()`);
+    fs.writeFileSync(path.join(out,'warrior-endgame-book.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
+    await run('BOOK.toggle(false)');
     for(const faction of ['dharma','adharma']) for(let dir=0;dir<8;dir++){
       await run(`G.me.faction=${JSON.stringify(faction)};G.me.dir=${dir};G.me.atk=null;`);await pause(30);
     }
@@ -118,8 +145,11 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
     await run("document.getElementById('login').classList.remove('hidden');document.querySelector('.cls[data-c=warrior]').click();");await pause(150);
     assert(await run("document.querySelector('.cls[data-c=warrior]').getBoundingClientRect().right<=innerWidth"));
     fs.writeFileSync(path.join(out,'warrior-mobile.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
+    await run("document.getElementById('login').classList.add('hidden');BOOK.toggle(true);document.getElementById('bookList').scrollTop=0;");await pause(100);
+    assert(await run("[...document.querySelectorAll('[data-skill-jump]')].every(b=>{const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;})"),'mobile high-level overview fits');
+    fs.writeFileSync(path.join(out,'warrior-endgame-mobile.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
     assert.equal(errors.length,0,JSON.stringify(errors));
-    const report={desktop:true,mobile:true,directions:16,skillFx:ids.length,portraits:2,...iconReport,serverConfirmedCooldown:true,browserErrors:errors};
+    const report={desktop:true,mobile:true,directions:16,skillFx:ids.length,portraits:2,...iconReport,endgameBook,serverConfirmedCooldown:true,browserErrors:errors};
     fs.writeFileSync(path.join(out,'browser-check.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
-  }finally{ws.close();}
+  }finally{await send('Page.close').catch(()=>{});ws.terminate();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

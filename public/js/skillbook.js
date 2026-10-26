@@ -49,6 +49,33 @@
     return html + '</div></div>';
   }
 
+  // High-level warrior evolutions live on low-level skill cards. Surface them
+  // alongside the new arts, without duplicating cards or changing saved bars.
+  function warriorEndgame(cls, S, lvl) {
+    if (cls.id !== 'warrior') return '';
+    const milestones = [];
+    for (const sk of cls.skills) {
+      if (sk.lvl >= 100) milestones.push({ sk, lvl: sk.lvl, name: sk.name });
+      (sk.evo || []).forEach((e, i) => {
+        if (e.lvl >= 100) milestones.push({ sk, lvl: e.lvl, name: e.name, evo: i });
+      });
+    }
+    let html = '<div class="bk-now" data-warrior-endgame><b>วิชานักรบแนวหน้า Lv.100–130</b>' +
+      '<small class="sk-hint">Lv.100–110 อัปขั้นสกิลเดิม · Lv.120–130 มีทั้งอัปขั้นและท่าใหม่ · กดชื่อเพื่อไปเรียน อัปขั้น หรือจัดปุ่ม</small>';
+    for (const level of [...new Set(milestones.map(m => m.lvl))].sort((a, b) => a - b)) {
+      html += `<div class="sk-tools"><b>Lv.${level}</b>`;
+      for (const m of milestones.filter(m => m.lvl === level)) {
+        const isEvo = m.evo !== undefined, learned = isEvo ? C.skillRankOf(S, m.sk.id) > m.evo : !!S.sk[m.sk.id];
+        const slot = S.bar.indexOf(m.sk.id);
+        const status = lvl < level ? `ปลดล็อก Lv.${level}` : !learned ? isEvo ? 'ยังไม่อัปขั้น' : 'ยังไม่เรียน' : slot < 0 ? 'ยังไม่วางปุ่ม' : `ปุ่ม ${C.BAR_KEYS[slot]}`;
+        const type = isEvo ? 'อัปขั้น' : m.sk.ritual ? 'ท่าไม้ตาย' : 'สกิลใหม่';
+        html += `<button type="button" data-skill-jump="${m.sk.id}"${isEvo ? ` data-jump-evo="${m.evo}"` : ''}>${esc(m.name)} (${type} · ${status})</button>`;
+      }
+      html += '</div>';
+    }
+    return html + '</div>';
+  }
+
   function render() {
     const S = G.skl;
     if (!S) return;
@@ -62,6 +89,7 @@
       `<div class="sk-tools"><label><input type="checkbox" id="skAuto"${S.auto ? ' checked' : ''}> อัปสกิลอัตโนมัติเมื่อเลเวลอัป</label>` +
       `<button type="button" class="sk-reset">รีเซ็ตสกิล${cost ? ` (${fmt(cost)} ทอง)` : ' (ฟรีก่อน Lv.30)'}</button></div>` +
       `<small class="sk-hint">เรียนสกิล → อัปสเต็ก (สูงสุด ${C.SKILL_MAX}) → อัพขั้นวิชาเมื่อถึงเลเวล · ลากการ์ดไปวางบนแถบสกิล หรือเลือก "ปุ่ม" เพื่อจัดตำแหน่ง</small></div>`;
+    html += warriorEndgame(cls, S, lvl);
     for (const path of C.SKILL_PATHS) {
       const list = cls.skills.filter((s) => s.lvl >= path.from && s.lvl <= path.to);
       if (!list.length) continue;
@@ -111,9 +139,17 @@
   panel.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
-    if (b.dataset.up) send({ cmd: 'up', id: b.dataset.up });
+    if (b.dataset.skillJump) {
+      const card = panel.querySelector(`.sk-card[data-id="${b.dataset.skillJump}"]`);
+      const target = b.dataset.jumpEvo !== undefined ? card?.querySelectorAll('.sk-evo')[Number(b.dataset.jumpEvo)] : card;
+      target?.scrollIntoView({ block: 'center' });
+      // Move keyboard focus as well, so Enter/Space can reach the actual action.
+      const action = target?.querySelector('button:not(:disabled), select:not(:disabled)');
+      action?.focus({ preventScroll: true });
+    }
+    else if (b.dataset.up) send({ cmd: 'up', id: b.dataset.up });
     else if (b.dataset.evo) send({ cmd: 'evo', id: b.dataset.evo });
-    else if (b.classList.contains('sk-reset')) { if (confirm('คืนแต้มสกิลทั้งหมดเพื่อแจกใหม่?')) send({ cmd: 'reset' }); }
+    else if (b.classList.contains('sk-reset')) UI.confirm('คืนแต้มสกิลทั้งหมดเพื่อแจกใหม่', { title: 'รีเซ็ตสกิล?', icon: '📜', ok: 'รีเซ็ตสกิล' }).then((ok) => ok && send({ cmd: 'reset' }));
   });
   panel.addEventListener('change', (e) => {
     const t = e.target;

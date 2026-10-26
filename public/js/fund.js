@@ -93,9 +93,11 @@
     const gold = Math.floor(Number(amt.value));
     if (!(gold >= C.FUND.min)) return HUD.toast(`ใส่ทองอย่างน้อย ${fmt(C.FUND.min)}`);
     if (gold > bag()) return HUD.toast('ทองในกระเป๋าไม่พอ');
-    if (!confirm(`ร่วมระดมทุน ${fmt(gold)} ทอง?\nทองที่ร่วมแล้วขอคืนไม่ได้`)) return;
-    emit({ cmd: 'give', gold });
-    amt.value = '';
+    UI.confirm(`${fmt(gold)} ทอง จากกระเป๋าของคุณ`, { title: 'ร่วมระดมทุน?', icon: '🏮', ok: `ร่วม ${fmt(gold)} ทอง`, warn: 'ทองที่ร่วมแล้วขอคืนไม่ได้' }).then((ok) => {
+      if (!ok) return;
+      emit({ cmd: 'give', gold });
+      amt.value = '';
+    });
   });
   panel.addEventListener('keydown', (e) => {
     e.stopPropagation();                                     // typing the amount is not a hotkey

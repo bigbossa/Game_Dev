@@ -787,12 +787,22 @@
     setTimeout(() => div.remove(), 6000);
     while ($('feed').children.length > 6) $('feed').lastChild.remove();
   };
+  // the same notice again while it is still up (a potion after a potion, sorting twice ...) counts up on the one
+  // line ("×3") and starts its time over, instead of stacking copies over the play field
   HUD.toast = function (text) {
+    const box = $('toasts'), last = box.lastElementChild;
+    if (last && last.dataset.t === text) {
+      const n = (+last.dataset.n || 1) + 1;
+      last.dataset.n = n; last.textContent = `${text} ×${n}`;
+      last.style.animation = 'none'; void last.offsetWidth; last.style.animation = '';
+      clearTimeout(last._t); last._t = setTimeout(() => last.remove(), 3000);
+      return;
+    }
     const div = document.createElement('div');
-    div.className = 'toast'; div.textContent = text;
-    $('toasts').appendChild(div);
-    setTimeout(() => div.remove(), 3000);
-    while ($('toasts').children.length > 3) $('toasts').firstChild.remove();
+    div.className = 'toast'; div.textContent = text; div.dataset.t = text;
+    box.appendChild(div);
+    div._t = setTimeout(() => div.remove(), 3000);
+    while (box.children.length > 3) box.firstChild.remove();
   };
   HUD.score = function (s) { $('scD').textContent = s.dharma; $('scA').textContent = s.adharma; };
   // map title above the minimap; the faction scoreboard only matters on the PvP map

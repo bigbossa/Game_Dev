@@ -203,7 +203,7 @@
           ...(it.kind ? [] : [{ label: locked(INV.state.inv[i]) ? '🔓 ปลดล็อก' : '🔒 ล็อก', cls: 'ghost', fn: () => lockKeys([INV.state.inv[i]]) },
             { label: '💬 แชร์ในแชท', cls: 'ghost', fn: () => HUD.linkItem(INV.state.inv[i]) }]),
           ...(INV.anyShopOpen() ? [{ label: `ขาย ${fmt(C.sellPrice(it) * (it.kind ? C.stackCount(INV.state.inv[i]) : 1))} ทอง`, fn: () => sell(i) }] : []),
-          { label: 'ทิ้ง', cls: 'warn', fn: () => { if (confirm(`ทิ้ง ${it.name}?`)) discard(i); } },
+          { label: 'ทิ้ง', cls: 'warn', fn: () => discard(i) },
         ]);
       });
       grid.appendChild(s);
@@ -383,10 +383,13 @@
     const poor = st.gold < q.total;
     card.insertAdjacentHTML('beforeend', `<div class="enh-bill">${lines.join(' · ')}<div class="enh-total">รวม <b>${fmt(q.total)}</b> ทอง${poor ? ' <span class="risk">ทองไม่พอ</span>' : ''}</div></div>
       <button type="button" class="enh-go" ${poor ? 'disabled' : ''}>⚒ ตีบวก +${plus + 1} · ${fmt(q.total)} ทอง</button>`);
-    card.querySelector('.enh-go').addEventListener('click', () => {
-      if (!q.guard && !confirm(`ตีบวก ${it.name} → +${plus + 1}\nโอกาสสำเร็จ ${pct(rate)} · ราคา ${fmt(q.total)} ทอง\nถ้าล้มเหลว ไอเทมอาจแตกหายถาวร (ติ๊กยันต์กันแตกเพื่อป้องกัน)\nต้องการตีบวกต่อ?`)) return;
+    // the request is made before asking (bag index + its key), so the server refuses it if the bag moved meanwhile
+    card.querySelector('.enh-go').addEventListener('click', async () => {
       const use = { guard: q.guard ? 1 : 0, luck: q.luck ? 1 : 0, tier: q.tier, total: q.total };
-      emit('shop', sel.where === 'eq' ? { act: 'enhance', where: 'eq', slot: sel.key, ...use } : { act: 'enhance', where: 'inv', idx: sel.key, key: st.inv[sel.key], ...use });
+      const req = sel.where === 'eq' ? { act: 'enhance', where: 'eq', slot: sel.key, ...use } : { act: 'enhance', where: 'inv', idx: sel.key, key: st.inv[sel.key], ...use };
+      if (!q.guard && !(await UI.confirm(`${it.name} → +${plus + 1}\nโอกาสสำเร็จ ${pct(rate)} · ราคา ${fmt(q.total)} ทอง`,
+        { title: 'ตีบวกโดยไม่ใช้ยันต์กันแตก?', icon: '⚒', ok: `ตีบวก +${plus + 1}`, danger: true, warn: 'ถ้าล้มเหลว ไอเทมอาจแตกหายถาวร · ติ๊กยันต์กันแตกเพื่อป้องกัน' }))) return;
+      emit('shop', req);
     });
     rerollRow(card, sel);
     const rates = E.rate.map((r, i) => `+${i + 1} ${pct(E.rateWith(i, q.luck))}`).join(' · ');
@@ -404,10 +407,11 @@
       return `<button type="button" class="reroll" data-kind="${kind}" ${poor ? 'disabled' : ''}>${label}<br><small>${m > 0 ? `ใช้ ${C.ENH_CHARMS[mk].name} (มี ${fmt(m)})` : `${fmt(cost)} ทอง${poor ? ' · ทองไม่พอ' : ''}`}</small></button>`;
     };
     card.insertAdjacentHTML('beforeend', `<div class="reroll-row">${btn('affix', 'สุ่มออฟชั่นใหม่', G.affix[1])}${btn('passive', 'สุ่มสกิลติดตัวใหม่', G.passive)}</div>`);
-    card.querySelectorAll('.reroll').forEach((b) => b.addEventListener('click', () => {
-      const kind = b.dataset.kind;
-      if (!confirm(`สุ่ม${kind === 'affix' ? 'ออฟชั่น (ตัวหนังสือสีเขียว)' : 'สกิลติดตัว (✦)'}ใหม่ของ ${it.name}?\nค่าสถานะหลัก เกรด และระดับตีบวกไม่เปลี่ยน แต่ของเดิมจะหายไป`)) return;
-      emit('shop', sel.where === 'eq' ? { act: 'reroll', where: 'eq', slot: sel.key, kind } : { act: 'reroll', where: 'inv', idx: sel.key, key: st.inv[sel.key], kind });
+    card.querySelectorAll('.reroll').forEach((b) => b.addEventListener('click', async () => {
+      const kind = b.dataset.kind, part = kind === 'affix' ? 'ออฟชั่น (ตัวหนังสือสีเขียว)' : 'สกิลติดตัว (✦)';
+      const req = sel.where === 'eq' ? { act: 'reroll', where: 'eq', slot: sel.key, kind } : { act: 'reroll', where: 'inv', idx: sel.key, key: st.inv[sel.key], kind };
+      if (!(await UI.confirm(`${it.name}\nค่าสถานะหลัก เกรด และระดับตีบวกไม่เปลี่ยน`, { title: `สุ่ม${kind === 'affix' ? 'ออฟชั่น' : 'สกิลติดตัว'}ใหม่?`, icon: '🎲', ok: 'สุ่มใหม่', warn: `${part}เดิมจะหายไป` }))) return;
+      emit('shop', req);
     }));
   }
   // enhancement materials: หินตีบวก + ยันต์กันแตก + ยันต์เพิ่มโอกาส, each with its count and buy / sell buttons
@@ -459,10 +463,10 @@
       input.addEventListener('input', sync);
       input.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') box.querySelector('.q-buy').click(); });
       sync();
-      const buy = (n, sell) => {
+      const buy = async (n, sell) => {
         // everything but the basic stone is expensive: confirm every purchase
-        if (!sell && (M.k !== 'stone' || M.tier) && !confirm(`ซื้อ${M.S.name} ×${fmt(n)} ราคา ${fmt(M.S.price * n)} ทอง?`)) return;
-        if (sell && n >= 10 && !confirm(`ขาย${M.S.name} ×${fmt(n)} ได้ ${fmt(M.S.sell * n)} ทอง?`)) return;
+        if (!sell && (M.k !== 'stone' || M.tier) && !(await UI.confirm(`${M.S.name} ×${fmt(n)}\nราคา ${fmt(M.S.price * n)} ทอง`, { title: 'ซื้อวัสดุตีบวก?', icon: '🛒', ok: 'ซื้อ' }))) return;
+        if (sell && n >= 10 && !(await UI.confirm(`${M.S.name} ×${fmt(n)}\nได้ ${fmt(M.S.sell * n)} ทอง`, { title: 'ขายวัสดุตีบวก?', icon: '💰', ok: 'ขาย' }))) return;
         emit('shop', { act: M.act(sell), k: M.k, n });
       };
       box.addEventListener('click', (e) => {
@@ -526,15 +530,19 @@
     keys = keys.filter((k) => k && C.ITEMS[k] && !C.ITEMS[k].kind);
     if (keys.length) emit('lock', { keys, on: !keys.every(locked) });
   }
+  // the bag key is read before asking: if the bag changes while the dialog is up, the server refuses the old request
   function sell(i) {
-    const it = C.ITEMS[INV.state.inv[i]];
+    const key = INV.state.inv[i], it = C.ITEMS[key];
     if (!it) return;
-    if (it.grade >= C.EPIC && !confirm(`ขาย ${it.name} ในราคา ${fmt(C.sellPrice(it))} ทอง?`)) return;
-    emit('shop', { act: 'sell', idx: i, key: INV.state.inv[i] });
+    const go = () => emit('shop', { act: 'sell', idx: i, key });
+    if (it.grade < C.EPIC) return go();
+    UI.confirm(`${it.name} (${C.GRADES[it.grade].name})\nได้ ${fmt(C.sellPrice(it))} ทอง`, { title: 'ขายไอเทม?', icon: '💰', ok: 'ขาย' }).then((ok) => ok && go());
   }
   function discard(i) {
-    const it = C.ITEMS[INV.state.inv[i]];
-    if (it && confirm(`ทิ้ง ${it.name}? (กู้คืนไม่ได้)`)) emit('discard', { idx: i, key: INV.state.inv[i] });
+    const key = INV.state.inv[i], it = C.ITEMS[key];
+    if (!it) return;
+    UI.confirm(it.name, { title: 'ทิ้งไอเทม?', icon: '🗑', ok: 'ทิ้ง', danger: true, warn: 'ไอเทมที่ทิ้งแล้วกู้คืนไม่ได้' })
+      .then((ok) => ok && emit('discard', { idx: i, key }));
   }
 
   // ------------------------------------------------------------ multi-select: tick items, then sell / discard them together
@@ -584,24 +592,25 @@
     const hi = items.filter((it) => it.grade >= C.EPIC);
     return hi.length ? `\n\n⚠ มีไอเทมระดับ Epic ขึ้นไป ${hi.length} ชิ้น:\n${hi.slice(0, 6).map((it) => `• ${it.name} (${C.GRADES[it.grade].name})`).join('\n')}${hi.length > 6 ? '\n…' : ''}` : '';
   };
-  $('bagBar').addEventListener('click', (e) => {
+  $('bagBar').addEventListener('click', async (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
     const all = selected(), idxs = ['sell', 'drop'].includes(b.dataset.bag) ? all.filter((i) => !locked(INV.state.inv[i])) : all;
-    if (all.length && !idxs.length) return alert('ไอเทมที่เลือกถูกล็อกอยู่ทั้งหมด (ปลดล็อกก่อน)');
-    const items = idxs.map((i) => C.ITEMS[INV.state.inv[i]]);
+    if (all.length && !idxs.length) return UI.alert('ปลดล็อกไอเทมก่อน แล้วค่อยขายหรือทิ้ง', { title: 'ไอเทมที่เลือกถูกล็อกอยู่ทั้งหมด', icon: '🔒' });
+    const items = idxs.map((i) => C.ITEMS[INV.state.inv[i]]), keys = idxs.map((i) => INV.state.inv[i]);
+    const skipped = all.length > idxs.length ? `\n(ข้ามไอเทมที่ล็อก ${all.length - idxs.length} ชิ้น)` : '';
     if (b.dataset.bag === 'all') for (const i of visibleIdxs()) sel.set(i, INV.state.inv[i]);
     else if (b.dataset.bag === 'none') sel.clear();
     else if (b.dataset.bag === 'lock') lockKeys(idxs.map((i) => INV.state.inv[i]));
     else if (b.dataset.bag === 'sell') {
       const gold = items.reduce((t, it) => t + C.sellPrice(it), 0);
-      if (!confirm(`ขาย ${idxs.length} ชิ้น ได้ ${fmt(gold)} ทอง?${all.length > idxs.length ? `\n(ข้ามไอเทมที่ล็อก ${all.length - idxs.length} ชิ้น)` : ''}${rareNote(items)}`)) return;
-      emit('shop', { act: 'sellMany', idxs, keys: idxs.map((i) => INV.state.inv[i]) }); sel.clear();
+      if (!(await UI.confirm(`${idxs.length} ชิ้น · ได้ ${fmt(gold)} ทอง${skipped}${rareNote(items)}`, { title: 'ขายไอเทมที่เลือก?', icon: '💰', ok: `ขาย ${idxs.length} ชิ้น` }))) return;
+      emit('shop', { act: 'sellMany', idxs, keys }); sel.clear();
     } else if (b.dataset.bag === 'store') {
       STORE.putMany(idxs); sel.clear();
     } else if (b.dataset.bag === 'drop') {
-      if (!confirm(`ทิ้ง ${idxs.length} ชิ้น? (กู้คืนไม่ได้)${all.length > idxs.length ? `\n(ข้ามไอเทมที่ล็อก ${all.length - idxs.length} ชิ้น)` : ''}${rareNote(items)}`)) return;
-      emit('discard', { idxs, keys: idxs.map((i) => INV.state.inv[i]) }); sel.clear();
+      if (!(await UI.confirm(`${idxs.length} ชิ้น${skipped}${rareNote(items)}`, { title: 'ทิ้งไอเทมที่เลือก?', icon: '🗑', ok: `ทิ้ง ${idxs.length} ชิ้น`, danger: true, warn: 'ไอเทมที่ทิ้งแล้วกู้คืนไม่ได้' }))) return;
+      emit('discard', { idxs, keys }); sel.clear();
     }
     INV.render();
   });
@@ -621,7 +630,7 @@
       renderBagBar();
     } else if (b.dataset.bag === 'junk') {
       const junk = INV.state.inv.map((k, i) => (isJunk(C.ITEMS[k], k) ? i : -1)).filter((i) => i >= 0);
-      if (!junk.length) return alert('ไม่มีอุปกรณ์ที่แย่กว่าที่สวมอยู่ (ไม่นับที่ล็อกและที่เลเวลยังไม่ถึง)');
+      if (!junk.length) return UI.alert('ไม่มีอุปกรณ์ที่แย่กว่าที่สวมอยู่ทุกด้าน\n(ไม่นับที่ล็อก และที่เลเวลยังไม่ถึง)', { title: 'ไม่มีของด้อย', icon: '🧹' });
       sel.clear();
       for (const i of junk) sel.set(i, INV.state.inv[i]);
       INV.render();
@@ -659,15 +668,14 @@
     box.innerHTML = '<span class="as-label">ขายอัตโนมัติเมื่อดรอป:</span>' + C.GRADES.map((gr, g) =>
       `<button type="button" class="as-chip${on.has(g) ? ' on' : ''}" data-g="${g}" style="--gc:${gr.color}" title="${gr.th}">${gr.name}</button>`).join('');
   }
-  $('autoSell') && $('autoSell').addEventListener('click', (e) => {
+  $('autoSell') && $('autoSell').addEventListener('click', async (e) => {
     const b = e.target.closest('.as-chip');
     if (!b) return;
-    const g = +b.dataset.g, on = new Set(INV.state.autoSell || []);
-    if (on.has(g)) on.delete(g);
-    else {
-      if (g >= C.EPIC && !confirm(`ขายอัตโนมัติไอเทมระดับ ${C.GRADES[g].name} ทุกชิ้นที่ดรอป?\nไอเทมระดับนี้หายากและจะถูกขายทันทีโดยไม่เข้ากระเป๋า`)) return;
-      on.add(g);
-    }
+    const g = +b.dataset.g, turnOn = !(INV.state.autoSell || []).includes(g);
+    if (turnOn && g >= C.EPIC && !(await UI.confirm(`ไอเทมระดับ ${C.GRADES[g].name} ทุกชิ้นที่ดรอปจะถูกขายทันที ไม่เข้ากระเป๋า`,
+      { title: `ขายอัตโนมัติ ${C.GRADES[g].name}?`, icon: '💰', ok: 'เปิดขายอัตโนมัติ', danger: true, warn: 'ไอเทมระดับนี้หายาก' }))) return;
+    const on = new Set(INV.state.autoSell || []);                     // read again: it may have changed while asking
+    if (turnOn) on.add(g); else on.delete(g);
     emit('autosell', { grades: [...on] });
   });
 

@@ -59,8 +59,8 @@
       return;
     }
     const kick = e.target.closest('[data-kick]');
-    if (kick) { e.stopPropagation(); const m = PARTY.list.find((q) => q.id === kick.dataset.kick); if (m && confirm(`เชิญ ${m.n} ออกจากปาร์ตี้?`)) send({ cmd: 'kick', id: m.id }); return; }
-    if (e.target.closest('.pt-leave')) { if (confirm('ออกจากปาร์ตี้?')) send({ cmd: 'leave' }); return; }
+    if (kick) { e.stopPropagation(); const m = PARTY.list.find((q) => q.id === kick.dataset.kick); if (m) UI.confirm(`${m.n} จะออกจากปาร์ตี้ทันที`, { title: 'เชิญออกจากปาร์ตี้?', icon: '👥', ok: 'เชิญออก', danger: true }).then((ok) => ok && send({ cmd: 'kick', id: m.id })); return; }
+    if (e.target.closest('.pt-leave')) { UI.confirm('จะไม่ได้แบ่ง EXP และไอเทมกับปาร์ตี้นี้อีก', { title: 'ออกจากปาร์ตี้?', icon: '👥', ok: 'ออกจากปาร์ตี้' }).then((ok) => ok && send({ cmd: 'leave' })); return; }
     // walk to a member on this map
     const row = e.target.closest('.pt-mem');
     if (!row || row.dataset.id === G.myId) return;

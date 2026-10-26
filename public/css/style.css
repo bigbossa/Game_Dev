@@ -699,6 +699,34 @@ body.touch .bag-check::after { left: 6px; top: 2px; width: 5px; height: 10px; }
 .set-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 body.touch .set-row { padding: 9px 2px; }
 body.touch .set-range input { height: 30px; }
+/* in-game alert / confirm (dialog.js): over everything but the loading screen, the game dimmed behind it */
+.ui-dlg { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px;
+  padding-bottom: calc(16px + var(--sab)); background: rgba(4,5,9,0.62); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+.ui-dlg-box { position: relative; width: min(380px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 22px 18px 16px; border-radius: 16px; text-align: center;
+  background: linear-gradient(180deg, #221c12, #0e1018); border: 1px solid var(--gold);
+  box-shadow: 0 18px 48px rgba(0,0,0,0.65), 0 0 0 4px rgba(232,194,106,0.12), inset 0 1px 0 rgba(255,240,200,0.18); }
+.ui-dlg-box.danger { border-color: #e0574f; box-shadow: 0 18px 48px rgba(0,0,0,0.65), 0 0 0 4px rgba(224,87,79,0.14), inset 0 1px 0 rgba(255,200,190,0.15); }
+.ui-dlg-box.pop { animation: uiDlgPop 0.18s ease-out; }
+@keyframes uiDlgPop { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
+.ui-dlg-icon { width: 48px; height: 48px; margin: 0 auto 8px; display: grid; place-items: center; border-radius: 50%; font-size: 24px; background: rgba(232,194,106,0.14); box-shadow: inset 0 0 0 1px rgba(232,194,106,0.35); }
+.danger .ui-dlg-icon { background: rgba(224,87,79,0.16); box-shadow: inset 0 0 0 1px rgba(224,87,79,0.45); }
+.ui-dlg-box h3 { margin: 0 0 8px; color: var(--gold); font-size: 18px; }
+.danger h3 { color: #ffb0a6; }
+#uiDlgText { font-size: 14px; line-height: 1.55; color: var(--text); text-align: center; }
+#uiDlgText p { margin: 0; overflow-wrap: anywhere; }
+#uiDlgText p.gap { height: 8px; }
+#uiDlgText li { list-style: none; margin: 1px 0; font-size: 13px; color: #e6d7b0; }
+.ui-dlg-warn { margin: 10px 0 0; padding: 7px 10px; border-radius: 10px; font-size: 13px; line-height: 1.5; color: #ffc4bc; background: rgba(224,52,58,0.14); border: 1px solid rgba(224,87,79,0.4); }
+.ui-dlg-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.ui-dlg-btns:has(.ui-dlg-no.hidden) { grid-template-columns: 1fr; }
+.ui-dlg-btns button { min-height: 44px; border-radius: 12px; border: none; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer; }
+.ui-dlg-btns button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.ui-dlg-yes { color: #1a1206; background: linear-gradient(180deg, #ffe39a, #d9a640); box-shadow: 0 4px 14px rgba(232,194,106,0.35); }
+.danger .ui-dlg-yes { color: #fff; background: linear-gradient(180deg, #ff7a6a, #c3262c); box-shadow: 0 4px 14px rgba(195,38,44,0.4); }
+.ui-dlg-no { color: var(--text); background: rgba(255,255,255,0.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); }
+.ui-dlg-btns button:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) { .ui-dlg-box.pop { animation: none; } }
+
 /* 📢 แพทช์โน้ต (patchnotes.js): a dated timeline, newest first; opens over the login screen too */
 #newsBtn { position: absolute; right: 152px; bottom: 60px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--panel-b); background: var(--panel); font-size: 18px; cursor: pointer; }
 #newsBtn.has, .patch-link.has { border-color: #ffd76a; box-shadow: 0 0 10px rgba(255,215,106,0.6); }
@@ -918,8 +946,9 @@ body.touch #scoreBoard:not(.hidden) ~ #targetFrame { top: calc(96px + var(--sat)
 body.touch #scoreBoard { top: auto; bottom: auto; top: 50px; padding: 2px 12px; transform: translateX(-50%) scale(0.8); }
 body.touch #zoneBanner { font-size: 20px; top: 18%; }
 body.touch #zoneBanner small { font-size: 12px; }
-body.touch #toasts { bottom: auto; top: 30%; }
-body.touch .toast { font-size: 12px; padding: 4px 12px; }
+/* notices on a phone: in the bottom-left corner above the joystick, newest at the bottom, never over the character */
+body.touch #toasts { top: auto; bottom: calc(168px + var(--sab)); left: calc(14px + var(--sal)); transform: none; align-items: flex-start; gap: 4px; max-width: 34vw; }
+body.touch .toast { font-size: 12px; padding: 4px 12px; border-radius: 12px; }
 body.touch #feed { top: 150px; right: 6px; }
 /* round buttons: 💬 🎒 🤖 ☰ stay on screen left of the minimap, the others are in the ☰ menu (touch-menu.js) */
 #menuBtn { display: none; }
@@ -948,7 +977,7 @@ body.touch #menuGrid > #pkBtn.on { border-color: #ff5a3a; background: rgba(200,4
 body.touch #fsBtn.on { border-color: #ffd76a; box-shadow: 0 0 10px rgba(255,215,106,0.7); }
 body.touch.standalone #fsBtn { display: none; }
 body.touch #statPanel { top: 6px; max-height: calc(100vh - 12px); z-index: 21; }
-body.touch #botStatus { bottom: auto; top: 58px; font-size: 11px; }
+body.touch #botStatus { top: auto; bottom: calc(14px + var(--sab)); font-size: 11px; }
 body.touch #botPanel { top: 6px; bottom: auto; right: calc(6px + var(--sar)); max-height: calc(100vh - 12px); }
 body.touch #help { right: 6px; top: 56px; bottom: auto; max-height: calc(100vh - 70px); overflow-y: auto; width: min(320px, calc(100vw - 12px)); }
 /* chat: last lines faded under the player frame, 💬 opens it with the input */
@@ -1008,8 +1037,9 @@ body:not(.touch) #skillbar { z-index: 3; }   /* above the chat box where they ov
 body.touch .sb-grip { display: none; }
 body.touch .slot[data-id="pot_hp"] { right: 232px; bottom: 30px; }
 body.touch .slot[data-id="pot_mp"] { right: 288px; bottom: 30px; }
-body.touch #interactHint { pointer-events: auto; bottom: auto; top: 58%; font-size: 15px; padding: 10px 18px; cursor: pointer; }
+body.touch #interactHint { pointer-events: auto; top: auto; bottom: calc(205px + var(--sab)); left: auto; right: calc(10px + var(--sar)); transform: none; font-size: 14px; padding: 9px 16px; cursor: pointer; }
 body.touch #interactHint b { display: none; }
+#interactHint .nb { white-space: nowrap; }
 /* panels fill the screen width and scroll */
 body.touch .panel { max-width: calc(100vw - 12px); }
 body.touch #invPanel { top: 6px; right: 6px; max-height: calc(100vh - 12px); overflow-y: auto; z-index: 21; }
@@ -1057,10 +1087,14 @@ body.touch #deathScreen .ds-title { font-size: 34px; }
   body.touch #scoreBoard:not(.hidden) ~ #fundBuff:not(.hidden) ~ #targetFrame { top: calc(184px + var(--sat)); }
   body.touch #partyFrame:not(.hidden) ~ #targetFrame { left: auto; right: calc(60px + var(--sar)); transform: none; width: min(200px, calc(100vw - 214px)); }
   body.touch #zoneBanner { font-size: 18px; top: 24%; }
-  body.touch #announce { top: calc(150px + var(--sat)); font-size: 15px; }
-  body.touch #toasts { top: 30%; }
-  body.touch #botStatus { top: auto; bottom: calc(312px + var(--sab)); }
-  body.touch #interactHint { top: auto; bottom: calc(266px + var(--sab)); }
+  body.touch #announce { top: calc(190px + var(--sat)); font-size: 15px; }
+  /* notices: bottom-left above the chat lines (two at most), the shop prompt on the right above the skills,
+     the bot / follow chip at the top: the middle of the screen stays the character's */
+  body.touch #toasts { bottom: calc(258px + var(--sab)); left: calc(8px + var(--sal)); max-width: 48vw; }
+  body.touch #toasts .toast:nth-last-child(n+3) { display: none; }
+  body.touch .toast { font-size: 11px; padding: 3px 10px; }
+  body.touch #botStatus { top: auto; bottom: calc(300px + var(--sab)); left: auto; right: calc(8px + var(--sar)); transform: none; max-width: 44vw; white-space: normal; text-align: center; }
+  body.touch #interactHint { top: auto; bottom: calc(240px + var(--sab)); left: auto; right: calc(8px + var(--sar)); transform: none; max-width: 44vw; font-size: 13px; padding: 8px 12px; text-align: center; white-space: normal; }
   /* chat: closed = the newest lines above the potions (older ones fade out at the top) · 💬 = full box at the top */
   body.touch #chat { left: calc(8px + var(--sal)); top: auto; bottom: calc(202px + var(--sab)); width: 58vw; }
   body.touch #chatLog { max-height: 52px; font-size: 11px; padding: 1px 6px 1px 4px; justify-content: flex-end; border-radius: 8px;
@@ -1112,6 +1146,7 @@ body.touch #deathScreen .ds-title { font-size: 34px; }
   body.touch .slot[data-id="pot_hp"] { left: calc(12px + var(--sal)); bottom: 128px; }
   body.touch .slot[data-id="pot_mp"] { left: calc(64px + var(--sal)); bottom: 128px; }
   body.touch #chat { bottom: calc(200px + var(--sab)); width: 52vw; }
+  body.touch #toasts { bottom: calc(254px + var(--sab)); }
 }
 @media (orientation: portrait) and (max-width: 340px) {
   body.touch #skillbar .slot:not([data-id^="pot_"]) { zoom: 0.88; }
@@ -1136,7 +1171,7 @@ body.touch #deathScreen .ds-title { font-size: 34px; }
 /* following the party leader (follow.js): same chip as the bot's, blue */
 #followStatus { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); background: rgba(10,22,40,0.88); border: 1px solid #6cc4ff; color: #d4ecff; padding: 4px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 #followStatus b { margin-left: 6px; color: #08182a; background: #6cc4ff; padding: 0 7px; border-radius: 8px; }
-body.touch #followStatus { bottom: auto; top: 58px; font-size: 11px; }
+body.touch #followStatus { top: auto; bottom: calc(14px + var(--sab)); font-size: 11px; }
 #partyFrame .pt-leave { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); color: var(--text); border-radius: 8px; font-family: inherit; font-size: 11px; padding: 1px 8px; cursor: pointer; }
 #partyFrame .pt-leave:hover { background: #c3262c; }
 #partyFrame .pt-btns { display: inline-flex; align-items: center; gap: 4px; }
@@ -1283,7 +1318,7 @@ body.touch #partyFrame { top: 92px; left: 6px; transform: scale(0.85); transform
 body.touch #mapPanel { z-index: 23; }
 @media (orientation: portrait) and (max-width: 600px) {
   body.touch #partyFrame { left: calc(6px + var(--sal)); transform: scale(0.72); }
-  body.touch #followStatus { top: auto; bottom: calc(312px + var(--sab)); }
+  body.touch #followStatus { top: auto; bottom: calc(300px + var(--sab)); left: auto; right: calc(8px + var(--sar)); transform: none; max-width: 44vw; white-space: normal; text-align: center; }
 }
 
 /* damage-to-monsters breakdown under the stat list (inventory.js pveRow) */
