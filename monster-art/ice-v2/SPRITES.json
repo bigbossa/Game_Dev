@@ -22,6 +22,7 @@
   "species": [
     {
       "id": "snowwolf",
+      "rowColumns": {"3": [0, 1, 2, 5, 4, 3, 6, 7]},
       "subject": "A powerful compact FOUR-LEGGED arctic snow wolf with thick ivory-white fur, a dark slate-blue back stripe, a pale cyan ice-crystal mane closely attached to its shoulders, dark navy paws and nose, icy blue eyes, one bushy tail curved upward with a navy tip. Anatomical wolf face, pointed ears, lean strong legs. Walk diagonally alternating paws, idle stands all four paws, attack lunges with forelegs and open fangs, still quadrupedal. No armor, no saddle, no wings."
     },
     {

@@ -299,5 +299,145 @@
     ],
     "attackRow": 3,
     "managedBy": "build-pass-monsters"
+  },
+  "snowwolf": {
+    "file": "snowwolf-v2.png",
+    "version": "028f3815de14",
+    "fw": 205,
+    "fh": 208,
+    "cols": 8,
+    "rows": 4,
+    "ax": 102.5,
+    "ay": 200,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-ice-monsters"
+  },
+  "icewisp": {
+    "file": "icewisp-v2.png",
+    "version": "81dcfc11d9cc",
+    "fw": 176,
+    "fh": 195,
+    "cols": 8,
+    "rows": 4,
+    "ax": 88,
+    "ay": 187,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-ice-monsters"
+  },
+  "icegolem": {
+    "file": "icegolem-v2.png",
+    "version": "d4bc9e98b487",
+    "fw": 199,
+    "fh": 204,
+    "cols": 8,
+    "rows": 4,
+    "ax": 99.5,
+    "ay": 196,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-ice-monsters"
+  },
+  "frostserpent": {
+    "file": "frostserpent-v2.png",
+    "version": "052b492f88af",
+    "fw": 163,
+    "fh": 192,
+    "cols": 8,
+    "rows": 4,
+    "ax": 81.5,
+    "ay": 184,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-ice-monsters"
+  },
+  "snowguard": {
+    "file": "snowguard-v2.png",
+    "version": "00bca5dd6d36",
+    "fw": 181,
+    "fh": 194,
+    "cols": 8,
+    "rows": 4,
+    "ax": 90.5,
+    "ay": 186,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-ice-monsters"
+  },
+  "frostdrake": {
+    "file": "frostdrake-v2.png",
+    "version": "182207fba79b",
+    "fw": 180,
+    "fh": 192,
+    "cols": 8,
+    "rows": 4,
+    "ax": 90,
+    "ay": 184,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-ice-monsters"
+  },
+  "icequeen": {
+    "file": "icequeen-v2.png",
+    "version": "283a255342c7",
+    "fw": 177,
+    "fh": 196,
+    "cols": 8,
+    "rows": 4,
+    "ax": 88.5,
+    "ay": 188,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-ice-monsters"
   }
 }

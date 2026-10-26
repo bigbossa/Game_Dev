@@ -56,7 +56,7 @@
     SPR = await fetch('assets/sprites.json').then((r) => r.json());
     step(0.38, 'กำลังปลุกสัตว์อสูร');
     // AI-drawn monster sheets (optional, tools/build-monsters.js)
-    MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=pass-monsters-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
+    MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=ice-palace-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
     // Load the replacement model directly; old bodies/masks must never re-enter this renderer.
     step(0.44, 'จอมยุทธ์ดาบคู่กำลังลับดาบ');
     const weapMeta = await DualbladeModel.load(loadImg, IMG, SPR);
@@ -141,7 +141,7 @@
     ArmorLook.init(IMG);
     Art.buildProps();
     step(0.89, 'กำลังสร้างหมู่บ้านเซียนน้อย');
-    await Promise.all([VillageArt.load(loadImg),PassArt.load(loadImg)]);
+    await Promise.all([VillageArt.load(loadImg),PassArt.load(loadImg),IceArt.load(loadImg)]);
     step(0.96, 'กำลังวาดแผนที่');
     await loadMap(C.START_MAP);                    // login backdrop; the character's own map loads on join
     LOADER.done();
@@ -1949,7 +1949,7 @@
     list.sort((a, b) => a.y - b.y);
     for (const d of list) {
       if (d.kind === 'prop') {
-        if(d.sp.paintedVillage||d.sp.paintedPass)VillageArt.drawProp(ctx,d,G.me);
+        if(d.sp.paintedVillage||d.sp.paintedPass||d.sp.paintedIce)VillageArt.drawProp(ctx,d,G.me);
         else ctx.drawImage(d.sp.img, d.x - d.sp.ax, d.y - d.sp.ay);
       }
       else if (d.kind === 'p') drawPlayer(d, now);

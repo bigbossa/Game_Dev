@@ -2,7 +2,8 @@
   const $=id=>document.getElementById(id),ids=C.MAP_ORDER.filter(id=>!['village','pvp'].includes(id));
   const states=new Map();let current,camera={x:0,y:0},zoom=.72,drag=null;
   Art.buildProps();
-  const artReady=PassArt.load(src=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Missing image: '+src));img.src=src;}));
+  const loadImage=src=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Missing image: '+src));img.src=src;});
+  const artReady=Promise.all([PassArt.load(loadImage),IceArt.load(loadImage)]);
   function chunk(state,x,y){const key=x+','+y;if(!state.chunks.has(key))state.chunks.set(key,Art.renderChunk(state.map,x,y,.7));return state.chunks.get(key);}
   function scene(g,state,rect,w,h){
     const scale=Math.min(w/rect.w,h/rect.h),S=C.TILE*Art.CHUNK;

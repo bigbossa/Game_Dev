@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "source": "map-art/ice-v2/props-source.png",
+  "props": {
+    "icePalace": {
+      "file": "icePalace.png",
+      "width": 556,
+      "height": 470,
+      "ax": 278,
+      "ay": 460,
+      "occludes": true
+    },
+    "iceObelisk": {
+      "file": "iceObelisk.png",
+      "width": 206,
+      "height": 270,
+      "ax": 103,
+      "ay": 260,
+      "occludes": true
+    },
+    "pine": {
+      "file": "pine.png",
+      "width": 186,
+      "height": 229,
+      "ax": 93,
+      "ay": 219,
+      "occludes": true
+    },
+    "rocks": {
+      "file": "rocks.png",
+      "width": 150,
+      "height": 131,
+      "ax": 75,
+      "ay": 121,
+      "occludes": false
+    },
+    "pavilion": {
+      "file": "pavilion.png",
+      "width": 236,
+      "height": 201,
+      "ax": 118,
+      "ay": 191,
+      "occludes": true
+    },
+    "lantern": {
+      "file": "lantern.png",
+      "width": 69,
+      "height": 136,
+      "ax": 35,
+      "ay": 126,
+      "occludes": true
+    }
+  },
+  "ground": {
+    "snow": "snow.png"
+  }
+}

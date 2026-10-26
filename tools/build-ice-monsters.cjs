@@ -63,6 +63,8 @@ assert.deepEqual(spec.species.map(s => s.id), [...C.MAPS.ice.mons, C.MAPS.ice.bo
 const sheets = spec.species.map(s => {
   const sources = s.sources || [{ file: `${s.id}-source.png` }];
   const cells = sources.flatMap(src => extract(path.join(source, src.file), src));
+  // Authored correction for two attack views whose source columns were reversed.
+  for (const c of cells) if (s.rowColumns?.[c.row]) c.col = s.rowColumns[c.row][c.col];
   assert.equal(cells.length, 32, `${s.id}: expected 32 poses`);
   assert.equal(new Set(cells.map(c => `${c.row}/${c.col}`)).size, 32, `${s.id}: duplicate pose`);
   for (const c of cells) assert(c.row >= 0 && c.row < 4 && c.col >= 0 && c.col < 8);
