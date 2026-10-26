@@ -34,6 +34,14 @@
 
   // ---------------------------------------------------------------- particles
   FX.burst = function (x, y, n, colors, o = {}) {
+    const budget=window.G?.renderQuality?.particles()||1800;
+    n=Math.max(0,Math.min(n,budget-FX.parts.length));
+    const view=FX.view;
+    if(view){
+      const life=(o.life||500)*1.2/1000;
+      const travel=((o.speed||160)*1.2+Math.abs(o.up||0)+650)*life+Math.abs(o.grav||0)*life*life/2+32;
+      if(x+travel<view.x||x-travel>view.x+view.w||y+travel<view.y||y-travel>view.y+view.h)return;
+    }
     for (let i = 0; i < n; i++) {
       const a = o.angle !== undefined ? o.angle + (Math.random() - 0.5) * (o.spread || 1) : Math.random() * TAU;
       const sp = (o.speed || 160) * (0.4 + Math.random() * 0.8);
@@ -1489,6 +1497,8 @@
 
   // ---------------------------------------------------------------- update/draw
   FX.update = function (dt) {
+    const budget=window.G?.renderQuality?.particles()||1800;
+    if(FX.parts.length>budget)FX.parts.splice(0,FX.parts.length-budget);
     let alive = 0;
     for (const p of FX.parts) {
       p.life += dt * 1000;
@@ -1512,6 +1522,7 @@
     FX.shake *= Math.exp(-10 * dt);
   };
   FX.draw = function (g, layer, view) {
+    if(view)FX.view=view;
     const n = now();
     for (const f of FX.list) {
       if (f.layer !== layer || n < f.t0) continue; // delayed effects wait for their start
@@ -1536,6 +1547,22 @@
     }
     g.restore();
   };
+  const numberCache=new Map();let numberPixels=0;
+  if(document.fonts?.addEventListener)document.fonts.addEventListener('loadingdone',()=>{numberCache.clear();numberPixels=0;});
+  function numberStamp(g,t,size){
+    const T=g.getTransform(),k=Math.hypot(T.a,T.b)>1.3?2:1;
+    const key=JSON.stringify([t.text,t.color,t.stroke,size,k]);let stamp=numberCache.get(key);
+    if(stamp){numberCache.delete(key);numberCache.set(key,stamp);return stamp;}
+    const font=`800 ${size}px Kanit, sans-serif`;g.font=font;
+    const m=g.measureText(t.text),left=Math.max(m.width/2,m.actualBoundingBoxLeft||0)+8,right=Math.max(m.width/2,m.actualBoundingBoxRight||0)+8;
+    const top=Math.max(size,m.actualBoundingBoxAscent||0)+8,bottom=Math.max(size,m.actualBoundingBoxDescent||0)+8;
+    const w=Math.ceil(left+right),h=Math.ceil(top+bottom),img=document.createElement('canvas');img.width=w*k;img.height=h*k;
+    const cg=img.getContext('2d');cg.scale(k,k);cg.font=font;cg.textAlign='center';cg.textBaseline='middle';cg.lineWidth=4;
+    cg.strokeStyle=t.stroke;cg.strokeText(t.text,left,top);cg.fillStyle=t.color;cg.fillText(t.text,left,top);
+    stamp={img,w,h,x:left,y:top,pixels:img.width*img.height};numberCache.set(key,stamp);numberPixels+=stamp.pixels;
+    while(numberCache.size>256||numberPixels>2e6){const old=numberCache.keys().next().value;numberPixels-=numberCache.get(old).pixels;numberCache.delete(old);}
+    return stamp;
+  }
   FX.drawTexts = function (g, view) {
     g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
     for (const t of FX.texts) {
@@ -1547,9 +1574,8 @@
       const p = t.life / t.max;
       const pop = p < 0.12 ? 0.6 + (p / 0.12) * 0.6 : p < 0.2 ? 1.2 - ((p - 0.12) / 0.08) * 0.2 : 1;
       g.globalAlpha = p > 0.7 ? (1 - p) / 0.3 : 1;
-      g.font = `800 ${Math.round(t.size * pop)}px Kanit, sans-serif`;
-      g.lineWidth = 4; g.strokeStyle = t.stroke; g.strokeText(t.text, t.x, t.y);
-      g.fillStyle = t.color; g.fillText(t.text, t.x, t.y);
+      const stamp=numberStamp(g,t,Math.round(t.size*pop));
+      g.drawImage(stamp.img,t.x-stamp.x,t.y-stamp.y,stamp.w,stamp.h);
     }
     g.restore();
   };

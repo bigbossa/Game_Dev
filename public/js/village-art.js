@@ -35,7 +35,8 @@
  V.drawProp=function(g,p,player){
   const s=p.sp,left=p.x-s.ax,top=p.y-s.ay;
   const behind=s.occludes&&player&&player.y<p.y-12&&player.y>top+24&&player.x>left+12&&player.x<left+s.img.width-12&&player.y-75<top+s.img.height;
-  g.save();if(behind)g.globalAlpha=.38;g.drawImage(s.img,left,top);g.restore();
+  if(behind){const alpha=g.globalAlpha;g.globalAlpha=.38;g.drawImage(s.img,left,top);g.globalAlpha=alpha;}
+  else g.drawImage(s.img,left,top);
  };
  function road(g,pts,width,color){
   g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.lineJoin='round';g.beginPath();g.moveTo(pts[0][0]*TILE,pts[0][1]*TILE);

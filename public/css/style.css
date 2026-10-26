@@ -681,6 +681,9 @@ body.touch .bag-check::after { left: 6px; top: 2px; width: 5px; height: 10px; }
 .set-body section { padding: 6px 0 10px; border-bottom: 1px solid rgba(232,194,106,0.15); }
 .set-body h4 { margin: 6px 0 8px; color: var(--gold); font-size: 14px; }
 .set-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; cursor: pointer; }
+.set-select { flex-direction: column; align-items: stretch; gap: 6px; }
+.set-select select { width: 100%; min-width: 0; min-height: 42px; padding: 8px; border: 1px solid var(--panel-b); border-radius: 7px; background: #192330; color: var(--text); font: inherit; }
+.set-select select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .set-row input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: var(--gold); flex: none; }
 .set-range { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; }
 .set-range b { color: #ffe39a; font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }

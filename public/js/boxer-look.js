@@ -117,7 +117,7 @@
   B.updateHUD=()=>{
     let el=document.getElementById('qiCombo');
     if(!el){el=document.createElement('div');el.id='qiCombo';el.style.cssText='font:11px Kanit,sans-serif;color:#9ce6c6;letter-spacing:3px;line-height:18px';document.querySelector('#playerFrame .mp').after(el);}
-    const me=G.me;el.hidden=me?.cls!=='boxer';if(el.hidden)return;
+    const me=G.me,hidden=me?.cls!=='boxer';if(el.hidden!==hidden)el.hidden=hidden;if(hidden)return;
     const n=me.dead||performance.now()>=(me.qiUntil||0)?0:me.qiStacks||0;
     const value='จังหวะหมัด '+Array.from({length:3},(_,i)=>i<n?'✊':'○').join(' ');
     if(el.textContent!==value){el.textContent=value;el.setAttribute('aria-label',`จังหวะหมัด ${n} จาก 3`);}

@@ -2,6 +2,7 @@
 // node tools/benchmark-render.cjs before http://127.0.0.1:3918 9362
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict'), WebSocket = require('ws');
 const [label = 'current', origin = 'http://127.0.0.1:3918', port = '9362'] = process.argv.slice(2);
+const mobile = process.argv.includes('--mobile');
 const pause = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
   const page = await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' }).then(r => r.json());
@@ -21,31 +22,33 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   };
   try {
     await send('Runtime.enable'); await send('Page.enable');
-    if (process.argv.includes('--baseline')) {
+    if (process.argv.includes('--baseline')||process.argv.includes('--baseline-smooth')) {
       ws.on('message', async raw => {
         const m = JSON.parse(raw); if (m.method !== 'Fetch.requestPaused') return;
         const { requestId, request } = m.params, file = new URL(request.url).pathname.split('/').pop();
-        const saved = path.join(__dirname, '../artifacts/performance/before-js', file);
-        if (['main.js', 'hud.js', 'fx.js'].includes(file)) {
+        const smooth=process.argv.includes('--baseline-smooth');
+        const saved = path.join(__dirname, smooth?'../artifacts/smooth-v2/baseline/public/js':'../artifacts/performance/before-js', file);
+        if ((smooth?fs.existsSync(saved):['main.js', 'hud.js', 'fx.js'].includes(file))) {
           await send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'text/javascript' }], body: fs.readFileSync(saved).toString('base64') });
         } else await send('Fetch.continueRequest', { requestId });
       });
       await send('Fetch.enable', { patterns: [{ urlPattern: '*/js/*.js*' }] });
     }
-    await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+    await send('Emulation.setDeviceMetricsOverride', { width: mobile ? 390 : 1280, height: mobile ? 844 : 900, deviceScaleFactor: mobile ? 3 : 1, mobile });
+    await send('Emulation.setTouchEmulationEnabled', { enabled: mobile });
     await send('Page.navigate', { url: origin }); await send('Page.bringToFront');
     let ready;
     for (let i = 0; i < 900; i++) { ready = await run("!!window.G?.map && document.getElementById('loading').classList.contains('hidden')"); if (ready) break; await pause(100); }
     assert(ready, 'game boot');
     await run(`(${setup})()`);
     await send('Profiler.enable'); await send('Profiler.start');
-    const result = await run(`(${sample})()`);
+    const result = process.argv.includes('--checks-only') ? { scenarios: [] } : await run(`(${sample})()`);
     const { profile } = await send('Profiler.stop');
     if (process.argv.includes('--verify')) result.checks = await run(`(${verify})()`);
     if (process.argv.includes('--verify')) {
       const png = await send('Page.captureScreenshot', { format: 'png' });
       fs.mkdirSync(path.join(__dirname, '../artifacts/performance'), { recursive: true });
-      fs.writeFileSync(path.join(__dirname, '../artifacts/performance/optimized.png'), Buffer.from(png.data, 'base64'));
+      fs.writeFileSync(path.join(__dirname, `../artifacts/performance/${label}.png`), Buffer.from(png.data, 'base64'));
     }
     const counts = new Map(); for (const id of profile.samples || []) counts.set(id, (counts.get(id) || 0) + 1);
     result.cpuSamples = profile.nodes.map(n => ({ fn: n.callFrame.functionName, url: n.callFrame.url.split('/').pop(), samples: counts.get(n.id) || 0 })).sort((a, b) => b.samples - a.samples).slice(0, 25);
@@ -57,6 +60,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 })().catch(e => { console.error(e); process.exitCode = 1; });
 function setup() {
   G.socket.disconnect(); G.myId = null; G.stats = null; G.ents.clear();
+  SET.set('graphics', 'auto');
   document.getElementById('login').classList.add('hidden'); document.activeElement?.blur();
   const x = 60 * C.TILE, y = 40 * C.TILE;
   G.me = { kind: 'p', id: 'benchmark', x, y, tx: x, ty: y, dir: 0, cls: 'dualblade', faction: 'dharma',
@@ -105,7 +109,7 @@ async function sample() {
     scenarios.push({ scene, monsters: count, frames: n, fps: +(1000 * n / intervals.reduce((a, b) => a + b, 0)).toFixed(1), p95ms: +sorted[Math.floor(n * .95)].toFixed(1), over50ms: intervals.filter(t => t > 50).length,
       textCallsPerFrame: +(renderBench.textCalls / n).toFixed(2), hudMsPerFrame: +(renderBench.hudMs / n).toFixed(3), domMutationsPerFrame: +(renderBench.mutations / n).toFixed(2) });
   }
-  return { viewport: '1280x900 DPR1', scenarios };
+  return { viewport: `${innerWidth}x${innerHeight} DPR${devicePixelRatio}`, touch: G.touch, scenarios,quality:window.G?.renderQuality?{mode:G.renderQuality.mode(),scale:G.renderQuality.scale(),ambient:G.renderQuality.ambient()}:null };
 }
 
 async function verify() {
@@ -154,5 +158,55 @@ async function verify() {
   FX.list.push({ t0: performance.now() - 1, dur: 1000, layer: 'top', cue: () => cues++, draw: () => draws++ });
   FX.update(0); FX.update(0); FX.draw(g, 'top', view);
   check(cues === 1 && draws === 1, 'skill cues and unbounded warning effects still run');
-  FX.list = []; return checks;
+  FX.list = [];
+  if (G.renderQuality) {
+    const game = document.getElementById('game'), originalMode = SET.get('graphics');
+    SET.toggle(true);
+    const select = document.querySelector('#setBody select[data-k="graphics"]');
+    check(!!select && select.options.length === 3, 'three graphics modes available');
+    const choose = mode => { select.value = mode; select.dispatchEvent(new Event('input', { bubbles: true })); };
+    choose('high'); const fullWidth = game.width, cssWidth = game.getBoundingClientRect().width;
+    choose('smooth');
+    check(G.renderQuality.mode() === 'smooth' && game.width < fullWidth, 'settings change render resolution immediately');
+    check(game.getBoundingClientRect().width === cssWidth && G.renderQuality.ambient() === false, 'CSS viewport stays fixed while decorative aura is reduced');
+    check(JSON.parse(localStorage.getItem('settings')).graphics === 'smooth', 'graphics setting persists');
+    const rect = select.getBoundingClientRect();
+    check(rect.width > 150 && rect.left >= 0 && rect.right <= innerWidth, 'graphics selector fits viewport');
+    FX.view = null; FX.parts.length = 0;
+    FX.burst(0, 0, 2000, ['#fff']);
+    check(FX.parts.length === 300, 'smooth mode bounds burst allocations');
+    FX.parts.push(...Array.from({ length: 40 }, () => part(0, 0, false))); FX.update(0);
+    check(FX.parts.length === 300, 'direct particle emitters respect budget');
+    FX.parts.length = 0; FX.view = view;
+    FX.burst(10000, 10000, 100, ['#fff']);
+    check(FX.parts.length === 0, 'distant decoration skips allocation');
+    FX.burst(64, 64, 10, ['#fff']);
+    check(FX.parts.length === 10, 'visible decoration remains');
+    FX.parts.length = 0; FX.texts.length = 0;
+    FX.text(64, 64, '12345', '#ffee66', 20); FX.texts[0].life = 300;
+    const strokes = renderBench.textCalls;
+    FX.drawTexts(g); const first = renderBench.textCalls;
+    FX.drawTexts(g);
+    check(first > strokes && renderBench.textCalls === first, 'damage numbers reuse raster');
+    document.fonts.dispatchEvent(new Event('loadingdone')); FX.drawTexts(g);
+    check(renderBench.textCalls > first, 'damage raster refreshes after font loads');
+    FX.texts.length = 0; FX.view = null;
+    const findPath = PF.find, entities = [...G.ents], clicks = [], mouseMode = SET.get('lolMouse');
+    G.ents.clear();
+    try {
+      SET.set('lolMouse', false);
+      PF.find = (...args) => { clicks.push(args.slice(-2)); return []; };
+      for (const mode of ['high', 'smooth']) {
+        choose(mode);
+        const pointerType = G.touch ? 'touch' : 'mouse';
+        game.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, pointerType, button: 0, clientX: innerWidth * .18, clientY: innerHeight * .7 }));
+        dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, pointerType, button: 0 }));
+      }
+      if(clicks.length!==2||JSON.stringify(clicks[0])!==JSON.stringify(clicks[1]))throw Error('Pointer check: '+JSON.stringify({clicks,lolMouse:SET.get('lolMouse'),dead:G.me.dead}));
+      check(true, 'pointer maps to same world position in both render resolutions');
+    } finally { PF.find = findPath; SET.set('lolMouse', mouseMode); for (const [id, e] of entities) G.ents.set(id, e); G.order = null; }
+    choose('auto'); check(G.renderQuality.mode() === 'auto', 'automatic mode selectable');
+    SET.set('graphics', originalMode); SET.toggle(false);
+  }
+  return checks;
 }

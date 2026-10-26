@@ -47,6 +47,12 @@
     while (mi + 1 < sh.mips.length && dev * Math.pow(2, mi + 1) <= 1) mi++;
     const img = sh.mips[mi], km = img.width / sh.img.width;
     const shd = SHADOW[def.art] || SHADOW.wisp;
+    if(!flip&&!(s.flash>0)&&(s.alpha===undefined||s.alpha===1)&&g.imageSmoothingQuality==='high'){
+      const fill=g.fillStyle;
+      g.fillStyle='rgba(0,0,0,0.28)';g.beginPath();g.ellipse(x,y,shd[0]*k,shd[1]*k,0,0,TAU);g.fill();g.fillStyle=fill;
+      g.drawImage(img,col*m.fw*km,row*m.fh*km,m.fw*km,m.fh*km,x-m.ax*sc,y+bob-m.ay*sc,m.fw*sc,m.fh*sc);
+      return;
+    }
     g.save();
     if (s.alpha !== undefined) g.globalAlpha *= s.alpha;
     g.fillStyle = 'rgba(0,0,0,0.28)'; g.beginPath(); g.ellipse(x, y, shd[0] * k, shd[1] * k, 0, 0, TAU); g.fill();

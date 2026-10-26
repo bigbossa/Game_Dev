@@ -4,6 +4,7 @@
 (function () {
   const KEY = 'settings';
   const DEFAULTS = {
+    graphics: 'auto',
     sound: true,      // false = everything silent
     master: 80,       // 0..100
     music: 45,
@@ -27,6 +28,7 @@
       { k: 'bgMute', type: 'check', label: 'เงียบเมื่อสลับไปแท็บหรือแอปอื่น' },
     ]],
     ['🖥 การแสดงผล', [
+      { k:'graphics', type:'select', label:'คุณภาพกราฟิก', choices:[['auto','อัตโนมัติ — ปรับตามความลื่น'],['high','สวยเต็มที่'],['smooth','เน้นลื่น — ลดออร่าและประกาย']] },
       { k: 'dmgNums', type: 'check', label: 'แสดงตัวเลขความเสียหาย' },
       { k: 'shake', type: 'check', label: 'สั่นหน้าจอเมื่อโจมตีแรง' },
       { k: 'reachRing', type: 'check', label: 'แสดงวงระยะโจมตีรอบตัวละคร' },
@@ -52,6 +54,7 @@
   const panel = $('setPanel'), body = $('setBody');
   function row(o) {
     const v = vals[o.k];
+    if(o.type==='select')return `<label class="set-row set-select"><span>${o.label}</span><select data-k="${o.k}" aria-label="${o.label}">${o.choices.map(([key,label])=>`<option value="${key}"${v===key?' selected':''}>${label}</option>`).join('')}</select></label>`;
     if (o.type === 'range') return `<label class="set-row set-range"><span>${o.label}</span><b data-out="${o.k}">${v}%</b>
       <input type="range" min="0" max="100" step="5" value="${v}" data-k="${o.k}">${o.hint ? `<small>${o.hint}</small>` : ''}</label>`;
     const sw = o.type === 'switch' ? ' set-switch' : '';
@@ -69,7 +72,7 @@
     const k = e.target.dataset.k;
     if (!k) return;
     if (e.target.type === 'range') { SET.set(k, +e.target.value); body.querySelector(`[data-out="${k}"]`).textContent = `${e.target.value}%`; }
-    else SET.set(k, e.target.checked);
+    else SET.set(k, e.target.tagName==='SELECT'?e.target.value:e.target.checked);
     sync();
   });
   body.addEventListener('click', (e) => {

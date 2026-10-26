@@ -34,7 +34,9 @@
   G.touch = matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && matchMedia('(hover: none)').matches);
   if (G.touch) document.body.classList.add('touch');
   const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d',{alpha:false});
+  const quality=RenderQuality.controller();quality.set(SET.get('graphics'));G.renderQuality=quality;
+  SET.on(key=>{if(!key||key==='graphics'){quality.set(SET.get('graphics'));resize();}});
   const $ = (id) => document.getElementById(id);
   // CY = screen row the camera centres on: a bit above the middle on an upright phone, where the thumb controls
   // cover the bottom of the screen, so the character stands in the open part of the play field
@@ -1405,7 +1407,7 @@
   function resize() {
     VW = innerWidth; VH = innerHeight;
     CY = Math.round(VH / 2 - (G.touch && VH > VW * 1.2 ? VH * 0.07 : 0));
-    DPR = Motion.pixelRatio(window.devicePixelRatio, VW, VH);
+    DPR = quality.ratio(window.devicePixelRatio,VW,VH);
     canvas.width = Math.round(VW * DPR); canvas.height = Math.round(VH * DPR);
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     baseZoom = Math.max(0.6, Math.min(1.35, Math.min(VH / 780, VW / 900)));
@@ -1862,14 +1864,16 @@
     WeaponLook.ground(ctx, e, now / 1000);
     WeaponLook.plusRings(ctx, e, now / 1000);                           // rune rings of +8..+10 gear
     ctx.restore();
-    ClassAura.ground(ctx, e, t, LOOK_K);                                 // Lv.100-130 class aura: the ground part
+    if(quality.ambient())ClassAura.ground(ctx, e, t, LOOK_K);
     ctx.restore();
     // body layers scale round the drawn feet, so a move's route (pose.dx / lift) still ends where it should
     ctx.save(); ctx.translate(px, py); ctx.scale(K, K); ctx.translate(-px, -py);
     drawStance(ctx, e, px, py, t, true);
     const meta = metaOf(e, F);
-    ClassAura.back(ctx, e, px, py, t, PH * 1.05);                        // ... and the part behind the body (never over it)
-    ModelTiers.drawAura(ctx, e, F, px, py, t, PLAYER_SCALE, meta);        // Lv.130 เทพเซียน sun disc / เทพมาร hellfire
+    if(quality.ambient()){
+      ClassAura.back(ctx, e, px, py, t, PH * 1.05);
+      ModelTiers.drawAura(ctx, e, F, px, py, t, PLAYER_SCALE, meta);
+    }
     Wings.draw(ctx, e, F, px, py, t, PLAYER_SCALE, 'back', meta);        // level wings: the parts behind the body
     ModelTiers.drawHorns(ctx, e, F, px, py, PLAYER_SCALE, meta, 'back');  // อธรรม far horn (side views)
     WeaponLook.back(ctx, e, px, py, t, LOOK_K);
@@ -1963,6 +1967,7 @@
     ctx.fillStyle = col; ctx.fillRect(x - w / 2, y, w * Math.max(0, Math.min(1, p)), 5);
   }
 
+  let minimapAt=0,minimapMap=null;
   function render(now, t) {
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.fillStyle = Art.theme().bg || '#16301a';
@@ -2023,7 +2028,7 @@
     }
     // additive light glows
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    for (const p of lights) {
+    for (const p of quality.ambient()?lights:[]) {
       const r = p.sp.ly < -60 ? 90 : 46;
       const ly = p.y + p.sp.ly;
       const grd = ctx.createRadialGradient(p.x, ly, 2, p.x, ly, r);
@@ -2058,7 +2063,8 @@
     ctx.restore();
 
     FX.drawFlash(ctx, VW, VH);
-    if (me) {
+    if (me && (now-minimapAt>=100||minimapMap!==G.map)) {
+      minimapAt=now;minimapMap=G.map;
       HUD.drawMinimap(G.minimapBase, G.map, me, G.ents, view, !!G.mapDef.pvp);
     }
   }
@@ -2108,12 +2114,15 @@
     checkArea(now);
     return dt;
   }
+  let hudAt=0,hudStats=null;
   function frame(now) {
+    if(quality.sample(now,!document.hidden&&!G.mapLoading&&!!G.me))resize();
     const dt = simulate(now, 0.05), t = now / 1000;
     easeZoom(dt);
     render(now, t);
     if (G.me && G.stats) {
-      HUD.update(G.stats); updateTarget(now);
+      if(G.stats!==hudStats||now-hudAt>=50){HUD.update(G.stats);hudAt=now;hudStats=G.stats;}
+      updateTarget(now);
       if (G.stats.lvl !== G.lastLvl) { G.lastLvl = G.stats.lvl; INV.render(); }
       const sk = `${G.stats.atk}|${G.stats.crit}|${G.stats.mhp}|${G.stats.def}|${G.stats.spd}|${G.stats.aspd}`;
       if (sk !== G.lastStatKey) { G.lastStatKey = sk; INV.renderStats(); }
