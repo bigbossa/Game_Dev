@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "props": {
+    "goldenTemple": {
+      "file": "goldenTemple.png",
+      "width": 477,
+      "height": 446,
+      "ax": 239,
+      "ay": 436,
+      "occludes": true
+    },
+    "bellTower": {
+      "file": "bellTower.png",
+      "width": 243,
+      "height": 306,
+      "ax": 122,
+      "ay": 296,
+      "occludes": true
+    },
+    "lotusShrine": {
+      "file": "lotusShrine.png",
+      "width": 217,
+      "height": 276,
+      "ax": 109,
+      "ay": 266,
+      "occludes": true
+    },
+    "tree": {
+      "file": "tree.png",
+      "width": 216,
+      "height": 168,
+      "ax": 108,
+      "ay": 158,
+      "occludes": true
+    },
+    "rock": {
+      "file": "rock.png",
+      "width": 121,
+      "height": 131,
+      "ax": 61,
+      "ay": 121,
+      "occludes": false
+    },
+    "pavilion": {
+      "file": "pavilion.png",
+      "width": 226,
+      "height": 189,
+      "ax": 113,
+      "ay": 179,
+      "occludes": true
+    }
+  }
+}

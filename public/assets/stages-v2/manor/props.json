@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "props": {
+    "ruinedHall": {
+      "file": "ruinedHall.png",
+      "width": 556,
+      "height": 403,
+      "ax": 278,
+      "ay": 393,
+      "occludes": true
+    },
+    "bellTower": {
+      "file": "bellTower.png",
+      "width": 180,
+      "height": 306,
+      "ax": 90,
+      "ay": 296,
+      "occludes": true
+    },
+    "memorial": {
+      "file": "memorial.png",
+      "width": 256,
+      "height": 219,
+      "ax": 128,
+      "ay": 209,
+      "occludes": true
+    },
+    "tree": {
+      "file": "tree.png",
+      "width": 216,
+      "height": 179,
+      "ax": 108,
+      "ay": 169,
+      "occludes": true
+    },
+    "rock": {
+      "file": "rock.png",
+      "width": 146,
+      "height": 111,
+      "ax": 73,
+      "ay": 101,
+      "occludes": false
+    },
+    "pavilion": {
+      "file": "pavilion.png",
+      "width": 204,
+      "height": 216,
+      "ax": 102,
+      "ay": 206,
+      "occludes": true
+    }
+  }
+}

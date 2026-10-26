@@ -56,7 +56,7 @@
     SPR = await fetch('assets/sprites.json').then((r) => r.json());
     step(0.38, 'กำลังปลุกสัตว์อสูร');
     // AI-drawn monster sheets (optional, tools/build-monsters.js)
-    MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=ice-palace-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
+    MonsterArt.setSprites(await fetch('assets/monsters/index.json?v=stages-v2').then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
     // Load the replacement model directly; old bodies/masks must never re-enter this renderer.
     step(0.44, 'จอมยุทธ์ดาบคู่กำลังลับดาบ');
     const weapMeta = await DualbladeModel.load(loadImg, IMG, SPR);
@@ -141,7 +141,7 @@
     ArmorLook.init(IMG);
     Art.buildProps();
     step(0.89, 'กำลังสร้างหมู่บ้านเซียนน้อย');
-    await Promise.all([VillageArt.load(loadImg),PassArt.load(loadImg),IceArt.load(loadImg)]);
+    await Promise.all([VillageArt.load(loadImg),PassArt.load(loadImg),IceArt.load(loadImg),StageArt.load(loadImg)]);
     step(0.96, 'กำลังวาดแผนที่');
     await loadMap(C.START_MAP);                    // login backdrop; the character's own map loads on join
     LOADER.done();
@@ -243,6 +243,7 @@
     const e = G.ents.get(d.id);
     if (e) FX.text(e.x, e.y - PH_HIT * sizeK(e) * 0.75, 'หลบหลีก', '#b5eaff', 16);
   });
+  socket.on('botStop', (why) => BOT.stop(why));             // บอทพับจอ ended on the server (death, map, time)
   socket.on('correct', (d) => { const me = G.me; if (me && !G.mapLoading) { Motion.correction(me, d.x, d.y); me.dash = null; } });
   // gate / teleport stone / GM warp: load the new map, keep only me
   socket.on('mapchange', async (d) => {
@@ -478,6 +479,7 @@
       try { if (res.map && res.map !== G.mapId) await loadMap(res.map); } catch (err) { console.error(err); }
       if (btn) btn.disabled = false;
       startGame(res);
+      if (res.bot) BOT.start(res.bot);                        // บอทพับจอ was still hunting with this character
     });
   }
 
@@ -812,9 +814,27 @@
   };
   addEventListener('pointerup', fingerUp);
   addEventListener('pointercancel', fingerUp);
-  // click = select a target (attacks come from the number slots) · click the ground = walk there
+  // mouse like LoL (setting lolMouse, on by default): right click = walk there (hold = follow the cursor), left click =
+  // attack the enemy under the cursor or the nearest one round it; a right click on an enemy attacks it too.
+  // Otherwise (and on touch) click = select a target (attacks come from the number slots) · click the ground = walk there
+  function foeNear(w, R) {
+    let best = null, bd = R;
+    for (const e of G.ents.values()) {
+      if (!isFoe(e)) continue;
+      const d = Math.hypot(e.x - w.x, e.y - w.y) - radiusOf(e);
+      if (d < bd) { bd = d; best = e; }
+    }
+    return best;
+  }
+  function attackFoe(t) {
+    setTarget(t, false, true);
+    if (!G.order || G.order.type !== 'attack' || G.order.id !== t.id) G.order = { type: 'attack', id: t.id };
+    BOT.manual(3000);                                       // fighting by hand: the bot waits
+    FOLLOW.manual(3000);
+  }
   canvas.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
+    const lol = e.pointerType === 'mouse' && SET.get('lolMouse');
+    if (e.button !== 0 && !(lol && e.button === 2)) return;
     if (e.pointerType === 'touch') {
       touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (touches.size >= 2) {                       // second finger: pinch instead of the first finger's tap
@@ -831,9 +851,17 @@
     if (typing()) document.activeElement.blur();
     const me = G.me;
     if (!me || me.dead) return;
-    const foe = enemyUnderMouse();
-    if (foe) { mouse.down = false; setTarget(foe, false, true); return; }
-    const ally = allyUnderMouse();
+    const foe = enemyUnderMouse(), left = e.button === 0;
+    if (lol && left) {
+      mouse.down = false;
+      const t = foe || foeNear(mouseWorld(), 120);
+      if (t) { attackFoe(t); return; }
+    } else if (foe) {
+      mouse.down = false;
+      if (lol) attackFoe(foe); else setTarget(foe, false, true);
+      return;
+    }
+    const ally = left && allyUnderMouse();
     if (ally) { mouse.down = false; PARTY.menu(ally, e.clientX, e.clientY); return; }
     BOT.manual(3000);                                       // walking by hand: the bot waits
     FOLLOW.manual(3000);
@@ -842,6 +870,7 @@
     if (apothecaryUnderMouse(w)) { const s = apothecaryPos(); orderMove(s.x, s.y + 46, 'potionshop'); return; }
     if (enhancerUnderMouse(w)) { const s = enhancerPos(); orderMove(s.x, s.y + 46, 'enhshop'); return; }
     if (stoneUnderMouse(w)) { const s = stonePos(); orderMove(s.x, s.y + 44, 'stone'); return; }
+    if (lol && left) return;                                 // left click on empty ground: nothing to attack
     orderMove(w.x, w.y, 'move');
     FX.clickMark(w.x, w.y, '#7cff8a');
   });
@@ -1449,6 +1478,20 @@
   }
 
   // red ring under the locked attack target, faint ring under the hovered enemy
+  // วงระยะโจมตี: the basic attack's reach round me, measured like runOrder's walk-up test (from the body, me.y - 18);
+  // gold while the target stands in it. A real circle (not flattened like the rings under feet): the server's reach is.
+  function drawReachRing(t) {
+    const me = G.me;
+    if (!me || me.dead || !SET.get('reachRing')) return;
+    const reach = C.basicReach(G.cls, G.stats?.lvl || 1), cy = me.y - 18;
+    const o = G.order, tg = targetEnt() || (o && o.type === 'attack' ? G.ents.get(o.id) : null);
+    const near = isFoe(tg) && Math.hypot(tg.x - me.x, tg.y - radiusOf(tg) * 0.4 - cy) <= reach + radiusOf(tg) * 0.6;
+    ctx.save();
+    ctx.lineWidth = 2; ctx.setLineDash([10, 8]); ctx.lineDashOffset = -t * 12;
+    ctx.strokeStyle = near ? '#ffd76a' : '#bfe6ff'; ctx.globalAlpha = near ? 0.75 : 0.35;
+    ctx.beginPath(); ctx.arc(me.x, cy, reach, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
   function drawTargetRings(t) {
     const o = G.order;
     const locked = targetEnt() || (o && o.type === 'attack' ? G.ents.get(o.id) : null);
@@ -1927,6 +1970,7 @@
 
     drawGround(view, t);
     FX.draw(ctx, 'ground', fxView);
+    drawReachRing(t);
     drawTargetRings(t);
     BOT.drawWorld(ctx, t);
 
@@ -1949,7 +1993,7 @@
     list.sort((a, b) => a.y - b.y);
     for (const d of list) {
       if (d.kind === 'prop') {
-        if(d.sp.paintedVillage||d.sp.paintedPass||d.sp.paintedIce)VillageArt.drawProp(ctx,d,G.me);
+        if(d.sp.paintedVillage||d.sp.paintedPass||d.sp.paintedIce||d.sp.paintedStage)VillageArt.drawProp(ctx,d,G.me);
         else ctx.drawImage(d.sp.img, d.x - d.sp.ax, d.y - d.sp.ay);
       }
       else if (d.kind === 'p') drawPlayer(d, now);

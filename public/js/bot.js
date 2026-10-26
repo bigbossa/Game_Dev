@@ -70,17 +70,19 @@
     p.classList.toggle('hidden', !open);
     if (open) render();
   };
-  BOT.start = function () {
+  // at = the spot to hunt round (back from บอทพับจอ after the connection dropped: main.js join), else here
+  BOT.start = function (at) {
     const me = G.me;
     if (!me || me.dead) return;
     if (window.FOLLOW && FOLLOW.on) FOLLOW.stop();
-    BOT.on = true; BOT.anchor = { x: me.x, y: me.y }; BOT.mapId = G.mapId; BOT.manualUntil = 0;
-    HUD.toast(`เริ่มบอท: ล่ามอนสเตอร์ในรัศมี ${cfg.radius} รอบจุดนี้`);
+    BOT.on = true; BOT.anchor = at ? { x: at.x, y: at.y } : { x: me.x, y: me.y }; BOT.mapId = G.mapId; BOT.manualUntil = 0;
+    HUD.toast(at ? 'บอทพับจอ: ล่าต่อที่จุดเดิม' : `เริ่มบอท: ล่ามอนสเตอร์ในรัศมี ${cfg.radius} รอบจุดนี้`);
     status();
   };
   BOT.stop = function (why) {
     if (!BOT.on) return;
     BOT.on = false;
+    if (BOT.away) { BOT.away = false; G.socket.emit('botAway', { on: false }); }
     if (G.order && G.order.bot) G.order = null;
     if (why) HUD.toast(why);
     status();
@@ -119,7 +121,7 @@
   }
   let nextThink = 0, nextMove = 0;
   BOT.tick = function (now) {
-    if (!BOT.on) return;
+    if (!BOT.on || BOT.away) return;
     const me = G.me, st = G.stats, A = BOT.api;
     if (!me || !st || !A) return;
     if (me.dead) return BOT.stop('ตัวละครตาย · บอทหยุดทำงาน');
@@ -192,6 +194,27 @@
       else if (G.order && G.order.bot) G.order = null;
     }
   };
+
+  // บอทพับจอ: a hidden page (window minimised, phone screen off / app switched) is throttled or stopped by the
+  // browser, so the server hunts in its place with these settings until the page is back (server onBotAway).
+  // If the connection drops meanwhile the character stays in the world; logging back in carries on (BOT.start(at)).
+  BOT.away = false;
+  function handOver() {
+    if (document.hidden && BOT.on && !BOT.away && G.socket) {
+      BOT.away = true;
+      if (G.order && G.order.bot) G.order = null;
+      const mine = new Set(skillsOf().map((s) => s.id));
+      // arbiter buffs only once a fight is near (BOT.fight)
+      const skills = PRIORITY.filter((id) => mine.has(id) && cfg.skills[id]).map((id) =>
+        [id, skillDef[id].arbiter && C.BUFF_SKILLS.includes(id) ? Math.min(RANGE[id] || 0, 320) : RANGE[id] || 0, HEALS.includes(id)]);
+      G.socket.emit('botAway', { on: true, x: BOT.anchor.x, y: BOT.anchor.y, r: cfg.radius, basic: cfg.basic, skills,
+        hpOn: cfg.hpOn, hp: cfg.hp, mpOn: cfg.mpOn, mp: cfg.mp });
+    } else if (!document.hidden && BOT.away) {
+      BOT.away = false;
+      G.socket.emit('botAway', { on: false });              // the server hands the character back (a 'correct')
+    }
+  }
+  document.addEventListener('visibilitychange', handOver);
 
   // radius ring on the ground round the bot's spot
   BOT.drawWorld = function (g, t) {

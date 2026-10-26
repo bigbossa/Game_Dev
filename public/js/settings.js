@@ -13,6 +13,8 @@
     bgMute: true,     // silent while the tab / app is in the background
     dmgNums: true,    // damage numbers over heads
     shake: true,      // screen shake on big hits
+    reachRing: true,  // the basic attack's reach drawn round the character (main.js drawReachRing)
+    lolMouse: true,   // mouse like LoL: right click = walk, left click = attack (false = left click walks / selects)
   };
   const SECTIONS = [
     ['🔊 เสียง', [
@@ -27,6 +29,10 @@
     ['🖥 การแสดงผล', [
       { k: 'dmgNums', type: 'check', label: 'แสดงตัวเลขความเสียหาย' },
       { k: 'shake', type: 'check', label: 'สั่นหน้าจอเมื่อโจมตีแรง' },
+      { k: 'reachRing', type: 'check', label: 'แสดงวงระยะโจมตีรอบตัวละคร' },
+    ]],
+    ['🖱 การควบคุม', [
+      { k: 'lolMouse', type: 'check', label: 'เมาส์แบบ LoL: คลิกขวา = เดิน · คลิกซ้าย = โจมตี' },
     ]],
   ];
 

@@ -551,6 +551,7 @@
   };
   // returns {img, ax, ay, light?}
   Art.propSprite = function (o) {
+    if(window.StageArt?.ready&&StageArt.supports(MAP_ID)){const p=StageArt.prop(MAP_ID,o);if(p)return p;}
     if(MAP_ID==='ice'&&window.IceArt?.ready){const p=IceArt.prop(o);if(p)return p;}
     if(MAP_ID==='pass'&&window.PassArt?.ready){const p=PassArt.prop(o);if(p)return p;}
     if(o[0]==='village')return window.VillageArt?.prop(o)||null;
@@ -606,6 +607,7 @@
   Art.theme = () => TH;
   // res = canvas pixels per world pixel (sharper ground on high-DPI screens / zoomed in)
   Art.renderChunk = function (map, cx, cy, res = 1) {
+    if(window.StageArt?.ready&&StageArt.supports(map.id))return StageArt.renderChunk(map,cx,cy,res);
     if(map.id==='ice'&&window.IceArt?.ready)return IceArt.renderChunk(map,cx,cy,res);
     if(map.id==='village'&&window.VillageArt?.ready)return VillageArt.renderChunk(map,cx,cy,res);
     if(map.id==='pass'&&window.PassArt?.ready)return PassArt.renderChunk(map,cx,cy,res);

@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "props": {
+    "dragonForge": {
+      "file": "dragonForge.png",
+      "width": 460,
+      "height": 446,
+      "ax": 230,
+      "ay": 436,
+      "occludes": true
+    },
+    "emberSpire": {
+      "file": "emberSpire.png",
+      "width": 205,
+      "height": 306,
+      "ax": 103,
+      "ay": 296,
+      "occludes": true
+    },
+    "gate": {
+      "file": "gate.png",
+      "width": 256,
+      "height": 256,
+      "ax": 128,
+      "ay": 246,
+      "occludes": true
+    },
+    "tree": {
+      "file": "tree.png",
+      "width": 216,
+      "height": 180,
+      "ax": 108,
+      "ay": 170,
+      "occludes": true
+    },
+    "rock": {
+      "file": "rock.png",
+      "width": 146,
+      "height": 130,
+      "ax": 73,
+      "ay": 120,
+      "occludes": false
+    },
+    "pavilion": {
+      "file": "pavilion.png",
+      "width": 226,
+      "height": 199,
+      "ax": 113,
+      "ay": 189,
+      "occludes": true
+    }
+  }
+}

@@ -439,5 +439,145 @@
     ],
     "attackRow": 3,
     "managedBy": "build-ice-monsters"
+  },
+  "treant": {
+    "file": "treant-v2.png",
+    "version": "330f0478d265",
+    "fw": 187,
+    "fh": 199,
+    "cols": 8,
+    "rows": 4,
+    "ax": 93.5,
+    "ay": 191,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "spider": {
+    "file": "spider-v2.png",
+    "version": "accfe9375f3c",
+    "fw": 242,
+    "fh": 253,
+    "cols": 8,
+    "rows": 4,
+    "ax": 121,
+    "ay": 245,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "foxfire": {
+    "file": "foxfire-v2.png",
+    "version": "3bfefa6dd413",
+    "fw": 177,
+    "fh": 193,
+    "cols": 8,
+    "rows": 4,
+    "ax": 88.5,
+    "ay": 185,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "demonmonk": {
+    "file": "demonmonk-v2.png",
+    "version": "890c27f26890",
+    "fw": 173,
+    "fh": 195,
+    "cols": 8,
+    "rows": 4,
+    "ax": 86.5,
+    "ay": 187,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "blackbear": {
+    "file": "blackbear-v2.png",
+    "version": "7b432618734c",
+    "fw": 261,
+    "fh": 215,
+    "cols": 8,
+    "rows": 4,
+    "ax": 130.5,
+    "ay": 207,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "mossgiant": {
+    "file": "mossgiant-v2.png",
+    "version": "2f254d2e47c5",
+    "fw": 201,
+    "fh": 199,
+    "cols": 8,
+    "rows": 4,
+    "ax": 100.5,
+    "ay": 191,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
+  },
+  "elderwood": {
+    "file": "elderwood-v2.png",
+    "version": "104741710c91",
+    "fw": 188,
+    "fh": 202,
+    "cols": 8,
+    "rows": 4,
+    "ax": 94,
+    "ay": 194,
+    "contentHeight": 176,
+    "idleRow": 1,
+    "walkRows": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "attackRow": 3,
+    "managedBy": "build-stage-monsters"
   }
 }

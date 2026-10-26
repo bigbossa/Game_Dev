@@ -1,0 +1,26 @@
+{
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Production environment prop atlas for a hand-painted chibi Chinese wuxia 2D RPG. Landscape 1536x1024 transparent RGBA. EXACTLY SIX separate full objects in a strict 3 columns by 2 rows equal grid, ordered left-to-right top-to-bottom. Elevated orthographic camera 25 degrees looking toward building fronts, matching classic painted MMORPG game sprites. Rich painted volume, carved stone, tiled roofs, wood grain and organic leaves; warm upper-left light, crisp readable silhouettes. Each object isolated with generous transparent margins on all sides, especially between neighbors. No touching, no cropped canopy or roofs, no landscape, no ground plane, no cast shadows outside the object, no grid, no text, no lettering. Objects share lighting and palette. Whole buildings include foundation steps. The six objects, in exact order: ",
+  "maps": {
+    "forest": {
+      "palette": "Deep moss emerald, midnight teal, aged ivory stone, tiny violet flowers and restrained mint magical light.",
+      "subject": "1. Massive ancient guardian tree shrine, twisted trunk with THREE subtly face-like knots, sweeping emerald canopy, hanging vines, luminous mint seal embedded in trunk, intertwined broad roots. 2. Abandoned Chinese woodland pavilion wrapped in roots, moss-green tiled roof, ivory pillars and violet small blossoms. 3. Tall weathered moss-covered stone waystone with an abstract crescent jade inlay, no letters. 4. Broad dark emerald forest tree with winding trunk and leafy crown, small hanging vines. 5. Low cluster of rounded mossy limestone rocks with tiny purple mushrooms attached. 6. Small hunter camp shelter with jade tile roof, dark timber, herb baskets and warm amber lantern under eave.",
+      "names": ["ancientTree", "rootShrine", "waystone", "tree", "rock", "pavilion"]
+    },
+    "manor": {
+      "palette": "Moonlit slate-blue, faded plum, grey ivory stone, aged bronze and small cold cyan spirit lights.",
+      "subject": "1. Abandoned Chinese general's two-tier audience hall, weathered blue-grey tiles, broken roof corner, cracked plaster, plum timber doors and tangled vines, impressive symmetrical front. 2. Narrow haunted Chinese bell tower with slate-blue double eaves, hanging aged bronze bell, cyan lanterns. 3. Ornate stone general's memorial tomb with carved guardian animal motif and two small attached offerings, pale slate stone and moss. 4. Gnarled willow with sparse desaturated plum-grey foliage and bare crooked branches. 5. Cluster of broken carved masonry and cracked grey rocks with moss. 6. Small intact roadside shrine pavilion with blue-grey tiled roof, ivory walls, plum wood, tiny warm amber lantern and incense vessel.",
+      "names": ["ruinedHall", "bellTower", "memorial", "tree", "rock", "pavilion"]
+    },
+    "temple": {
+      "palette": "Warm ivory, antique gold, jade-green, sunlit sage and subtle pink lotus accents.",
+      "subject": "1. Grand Chinese martial temple with two-tier jade tiled roof, restrained gold ridge ornaments, ivory stone stairs, vermilion columns and golden sun medallion above closed doors. 2. Elegant jade-roof bronze bell tower with ivory pillars and gilded curved eaves. 3. Lotus meditation shrine, ivory and gold open pavilion with small jade roof, integrated carved lotus pedestal. 4. Beautiful sculpted mountain pine with broad layered jade foliage and textured twisting bark. 5. Pale limestone scholar rocks with small sage moss patches. 6. Modest temple guest pavilion with jade tiled roof, ivory walls, red timber and warm lantern, herb baskets at base.",
+      "names": ["goldenTemple", "bellTower", "lotusShrine", "tree", "rock", "pavilion"]
+    },
+    "fire": {
+      "palette": "Charcoal basalt, burnt burgundy, antique brass, glowing ember-orange cracks and warm ivory edges.",
+      "subject": "1. Massive Chinese dragon forge shrine, black basalt dais with a coiled carved dragon framing a central furnace, burgundy tiled roof, brass trim, contained bright amber molten core. 2. Tall black basalt ember spire, faceted stone with glowing orange fissures and brass bands, compact ember crown attached at tip. 3. Closed Chinese volcanic mountain gate with two basalt pillars, short burgundy tiled roof and bronze dragon medallion. 4. Gnarled scorched tree with black bark, sparse rust-red leaves and small warm ember cracks, no spreading flames. 5. Low cluster of jagged dark volcanic rocks with restrained orange fissures and warm highlights. 6. Small fireproof traveller camp pavilion, black stone foundation, burgundy tiled roof, brass trim, warm lantern, sealed water jars.",
+      "names": ["dragonForge", "emberSpire", "gate", "tree", "rock", "pavilion"]
+    }
+  }
+}

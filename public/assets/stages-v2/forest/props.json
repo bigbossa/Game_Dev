@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "props": {
+    "ancientTree": {
+      "file": "ancientTree.png",
+      "width": 469,
+      "height": 446,
+      "ax": 235,
+      "ay": 436,
+      "occludes": true
+    },
+    "rootShrine": {
+      "file": "rootShrine.png",
+      "width": 286,
+      "height": 303,
+      "ax": 143,
+      "ay": 293,
+      "occludes": true
+    },
+    "waystone": {
+      "file": "waystone.png",
+      "width": 189,
+      "height": 276,
+      "ax": 95,
+      "ay": 266,
+      "occludes": true
+    },
+    "tree": {
+      "file": "tree.png",
+      "width": 216,
+      "height": 188,
+      "ax": 108,
+      "ay": 178,
+      "occludes": true
+    },
+    "rock": {
+      "file": "rock.png",
+      "width": 146,
+      "height": 116,
+      "ax": 73,
+      "ay": 106,
+      "occludes": false
+    },
+    "pavilion": {
+      "file": "pavilion.png",
+      "width": 226,
+      "height": 201,
+      "ax": 113,
+      "ay": 191,
+      "occludes": true
+    }
+  }
+}

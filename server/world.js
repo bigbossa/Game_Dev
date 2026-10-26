@@ -1,5 +1,15 @@
 // Authoritative game world: players, monsters, combat, factions.
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
 const C = require('../shared/world-data'); // common.js + hunting maps / monsters
+// the browser's A* (public/js/pathfind.js), reused by the away bot (บอทพับจอ) to walk round walls
+const PF = (() => {
+  const ctx = { window: {}, C };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/js/pathfind.js'), 'utf8'), ctx);
+  return ctx.window.PF;
+})();
+const BOT_AWAY_MS = 6 * 3600 * 1000;      // บอทพับจอ hunts at most this long, then stops (an offline character leaves)
 
 const SEED = 20261018;
 const TICK_MS = 50;
@@ -51,6 +61,10 @@ function segDist(px, py, x0, y0, x1, y1) {
   return Math.hypot(px - (x0 + vx * t), py - (y0 + vy * t));
 }
 const radiusOf = (e) => (e.def ? e.def.radius : 16);
+// The client swings at where it last drew its target: ~75ms of interpolation (character-motion.js DELAY) plus the
+// ping behind the server, and its own position reaches the server a frame late. The locked target (d.tid) gets
+// this much extra reach so a monster standing at the edge of range is still hit.
+const LAG_PAD = 40;
 const isPlayer = (e) => !!e.socket;
 const NAME_RE = /^[\p{L}\p{M}\p{N}_ ]{2,16}$/u;
 
@@ -118,6 +132,7 @@ class World {
     socket.on('join', acked(this.join));
     socket.on('input', withPlayer(this.onInput));
     socket.on('skill', withPlayer(this.castSkill));
+    socket.on('botAway', withPlayer(this.onBotAway));
     socket.on('useItem', withPlayer(this.onUseItem));
     socket.on('chat', withPlayer(this.onChat));
     socket.on('respawn', withPlayer(this.respawn));
@@ -145,13 +160,15 @@ class World {
     socket.on('disconnect', () => {
       const p = this.bySocket.get(socket.id);
       if (!p) return;
+      if (p.bot && !p.dead) return this.goOffline(p, socket.id);   // บอทพับจอ: the character stays and keeps hunting
       this.leaveWorld(p, socket.id);
     });
   }
   // shared by the disconnect handler and "เปลี่ยนตัวละคร" (leaveChar): save, drop from the world, tell nearby
   // players. The socket itself is untouched — leaveChar keeps it connected so the client can reuse it for the
   // character-select screen without a fresh login.
-  leaveWorld(p, socketId) {
+  // quiet = the player came back to a character the away bot kept in the world (join): no "left" line
+  leaveWorld(p, socketId, quiet) {
     if (!p.deleted) this.save(p);             // a character deleted by a GM is not written back
     this.cancelRitual(p);
     this.store.flush();
@@ -159,7 +176,15 @@ class World {
     this.players.delete(p.id);
     this.bySocket.delete(socketId);
     this.dropAggro(p);
-    if (!p.deleted) this.systemChat(`${p.name} ออกจากยุทธภพ`);
+    if (!p.deleted && !quiet) this.systemChat(`${p.name} ออกจากยุทธภพ`);
+  }
+  // the connection dropped (phone asleep, app switched) while the away bot hunts: the character stays in the world
+  // with its dead socket (emits to it are dropped) until the bot stops or the player logs back in (join)
+  goOffline(p, socketId) {
+    p.offline = true;
+    this.bySocket.delete(socketId);
+    this.save(p);
+    this.store.flush();
   }
   // "เปลี่ยนตัวละคร": leaves the current character (same cleanup as disconnecting) but keeps the socket and
   // account session alive, then hands back the account's character list like onClaim/onDelChar do.
@@ -278,8 +303,14 @@ class World {
     d = d && typeof d === 'object' ? d : {};
     const name = String(d.name || '').trim().replace(/\s+/g, ' ');
     if (!NAME_RE.test(name)) return ack({ ok: false, msg: 'ชื่อต้องยาว 2-16 ตัวอักษร (ไทย/อังกฤษ/ตัวเลข)' });
-    for (const p of this.players.values())
-      if (p.name.toLowerCase() === name.toLowerCase()) return ack({ ok: false, msg: 'ตัวละครนี้กำลังออนไลน์อยู่' });
+    let resume = null;                        // the away bot's spot, so the client carries on hunting there
+    for (const p of this.players.values()) {
+      if (p.name.toLowerCase() !== name.toLowerCase()) continue;
+      if (!p.offline || p.accountId !== account.id) return ack({ ok: false, msg: 'ตัวละครนี้กำลังออนไลน์อยู่' });
+      if (p.bot && !p.dead) resume = { x: p.bot.ax, y: p.bot.ay };
+      p.bot = null;
+      this.leaveWorld(p, undefined, true);   // saved first, so the record read below is where the bot left it
+    }
     let rec = this.store.get(name);
     if (d.create) {
       if (rec) return ack({ ok: false, msg: 'ชื่อตัวละครนี้มีผู้ใช้แล้ว' });
@@ -351,7 +382,7 @@ class World {
     this.players.set(p.id, p);
     this.bySocket.set(socket.id, p);
     this.save(p);
-    ack({ ok: true, id: p.id, note, me: this.meFull(p), map: p.mapId, score: this.score, inv: this.invState(p), st: this.statState(p), skl: this.skillState(p), gm: this.canSpawn(p) });
+    ack({ ok: true, id: p.id, note, me: this.meFull(p), map: p.mapId, score: this.score, inv: this.invState(p), st: this.statState(p), skl: this.skillState(p), gm: this.canSpawn(p), bot: resume || undefined });
     this.systemChat(`${p.name} (ฝ่าย${C.FACTIONS[p.faction].name}) เข้าสู่ยุทธภพ`);
     p.socket.emit('fund', this.fundState(p));
   }
@@ -591,6 +622,7 @@ class World {
   onInput(p, d) {
     if (!d || p.dead) return;
     const now = Date.now();
+    if (p.bot || now < (p.botGrace || 0)) return;           // the away bot moves the character (and just handed it back)
     if (now < (p.stunUntil || 0) || now < (p.rootUntil || 0)) {
       p.moving = false; p.lastInput = now;
       p.socket.emit('correct', { x: p.x, y: p.y });
@@ -698,7 +730,7 @@ class World {
             else this.hitCircle(p, p.x, p.y, range, front.damage * mult, opts);
           } else {
             if(!frontTarget || frontTarget.dead || frontTarget.mapId!==mapId ||
-                !this.enemiesOf(p,p.x,p.y,range).includes(frontTarget) || dist(p,frontTarget)>range+radiusOf(frontTarget) || !frontClear(frontTarget))return cancel();
+                !this.enemiesOf(p,p.x,p.y,range).includes(frontTarget) || dist(p,frontTarget)>range+radiusOf(frontTarget)+LAG_PAD || !frontClear(frontTarget))return cancel();
             this.applyDamage(p,frontTarget,front.damage*mult,opts);
           }
           fx({t:'frontlineHit',skill:sk.id,castId,a,x:frontTarget?.x??p.x,y:frontTarget?.y??p.y});
@@ -724,7 +756,7 @@ class World {
         if (!alive() || target.dead || p.mapId !== mapId || target.mapId !== mapId ||
             (p.controlEpoch || 0) !== epoch || Date.now() < (p.stunUntil || 0) ||
             Date.now() < (p.rootUntil || 0) ||
-            dist(p, target) > spec.range + radiusOf(target) ||
+            dist(p, target) > spec.range + radiusOf(target) + LAG_PAD ||
             !this.enemiesOf(p, p.x, p.y, spec.range).includes(target) || !clearLine(p.x,p.y,target.x,target.y)) {
           cancelled=true;p.lockUntil=Math.min(p.lockUntil,Date.now());p.actUntil=Date.now();p.spearGuard=null;
           fx({t:'spearCancel',skill:sk.id});return;
@@ -1277,7 +1309,7 @@ class World {
         this.enemiesOf(p, center.x, center.y, range).includes(t) && dist(center, t) <= range + radiusOf(t) &&
         !C.safeAt(this.defOf(p), t.x, t.y) && this.arbiterClear(p, t, center);
       if (C.safeAt(this.defOf(p), p.x, p.y)) return;
-      if (plan.target && !legal(plan.target, plan.wave ? R.wave : plan.kind === 'basic' ? R.melee : plan.range)) return;
+      if (plan.target && !legal(plan.target, (plan.wave ? R.wave : plan.kind === 'basic' ? R.melee : plan.range) + LAG_PAD)) return;
       let targets, power = plan.power;
       // ฟันคำสัตย์'s follow-up charges and the arts' edict add to the basic attack only
       const edge = plan.kind === 'basic' && p.buffs?.oathSlash, edged = edge && Date.now() < edge.until && edge.charges > 0;
@@ -1396,6 +1428,135 @@ class World {
   validIdx(idx) { return Number.isInteger(idx) && idx >= 0 && idx < C.BAG_SIZE; }
 
   // consumables (potions, the town scroll): stack in one bag slot, one used off the stack at a time, never equipped
+  // ------------------------------------------------------------ บอทพับจอ (away bot)
+  // The page went hidden (window minimised, phone screen off / app switched) with the bot box on: the browser stops
+  // or throttles the page, so the server hunts in its place with the same settings (public/js/bot.js sends them)
+  // until the page is back ({on:false}). It goes on if the connection drops (goOffline). d.skills = [[id, reach, heal]]
+  // in the order to try them.
+  onBotAway(p, d) {
+    if (!d || typeof d !== 'object' || !d.on) return this.stopBot(p);
+    if (p.dead) return;
+    const own = SKILLS[p.cls], num = (v, lo, hi, def) => Math.max(lo, Math.min(hi, Number.isFinite(+v) ? +v : def));
+    const skills = (Array.isArray(d.skills) ? d.skills : []).slice(0, 40)
+      .filter((s) => Array.isArray(s) && own[s[0]] && own[s[0]].key !== '1' && !own[s[0]].passive)
+      .map(([id, reach, heal]) => [id, num(reach, 0, 9999, 0), !!heal]);
+    const r = num(d.r, 150, 1200, 450);
+    let ax = Number(d.x), ay = Number(d.y);
+    if (!Number.isFinite(ax) || !Number.isFinite(ay) || Math.hypot(ax - p.x, ay - p.y) > r + 400) { ax = p.x; ay = p.y; }
+    p.bot = {
+      ax, ay, r, mapId: p.mapId, until: Date.now() + BOT_AWAY_MS, basic: d.basic !== false, skills,
+      hpOn: !!d.hpOn, hp: num(d.hp, 10, 90, 50), mpOn: !!d.mpOn, mp: num(d.mp, 10, 90, 30),
+      next: 0, tid: null, goal: null, path: null, avoid: new Map(),
+    };
+    p.moving = false;
+  }
+  // why = told to the player (the client stops its bot box too); returns true when an offline character left
+  stopBot(p, why) {
+    if (!p.bot) return false;
+    p.bot = null; p.moving = false;
+    if (p.offline) { this.leaveWorld(p); return true; }
+    const now = Date.now();
+    p.lastInput = now; p.botGrace = now + 400;             // the client's next move reports are from before the bot
+    p.socket.emit('correct', { x: p.x, y: p.y });
+    if (why) p.socket.emit('botStop', why);
+    return false;
+  }
+  botTick(p, now, dt) {
+    const b = p.bot;
+    if (p.dead) return this.stopBot(p, 'ตัวละครตาย · บอทหยุดทำงาน');
+    if (p.mapId !== b.mapId) return this.stopBot(p, 'เปลี่ยนแผนที่ · บอทหยุดทำงาน');
+    if (now > b.until) return this.stopBot(p, 'บอทพับจอครบ 6 ชั่วโมง · หยุดทำงาน');
+    if (b.hpOn && p.hp < p.stats.maxHp * b.hp / 100) this.botPotion(p, 'hp', now);
+    if (b.mpOn && p.mp < p.stats.maxMp * b.mp / 100) this.botPotion(p, 'mp', now);
+    if (now < p.lockUntil || now < (p.stunUntil || 0)) { p.moving = false; return false; }
+    if (now >= b.next) { b.next = now + 150; this.botThink(p, now); }
+    if (now < (p.rootUntil || 0)) p.moving = false;
+    else this.botWalk(p, dt, now);
+    return false;
+  }
+  // the smallest potion of that kind in the bag (like INV.useKind), once its cooldown is over
+  botPotion(p, kind, now) {
+    if (((p.itemCd && p.itemCd[kind]) || 0) > now) return;
+    let best = -1, bestPct = Infinity;
+    p.inv.forEach((k, i) => { const it = k && C.ITEMS[k]; if (it && it.kind === kind && it.pct < bestPct) { best = i; bestPct = it.pct; } });
+    if (best >= 0) this.onUseItem(p, { idx: best, key: p.inv[best] });
+  }
+  botReady(p, id, now) {
+    const sk = SKILLS[p.cls][id];
+    return sk && p.lvl >= sk.lvl && (p.skl.sk[id] || 0) > 0 && p.mp >= C.skillMp(sk, p.lvl) &&
+      (p.cds[id] || 0) <= now && (p.gcd || 0) <= now;
+  }
+  // same choices as BOT.tick / BOT.fight in public/js/bot.js: keep the target while it stays in the area, else the
+  // nearest (one already hitting me wins against one about as near), first ready ticked skill in reach, then the basic
+  botThink(p, now) {
+    const b = p.bot, inArea = (m, pad = 0) => Math.hypot(m.x - b.ax, m.y - b.ay) <= b.r + pad;
+    const gap = (m) => dist(p, m) - radiusOf(m);
+    let t = b.tid && this.mById.get(b.tid);
+    if (!t || t.dead || t.mapId !== p.mapId || !inArea(t, 80)) {
+      t = null;
+      let bd = Infinity;
+      for (const m of this.maps[p.mapId].monsters) {
+        if (m.dead || !inArea(m) || (b.avoid.get(m.id) || 0) > now) continue;
+        const d = gap(m) - (m.target === p.id ? 150 : 0);
+        if (d < bd) { bd = d; t = m; }
+      }
+      b.tid = t ? t.id : null; b.path = null;
+    }
+    if (!t) { b.goal = Math.hypot(p.x - b.ax, p.y - b.ay) > 60 ? { x: b.ax, y: b.ay } : null; return; }
+    const d = gap(t), aim = { a: Math.atan2(t.y - p.y, t.x - p.x), tx: t.x, ty: t.y, tid: t.id };
+    const pt = this.partyOf(p);
+    const hurt = p.hp < p.stats.maxHp * 0.7 || (pt && pt.members.some((id) => {
+      const q = this.players.get(id);
+      return q && !q.dead && q.mapId === p.mapId && q.hp < q.stats.maxHp * 0.6;
+    }));
+    for (const [id, reach, heal] of b.skills) {
+      if (heal && !hurt) continue;
+      if (C.BUFF_SKILLS.includes(id) && p.buffs && p.buffs[id] && now < p.buffs[id].until) continue;
+      if (d <= reach && this.botReady(p, id, now)) { this.castSkill(p, { id, ...aim }); break; }
+    }
+    if (b.basic) {
+      const r = radiusOf(t), sk = Object.values(SKILLS[p.cls]).find((s) => s.key === '1');
+      const near = Math.hypot(t.x - p.x, t.y - r * 0.4 - (p.y - 18)) <= C.basicReach(p.cls, p.lvl) + r * 0.6;
+      b.goal = near ? null : { x: t.x, y: t.y };
+      if (near && (p.cds[sk.id] || 0) <= now) this.castSkill(p, { id: sk.id, ...aim });
+    } else if (b.skills.length) {
+      const reach = Math.min(...b.skills.map((s) => s[1]).filter((v) => v < 9999), 330) * 0.75;
+      b.goal = d > reach ? { x: t.x, y: t.y } : null;
+    } else b.goal = null;
+  }
+  // walk the A* path toward b.goal (like followPath in main.js); a target that can't be reached is skipped a while
+  botWalk(p, dt, now) {
+    const b = p.bot, g = b.goal;
+    if (!g) { p.moving = false; return; }
+    const map = this.mapOf(p);
+    if (!b.path || now - (b.pathT || 0) > 500 || Math.hypot(g.x - b.gx, g.y - b.gy) > 40) {
+      b.path = PF.find(map, p.x, p.y, g.x, g.y);
+      b.pathT = now; b.gx = g.x; b.gy = g.y;
+      if (!b.path) {
+        if (b.tid) b.avoid.set(b.tid, now + 15000);
+        b.tid = null; b.goal = null; p.moving = false;
+        return;
+      }
+    }
+    if (!b.path.length) { p.moving = false; return; }
+    const [wx, wy] = b.path[0];
+    const dx = wx - p.x, dy = wy - p.y, L = Math.hypot(dx, dy);
+    const step = p.stats.speed * C.combatMoveScale(p.cls, now < p.actUntil, p, now) * dt;
+    const ox = p.x, oy = p.y;
+    if (L <= step) {
+      if (C.canStand(map, wx, wy)) { p.x = wx; p.y = wy; }
+      b.path.shift();
+    } else {
+      const nx = p.x + (dx / L) * step, ny = p.y + (dy / L) * step;
+      if (C.canStand(map, nx, ny)) { p.x = nx; p.y = ny; }
+      else if (C.canStand(map, nx, p.y)) p.x = nx;
+      else if (C.canStand(map, p.x, ny)) p.y = ny;
+      else b.path = null;                                   // blocked: a new path next tick
+    }
+    p.moving = Math.hypot(p.x - ox, p.y - oy) > 0.01;
+    if (p.moving && now >= p.actUntil) p.dir = C.dirFromVec(p.x - ox, p.y - oy);
+  }
+
   onUseItem(p, d) {
     if (p.dead || !d || typeof d !== 'object' || !this.validIdx(d.idx) || !this.bagKeyOk(p, d.idx, d.key)) return;
     const it = C.ITEMS[p.inv[d.idx]];
@@ -2492,12 +2653,12 @@ class World {
   // single enemy for the basic attack: the requested target id if it is inside the cone, else the closest one
   slashTarget(p, a, range, half, tid) {
     let best = null, bd = Infinity;
-    for (const e of this.enemiesOf(p, p.x, p.y, range)) {
+    for (const e of this.enemiesOf(p, p.x, p.y, range + LAG_PAD)) {
       const ey = e.y - radiusOf(e) * 0.4;
       const d = Math.hypot(e.x - p.x, ey - (p.y - 18));
+      if (tid && e.id === tid) { if (d <= range + radiusOf(e) + LAG_PAD) return e; continue; }   // no angle test: aimed from stale positions
       if (d > range + radiusOf(e)) continue;
       if (d > 28 && angDiff(Math.atan2(ey - (p.y - 18), e.x - p.x), a) > half) continue;
-      if (tid && e.id === tid) return e;
       const gap = d - radiusOf(e);                   // nearest by body edge, the same as the client's gapTo
       if (gap < bd) { bd = gap; best = e; }
     }
@@ -2911,7 +3072,8 @@ class World {
         if (q) {
           q.deleted = true;
           q.socket.emit('toast', 'ตัวละครนี้ถูกลบโดย GM');
-          q.socket.disconnect(true);
+          if (q.offline) this.leaveWorld(q);   // kept by the away bot: no socket left to disconnect
+          else q.socket.disconnect(true);
         }
         this.store.remove(rec.name);
         done.push(rec.name);
@@ -3291,6 +3453,7 @@ class World {
     }
 
     for (const p of this.players.values()) {
+      if (p.bot && this.botTick(p, now, dt)) continue;      // true = an offline character left with its bot
       if (p.dead) {
         if (now > p.respawnAt + 20000) this.respawn(p);
         continue;
@@ -3331,6 +3494,7 @@ class World {
   sendSnapshots(now) {
     const plist = [...this.players.values()];
     for (const p of plist) {
+      if (p.offline) continue;                                // nobody is watching
       const P = [], M = [];
       for (const q of plist) {
         if (q.mapId !== p.mapId || Math.abs(q.x - p.x) > VIEW_X || Math.abs(q.y - p.y) > VIEW_Y) continue;
